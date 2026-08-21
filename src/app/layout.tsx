@@ -4,8 +4,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "کارت‌من | فروشگاه تخصصی فرش",
-    template: "%s | کارت‌من",
+    default: "فرش سقطچی | فروشگاه تخصصی فرش",
+    template: "%s | فرش سقطچی",
   },
   description:
     "فروشگاه اینترنتی تخصصی فرش ماشینی، موکت، تابلو فرش، پادری و محصولات مرتبط.",
