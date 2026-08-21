@@ -257,7 +257,9 @@ Integration -> Final Test -> User Approval -> Merge to main
 - نام‌گذاری Branch ({feature}/{ui|backend})
 - Design Tokens پایه (رنگ Primary، Radius) - تغییر باید تصمیم آگاهانه
   با تأیید کاربر باشد
-- استفاده از src/proxy.ts (نه middleware.ts) - نام‌گذاری Next.js 16
+- ایمیل Commit Author باید همیشه `persboy.dev@gmail.com` باشد (باید با
+  ایمیل حساب GitHub مطابقت داشته باشد، وگرنه Vercel Deployment را با
+  خطای "Deployment Blocked - Fix Git Configuration" مسدود می‌کند)
 
 ## 17. Environment Variables
 
