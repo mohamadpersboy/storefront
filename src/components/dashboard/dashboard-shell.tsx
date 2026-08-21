@@ -2,10 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, LogOut, ChevronDown } from "lucide-react";
 import { dashboardNav } from "@/lib/constants/dashboard-nav";
 import { cn } from "@/lib/utils/cn";
+import type { Role } from "@/lib/constants/rbac";
+
+const roleLabels: Record<Role, string> = {
+  super_admin: "مدیر کل",
+  admin: "مدیر",
+  staff: "کارمند",
+  customer: "مشتری",
+};
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -71,9 +79,36 @@ function BrandMark() {
   );
 }
 
-export function DashboardShell({ children }: { children: React.ReactNode }) {
+interface SessionUser {
+  fullName: string | null;
+  phoneNumber: string;
+  role: Role;
+}
+
+export function DashboardShell({
+  children,
+  user,
+}: {
+  children: React.ReactNode;
+  user: SessionUser;
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const router = useRouter();
+
+  const displayName = user.fullName || user.phoneNumber;
+  const initials = displayName.slice(0, 2);
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    try {
+      await fetch("/api/v1/auth/logout", { method: "POST" });
+    } finally {
+      router.push("/login");
+      router.refresh();
+    }
+  }
 
   return (
     <div className="min-h-screen bg-surface-subtle">
@@ -128,19 +163,28 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               className="flex items-center gap-2 rounded-[var(--radius-md)] px-2 py-1.5 hover:bg-surface-subtle"
             >
               <span className="flex size-8 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary">
-                مد
+                {initials}
               </span>
-              <span className="hidden text-sm font-medium text-foreground sm:block">
-                مدیر فروشگاه
+              <span className="hidden flex-col items-start sm:flex">
+                <span className="text-sm font-medium leading-tight text-foreground">
+                  {displayName}
+                </span>
+                <span className="text-[11px] leading-tight text-muted">
+                  {roleLabels[user.role]}
+                </span>
               </span>
               <ChevronDown className="size-4 text-muted" />
             </button>
 
             {userMenuOpen ? (
               <div className="absolute left-0 top-full mt-2 w-44 rounded-[var(--radius-md)] border border-border bg-surface py-1 shadow-md">
-                <button className="flex w-full items-center gap-2 px-3 py-2 text-right text-sm text-danger hover:bg-red-50">
+                <button
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-right text-sm text-danger hover:bg-red-50 disabled:opacity-60"
+                >
                   <LogOut className="size-4" />
-                  خروج از حساب
+                  {loggingOut ? "در حال خروج..." : "خروج از حساب"}
                 </button>
               </div>
             ) : null}

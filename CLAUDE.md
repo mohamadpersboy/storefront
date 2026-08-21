@@ -26,10 +26,10 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
 
 ## 2. Current Status
 
-**مرحله:** Dashboard UI — تکمیل شد، در انتظار تأیید کاربر
-**Branch فعلی:** `dashboard/ui`
-**Feature بعدی:** پس از تأیید UI توسط کاربر → `dashboard/backend`
-(اتصال KPI/Chart/جدول به داده واقعی + OTP Auth واقعی)
+**مرحله:** Dashboard Backend — تکمیل شد، در انتظار تست/تأیید کاربر
+**Branch فعلی:** `dashboard/backend` (شاخه‌شده از `dashboard/ui`)
+**Feature بعدی:** پس از تست End-to-End توسط کاربر (با MongoDB/sms.ir
+واقعی روی Vercel) → Integration نهایی → تأیید کاربر → Merge به `main`
 
 ## 3. Completed
 
@@ -70,6 +70,37 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
   با کامنت/بنر زرد در صفحه به‌عنوان Mock علامت‌گذاری شده (طبق قانون
   «No Fake Data»)
 - فرمت‌دهی اعداد/مبلغ فارسی (`src/lib/utils/format.ts`)
+
+### Dashboard Backend (branch `dashboard/backend`)
+
+- **OTP Authentication واقعی، سرتاسری:**
+  - `POST /api/v1/auth/otp/request` — Validation (Zod)، Cooldown ۶۰
+    ثانیه، محدودیت ۵ درخواست در ساعت، ارسال پیامک واقعی از طریق
+    sms.ir (متد Bulk، پیام سفارشی، نه Template آماده)
+  - `POST /api/v1/auth/otp/verify` — بررسی Hash (HMAC)، محدودیت ۵ تلاش
+    ناموفق، تعیین اتمیک اولین کاربر = Super Admin
+    (`src/models/SystemFlag.ts` — با `insert` روی ایندکس Unique، نه
+    `count()===0`، پس Race-Condition-Safe)، ست‌کردن Session Cookie
+    (HttpOnly, Secure در Production)
+  - `POST /api/v1/auth/logout` — پاک‌کردن Cookie
+- `src/lib/sms/send-otp-sms.ts` — کلاینت sms.ir (endpoint:
+  `POST https://api.sms.ir/v1/send/bulk`)
+- `src/lib/auth/current-user.ts` — خواندن و اعتبارسنجی Session در
+  Server Component/Route Handler (لایه Authorization واقعی)
+- فرم واقعی ورود دو مرحله‌ای (موبایل → کد) در `/login`
+  (`src/components/auth/otp-login-form.tsx`) — جایگزین Placeholder قبلی
+- `src/app/(dashboard)/dashboard/layout.tsx` حالا Session واقعی را از
+  `getCurrentUser()` می‌خواند و در صورت نبود Session یا نقش `customer`
+  Redirect می‌کند (Defense in depth — مستقل از `proxy.ts`)
+- `DashboardShell` به نام/شماره/نقش واقعی کاربر و دکمه خروج واقعی وصل شد
+- **`src/proxy.ts` دوباره فعال شد** — دلیل غیرفعال‌سازی قبلی (نبود Auth
+  واقعی برای Preview) دیگر برطرف شده
+- KPI «تعداد مشتریان» اکنون از دیتابیس واقعی خوانده می‌شود
+  (`User.countDocuments({role:'customer'})`)؛ بقیه KPIها/نمودارها هنوز
+  Mock هستند چون Modelهای Product/Order هنوز ساخته نشده‌اند (به ترتیب
+  در Featureهای بعدی)
+- تست‌های واحد (Vitest) برای منطق حساس: تولید/Hash کردن OTP، Validation
+  شماره موبایل و کد — ۱۶ تست، همه موفق (`npm run test`)
 
 ## 4. In Progress
 
@@ -135,6 +166,7 @@ HttpOnly، Secure در Production). اولین کاربر تأییدشده = Sup
 | lucide-react | 1.33.0 | آیکون |
 | clsx + tailwind-merge | - | ترکیب کلاس‌های Tailwind |
 | eslint / prettier | latest | + prettier-plugin-tailwindcss |
+| vitest | latest | Unit test برای منطق حساس (OTP hash، Validation) |
 
 **تصمیم مهم:** به‌جای Auth.js از یک لایه Session سفارشی با jose
 استفاده شد، چون Flow این پروژه فقط Mobile+OTP است و Auth.js Overhead
@@ -220,7 +252,8 @@ Integration -> Final Test -> User Approval -> Merge to main
 ## 12. Completed Git Branches
 
 - main - Initial Project Setup
-- dashboard/ui - Dashboard Layout + Overview page (Mock Data) - در انتظار تأیید کاربر، هنوز Merge نشده
+- dashboard/ui - Dashboard Layout + Overview page (Mock Data) - در انتظار تأیید، هنوز Merge نشده
+- dashboard/backend - OTP Auth واقعی + Session + KPI مشتریان واقعی - در انتظار تست/تأیید، هنوز Merge نشده
 
 ## 13. Important Decisions Log
 
@@ -232,24 +265,31 @@ Integration -> Final Test -> User Approval -> Merge to main
 | Bootstrap | Repo موجود (mohamadpersboy/cms) که قبلا Reset شده بود مجددا استفاده شد | درخواست قبلی کاربر برای Reset کامل |
 | Bootstrap | Payment Gateway هنوز انتخاب نشده | معماری Provider-Agnostic آماده می‌شود؛ تصمیم گیت‌وی بعدا |
 | Bootstrap | Claude مستقیما Git را مدیریت می‌کند (کاربر خودش Commit/Push نمی‌کند) | تصمیم صریح کاربر - Vercel مستقیم به GitHub وصل است |
+| Dashboard Backend | sms.ir Bulk method (نه Verify Template آماده) | طبق بند ۷ Master Prompt: پیام OTP سفارشی، نه Template آماده |
+| Dashboard Backend | اولین Super Admin با insert روی Unique Index، نه findOneAndUpdate($ne) | ساده‌تر و قطعا Atomic؛ خطای Duplicate-Key رقابت را حل می‌کند |
+| Dashboard Backend | proxy.ts دوباره فعال شد | دلیل غیرفعال‌سازی قبلی (نبود Auth واقعی برای Preview) دیگر برطرف شده |
 
 ## 14. Known Issues
 
-- **موقتاً غیرفعال:** بررسی Auth در `src/proxy.ts` برای `/dashboard/*`
-  به‌طور موقت (به درخواست صریح کاربر) غیرفعال شده تا UI بدون نیاز به
-  Login قابل بررسی باشد. غیرفعال‌سازی فقط روی Preview/Development اثر
-  دارد (بر اساس `VERCEL_ENV`/`NODE_ENV`) و روی یک Deploy واقعی
-  Production هرگز اعمال نمی‌شود. **باید قبل از شروع `dashboard/backend`
-  و هر Merge به `main` دوباره فعال شود** — تا وقتی کاربر صراحتاً بگوید.
+- **حل‌شده:** غیرفعال‌سازی موقت Auth روی `/dashboard` (که قبلاً برای
+  بررسی UI فعال شده بود) اکنون که OTP Auth واقعی ساخته شده، برداشته
+  شد — `proxy.ts` دوباره فعال است.
+- **محدودیت شناخته‌شده:** اگر بعد از `claimFirstAdminSlot()` (قفل اولین
+  Super Admin) ساخت User به هر دلیلی شکست بخورد، پرچم قفل‌شده باقی
+  می‌ماند و دیگر هیچ کاربری Super Admin نمی‌شود (نیاز به رفع دستی در
+  دیتابیس). این حالت بسیار نادر است (فقط اگر دیتابیس بین دو Write قطع
+  شود) و برای سادگی فعلاً به همین شکل پذیرفته شده — قابل بهبود در آینده
+  با یک الگوی Transaction.
+- **هنوز تست End-to-End واقعی نشده:** به‌دلیل نبود دسترسی شبکه به
+  MongoDB/sms.ir در محیط توسعه Claude، فقط Lint/Typecheck/Build/Unit
+  Test اجرا شده. تست واقعی ورود با شماره موبایل واقعی باید روی
+  Vercel Preview (با Environment Variables واقعی) توسط کاربر انجام شود.
 
 ## 15. TODO (نزدیک)
 
-- [ ] طراحی Dashboard Layout (Sidebar + Topbar + Mobile Drawer)
-- [ ] KPI Cards با Mock Data
-- [ ] Charts placeholder
-- [ ] پیاده‌سازی واقعی /api/v1/auth/otp/request و /verify
-  (اسکلت پوشه ساخته شده، منطق خالی است)
-- [ ] منطق Atomic اولین کاربر = Super Admin
+- [ ] تست End-to-End واقعی OTP روی Vercel Preview (نیاز به Env واقعی)
+- [ ] بعد از تأیید: Merge کامل `dashboard/ui` + `dashboard/backend` به `main`
+- [ ] شروع Feature بعدی: Users Management
 
 ## 16. Do Not Change (بدون دلیل قوی)
 

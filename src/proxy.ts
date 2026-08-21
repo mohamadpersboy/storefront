@@ -3,38 +3,23 @@ import type { NextRequest } from "next/server";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/session";
 
 /**
- * ⚠️ TEMPORARILY DISABLED (by explicit user request) so /dashboard can be
- * reviewed visually before real Auth is built. DO NOT leave this disabled
- * past the Dashboard UI review step — re-enable before Dashboard Backend /
- * Integration work begins. See CLAUDE.md → "Known Issues".
- *
- * Safety guard: this only skips the check when it is NOT a real
- * Production deployment. We check `VERCEL_ENV` rather than `NODE_ENV`
- * because Vercel always sets NODE_ENV=production during `next build`
- * for every deployment — including Preview builds for feature branches.
- * `VERCEL_ENV` is the value that actually distinguishes "production"
- * from "preview"/"development". Locally (no VERCEL_ENV) it falls back
- * to NODE_ENV. Bottom line: a real production deploy on the primary
- * domain can never accidentally ship with an open /dashboard.
+ * Re-enabled now that real OTP Authentication exists (Dashboard Backend
+ * phase). Previously this was temporarily disabled at the user's
+ * explicit request so the Dashboard UI could be reviewed without a
+ * working login. That reason no longer applies — logging in now works
+ * for real, so the optimistic check is back to protecting /dashboard.
  *
  * Optimistic-only check: redirects obviously-unauthenticated visitors
  * away from /dashboard before any page code runs. This is NOT the
- * authorization boundary — every dashboard route/server action must
- * still re-verify the session and permission server-side, because
- * Proxy cannot be trusted as the sole gatekeeper (see Next.js docs).
+ * authorization boundary — src/app/(dashboard)/dashboard/layout.tsx
+ * (via getCurrentUser()) re-verifies the session and role server-side
+ * on every request, because Proxy cannot be trusted as the sole
+ * gatekeeper (see Next.js docs).
  */
-const isRealProduction =
-  (process.env.VERCEL_ENV ?? process.env.NODE_ENV) === "production";
-const AUTH_CHECK_DISABLED = !isRealProduction;
-
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!pathname.startsWith("/dashboard")) {
-    return NextResponse.next();
-  }
-
-  if (AUTH_CHECK_DISABLED) {
     return NextResponse.next();
   }
 

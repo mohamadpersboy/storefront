@@ -20,14 +20,27 @@ import {
   mockOrderStatusDistribution,
 } from "@/lib/mock/dashboard";
 import { formatToman, toPersianDigits } from "@/lib/utils/format";
+import { connectToDatabase } from "@/lib/db/connect";
+import { User } from "@/models/User";
+import { ROLES } from "@/lib/constants/rbac";
 
-export default function DashboardOverviewPage() {
+async function getCustomersCount() {
+  await connectToDatabase();
+  return User.countDocuments({ role: ROLES.CUSTOMER });
+}
+
+export default async function DashboardOverviewPage() {
+  const customersCount = await getCustomersCount();
+
   return (
     <div className="flex flex-col gap-4 lg:gap-6">
-      {/* MOCK DATA — این صفحه هنوز به Backend وصل نیست. */}
+      {/* بخشی از این صفحه (تعداد مشتریان) اکنون از دیتابیس واقعی است.
+          بقیه KPIها/نمودارها همچنان Mock هستند تا Feature‌های Products
+          و Orders ساخته شوند — طبق CLAUDE.md "No Fake Data Rule". */}
       <div className="rounded-[var(--radius-md)] border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
-        داده‌های این صفحه نمایشی (Mock) هستند و در فاز Backend با
-        اطلاعات واقعی جایگزین می‌شوند.
+        «تعداد مشتریان» از دیتابیس واقعی است. بقیه ارقام این صفحه هنوز
+        نمایشی (Mock) هستند و پس از تکمیل Featureهای محصولات و سفارش‌ها
+        جایگزین می‌شوند.
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -54,7 +67,7 @@ export default function DashboardOverviewPage() {
         />
         <KpiCard
           label="تعداد مشتریان"
-          value={toPersianDigits(mockKpis.customersCount)}
+          value={toPersianDigits(customersCount)}
           icon={Users}
         />
         <KpiCard
