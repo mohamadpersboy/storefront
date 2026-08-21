@@ -235,7 +235,12 @@ Integration -> Final Test -> User Approval -> Merge to main
 
 ## 14. Known Issues
 
-هیچ - پروژه تازه Bootstrap شده.
+- **موقتاً غیرفعال:** بررسی Auth در `src/proxy.ts` برای `/dashboard/*`
+  به‌طور موقت (به درخواست صریح کاربر) غیرفعال شده تا UI بدون نیاز به
+  Login قابل بررسی باشد. غیرفعال‌سازی فقط روی Preview/Development اثر
+  دارد (بر اساس `VERCEL_ENV`/`NODE_ENV`) و روی یک Deploy واقعی
+  Production هرگز اعمال نمی‌شود. **باید قبل از شروع `dashboard/backend`
+  و هر Merge به `main` دوباره فعال شود** — تا وقتی کاربر صراحتاً بگوید.
 
 ## 15. TODO (نزدیک)
 
