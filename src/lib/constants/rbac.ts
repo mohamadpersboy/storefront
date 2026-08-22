@@ -67,6 +67,7 @@ const ADMIN_PERMISSIONS: Permission[] = [
   PERMISSIONS.DISCOUNTS_READ,
   PERMISSIONS.DISCOUNTS_MANAGE,
   PERMISSIONS.USERS_READ,
+  PERMISSIONS.USERS_UPDATE,
 ];
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
@@ -78,4 +79,17 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
 
 export function roleHasPermission(role: Role, permission: Permission): boolean {
   return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+}
+
+/**
+ * Only a Super Admin may grant the "admin" or "super_admin" role.
+ * An Admin can only assign "staff" or "customer" — otherwise an Admin
+ * could promote an arbitrary account (including their own, if the
+ * self-change guard were ever removed) to Admin/Super Admin.
+ */
+export function canAssignRole(actorRole: Role, targetRole: Role): boolean {
+  if (targetRole === ROLES.ADMIN || targetRole === ROLES.SUPER_ADMIN) {
+    return actorRole === ROLES.SUPER_ADMIN;
+  }
+  return actorRole === ROLES.SUPER_ADMIN || actorRole === ROLES.ADMIN;
 }
