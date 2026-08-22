@@ -30,9 +30,27 @@ const envSchema = z.object({
   // SMS.ir
   SMS_IR_API_KEY: z.string().min(1),
   SMS_IR_LINE_NUMBER: z.string().min(1),
+  SMS_IR_OTP_TEMPLATE_ID: z.string().min(1),
 
   // App
-  NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+  //
+  // Resolution order:
+  // 1. NEXT_PUBLIC_APP_URL, exactly as set — if given without a
+  //    protocol (e.g. someone pastes just "cms.vercel.app"), we add
+  //    https:// automatically rather than failing the build.
+  // 2. VERCEL_URL — Vercel sets this automatically on every
+  //    deployment (including each Preview build, which gets its own
+  //    unique URL), so Preview builds work without any manual value.
+  // 3. http://localhost:3000 — local dev fallback.
+  NEXT_PUBLIC_APP_URL: z.preprocess((value) => {
+    const raw =
+      typeof value === "string" && value.trim() !== ""
+        ? value.trim()
+        : process.env.VERCEL_URL
+          ? process.env.VERCEL_URL
+          : "http://localhost:3000";
+    return /^https?:\/\//.test(raw) ? raw : `https://${raw}`;
+  }, z.string().url()),
 });
 
 function loadEnv() {
