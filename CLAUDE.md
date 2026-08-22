@@ -26,9 +26,14 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
 
 ## 2. Current Status
 
-**مرحله:** Users Management (UI + Backend) — Merge شد به `main` ✅
-**Branch فعلی:** `main`
-**Feature بعدی:** Products (طبق ترتیب بند ۵ Master Prompt)
+**مرحله:** Categories UI — تکمیل شد، در انتظار تست/تأیید کاربر
+**Branch فعلی:** `categories/ui`
+**Feature بعدی:** پس از تأیید UI → `categories/backend`
+
+**تصمیم معماری:** ترتیب Featureهای بعدی از «Users → Products →
+Categories» به «Users → **Categories** → Products» تغییر کرد، چون
+`Product.category` یک فیلد اجباری است که به `Category` وصل می‌شود —
+منطقی نبود فرم ساخت محصول را قبل از وجود دسته‌بندی واقعی بسازیم.
 
 ## 3. Completed
 
@@ -149,6 +154,25 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
 - `src/lib/mock/users.ts` حذف شد (Dead Code — دیگر استفاده نمی‌شود)
 - ۴ Unit Test جدید برای `canAssignRole` (جلوگیری از Privilege
   Escalation) — مجموعاً ۲۰ تست، همه موفق
+
+### Categories UI (branch `categories/ui`)
+
+- `/dashboard/categories`: نمای درختی دو سطحی (باز/بسته‌شدن زیردسته‌ها)
+  روی داده Mock (۸ دسته اصلی، برخی با زیردسته، مطابق لیست بند ۱۸
+  Master Prompt: فرش ماشینی، موکت، کناره، پشتی، تابلو فرش، روفرشی،
+  پادری، قالیچه)
+- `/dashboard/categories/new` و `/dashboard/categories/[id]/edit`: فرم
+  مشترک (`CategoryForm`) با تولید خودکار Slug از نام (فقط برای ورودی
+  لاتین کار می‌کند، طبق تست‌های `slugify`)
+- **محدودیت عمق ۲ سطح در همین لایه UI هم اعمال شده:** فیلد «والد» فقط
+  دسته‌های سطح اول را نشان می‌دهد، و اگر دسته‌ای در حال ویرایش خودش
+  زیردسته داشته باشد، فیلد والد غیرفعال می‌شود (نمی‌تواند زیرمجموعه
+  شود چون خودش زیردسته دارد)
+- حذف با `ConfirmDialog` (هشدار جداگانه اگر دسته زیردسته هم داشته باشد)
+- `src/lib/utils/slugify.ts` + ۵ Unit Test — مجموعاً ۲۵ تست
+- Add/Edit/Delete فقط روی State محلی React شبیه‌سازی می‌شود (با Refresh
+  از بین می‌رود) — به‌صراحت با بنر زرد اعلام شده، طبق «No Fake Data»
+- نقش «دسته‌بندی‌ها» در Navigation فعال شد
 - **`src/proxy.ts` دوباره فعال شد** — دلیل غیرفعال‌سازی قبلی (نبود Auth
   واقعی برای Preview) دیگر برطرف شده
 - KPI «تعداد مشتریان» اکنون از دیتابیس واقعی خوانده می‌شود
@@ -160,9 +184,8 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
 
 ## 4. In Progress
 
-هیچ Feature‌ای در حال توسعه نیست. همه Branchها (dashboard/ui,
-dashboard/backend, users/ui, users/backend, chore/vercel-env-sync) به
-`main` Merge شدند. منتظر شروع Feature بعدی: Products.
+Categories UI ساخته شده و منتظر تست/تأیید کاربر است. هنوز به `main`
+Merge نشده.
 
 ## 5. Planned (به ترتیب اولویت طبق Master Prompt)
 
@@ -309,11 +332,8 @@ Integration -> Final Test -> User Approval -> Merge to main
 ## 12. Completed Git Branches
 
 - main - Initial Project Setup + Dashboard (UI+Backend) + Users Management (UI+Backend) + Vercel env sync script (Merged ✅)
-- dashboard/ui - Merged into main
-- dashboard/backend - Merged into main
-- users/ui - Merged into main
-- users/backend - Merged into main
-- chore/vercel-env-sync - Merged into main
+- dashboard/ui, dashboard/backend, users/ui, users/backend, chore/vercel-env-sync - Merged و حذف شدند
+- categories/ui - نمای درختی + فرم دسته‌بندی (Mock Data) - در انتظار تأیید، هنوز Merge نشده
 
 ## 13. Important Decisions Log
 
@@ -348,10 +368,11 @@ Integration -> Final Test -> User Approval -> Merge to main
 
 ## 15. TODO (نزدیک)
 
-- [ ] تست/تأیید کاربر روی `users/backend` (نیاز به حداقل ۲ کاربر واقعی
-  در دیتابیس برای تست کامل — یکی Super Admin و یکی معمولی)
+- [ ] تست/تأیید کاربر روی `categories/ui`
+- [ ] `categories/backend`: مدل Category (Mongoose، Validation عمق ۲
+  سطح در Server هم، نه فقط UI)، API کامل CRUD، Slug یکتا
 - [ ] Merge به `main` پس از تأیید
-- [ ] شروع Feature بعدی: Products (طبق ترتیب بند ۵ Master Prompt)
+- [ ] شروع Feature بعدی: Products (که حالا به Category واقعی وصل می‌شود)
 
 ## 16. Do Not Change (بدون دلیل قوی)
 
