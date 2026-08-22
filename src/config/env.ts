@@ -30,6 +30,7 @@ const envSchema = z.object({
   // SMS.ir
   SMS_IR_API_KEY: z.string().min(1),
   SMS_IR_LINE_NUMBER: z.string().min(1),
+  SMS_IR_OTP_TEMPLATE_ID: z.string().min(1),
 
   // App
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),

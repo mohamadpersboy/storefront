@@ -1,29 +1,32 @@
 import { env } from "@/config/env";
 
-const SMS_IR_SEND_URL = "https://api.sms.ir/v1/send/bulk";
+const SMS_IR_VERIFY_URL = "https://api.sms.ir/v1/send/verify";
 
 /**
- * Sends a custom OTP message via sms.ir's Bulk send method (not the
- * ready-made "verify" template) so we control the exact message text.
- * Docs: https://apidocs.sms.ir/ — POST /v1/send/bulk, header X-API-KEY.
+ * Sends the OTP via sms.ir's Pattern/Verify method — the method sms.ir
+ * itself recommends for verification codes: it goes out over a
+ * service line with high delivery priority and reaches recipients who
+ * have opted out of ad/bulk SMS, unlike the plain Bulk method.
+ *
+ * Requires a pre-approved template in the sms.ir panel (Programmers →
+ * Patterns) with a single parameter named "Code". The approved
+ * template's numeric ID is SMS_IR_OTP_TEMPLATE_ID.
+ * Docs: https://sms.ir/rest-api/ — POST /v1/send/verify.
  */
 export async function sendOtpSms(
   phoneNumber: string,
   code: string,
 ): Promise<void> {
-  const messageText = `کد ورود شما به فرش سقطچی: ${code}\nاین کد تا ۲ دقیقه معتبر است.`;
-
-  const response = await fetch(SMS_IR_SEND_URL, {
+  const response = await fetch(SMS_IR_VERIFY_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-API-KEY": env.SMS_IR_API_KEY,
+      "x-api-key": env.SMS_IR_API_KEY,
     },
     body: JSON.stringify({
-      lineNumber: Number(env.SMS_IR_LINE_NUMBER),
-      messageText,
-      mobiles: [phoneNumber],
-      sendDateTime: null,
+      mobile: phoneNumber,
+      templateId: Number(env.SMS_IR_OTP_TEMPLATE_ID),
+      parameters: [{ name: "Code", value: code }],
     }),
   });
 

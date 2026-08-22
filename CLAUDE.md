@@ -83,8 +83,12 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
     `count()===0`، پس Race-Condition-Safe)، ست‌کردن Session Cookie
     (HttpOnly, Secure در Production)
   - `POST /api/v1/auth/logout` — پاک‌کردن Cookie
-- `src/lib/sms/send-otp-sms.ts` — کلاینت sms.ir (endpoint:
-  `POST https://api.sms.ir/v1/send/bulk`)
+- `src/lib/sms/send-otp-sms.ts` — کلاینت sms.ir، متد **Pattern/Verify**
+  (endpoint: `POST https://api.sms.ir/v1/send/verify`) با
+  `templateId` تأییدشده (`SMS_IR_OTP_TEMPLATE_ID=963650`) و پارامتر
+  `Code` — این متد برای OTP از خط خدماتی با اولویت بالا ارسال می‌شود و
+  حتی برای کاربرانی که پیامک تبلیغاتی را مسدود کرده‌اند هم می‌رسد
+  (بر خلاف متد Bulk که ابتدا استفاده شده بود)
 - `src/lib/auth/current-user.ts` — خواندن و اعتبارسنجی Session در
   Server Component/Route Handler (لایه Authorization واقعی)
 - فرم واقعی ورود دو مرحله‌ای (موبایل → کد) در `/login`
@@ -265,7 +269,7 @@ Integration -> Final Test -> User Approval -> Merge to main
 | Bootstrap | Repo موجود (mohamadpersboy/cms) که قبلا Reset شده بود مجددا استفاده شد | درخواست قبلی کاربر برای Reset کامل |
 | Bootstrap | Payment Gateway هنوز انتخاب نشده | معماری Provider-Agnostic آماده می‌شود؛ تصمیم گیت‌وی بعدا |
 | Bootstrap | Claude مستقیما Git را مدیریت می‌کند (کاربر خودش Commit/Push نمی‌کند) | تصمیم صریح کاربر - Vercel مستقیم به GitHub وصل است |
-| Dashboard Backend | sms.ir Bulk method (نه Verify Template آماده) | طبق بند ۷ Master Prompt: پیام OTP سفارشی، نه Template آماده |
+| Dashboard Backend | متد Pattern/Verify sms.ir (نه Bulk) با Template ID تأییدشده `963650` | خود مستندات sms.ir این متد را برای OTP توصیه می‌کند: اولویت بالا از خط خدماتی، حتی برای کاربرانی که پیامک تبلیغاتی را مسدود کرده‌اند هم می‌رسد؛ متد Bulk اولیه (که ابتدا انتخاب شده بود) این تضمین‌ها را نداشت |
 | Dashboard Backend | اولین Super Admin با insert روی Unique Index، نه findOneAndUpdate($ne) | ساده‌تر و قطعا Atomic؛ خطای Duplicate-Key رقابت را حل می‌کند |
 | Dashboard Backend | proxy.ts دوباره فعال شد | دلیل غیرفعال‌سازی قبلی (نبود Auth واقعی برای Preview) دیگر برطرف شده |
 
@@ -306,7 +310,13 @@ Integration -> Final Test -> User Approval -> Merge to main
 نام کامل در .env.example. خلاصه:
 MONGODB_URI, AUTH_SECRET, OTP_HASH_SECRET, CLOUDINARY_CLOUD_NAME,
 CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, SMS_IR_API_KEY,
-SMS_IR_LINE_NUMBER, NEXT_PUBLIC_APP_URL, NODE_ENV.
+SMS_IR_LINE_NUMBER, SMS_IR_OTP_TEMPLATE_ID, NEXT_PUBLIC_APP_URL,
+NODE_ENV.
+
+SMS_IR_OTP_TEMPLATE_ID فعلاً `963650` است (Template تأییدشده در پنل
+sms.ir با یک پارامتر به نام Code). SMS_IR_LINE_NUMBER فعلاً فقط برای
+استفاده احتمالی آینده از متد Bulk نگه داشته شده - OTP از آن استفاده
+نمی‌کند.
 
 هیچ مقدار واقعی Secret هرگز نباید Commit شود. .env.local در
 .gitignore است (الگوی .env*).
