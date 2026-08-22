@@ -26,9 +26,9 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
 
 ## 2. Current Status
 
-**مرحله:** Dashboard (UI + Backend) — Merge شد به `main` ✅
-**Branch فعلی:** `main`
-**Feature بعدی:** Users Management (`users/ui` → `users/backend`)
+**مرحله:** Users Management UI — تکمیل شد، در انتظار تست/تأیید کاربر
+**Branch فعلی:** `users/ui`
+**Feature بعدی:** پس از تأیید UI → `users/backend`
 
 ## 3. Completed
 
@@ -98,6 +98,23 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
 - `DashboardShell` به نام/شماره/نقش واقعی کاربر و دکمه خروج واقعی وصل شد
 - Drawer موبایل حالا با انیمیشن باز/بسته می‌شود (اسلاید از راست +
   Fade پس‌زمینه، ۲۵۰ میلی‌ثانیه) به‌جای ظاهر/ناپدید شدن یکباره
+
+### Users Management UI (branch `users/ui`)
+
+- صفحه لیست کاربران (`/dashboard/users`): جستجو (نام/موبایل) و فیلتر
+  نقش که **واقعاً** روی داده Mock کار می‌کنند (فقط منبع داده Mock است،
+  خود جستجو/فیلتر/Pagination واقعی و Functional هستند)، Pagination
+  کلاینتی، Empty State، `loading.tsx`/`error.tsx`
+- صفحه جزئیات کاربر (`/dashboard/users/[id]`): اطلاعات کاربر، تعداد
+  سفارش، تاریخ عضویت/آخرین ورود؛ کنترل‌های «تغییر نقش» و
+  «فعال/غیرفعال‌سازی» **عمداً غیرفعال (disabled)** با توضیح صریح که
+  چون Backend هنوز وصل نشده — طبق قانون «No Fake Data» دکمه‌ای که کاری
+  واقعی انجام نمی‌دهد نباید فعال به نظر برسد
+- Componentهای جدید: `RoleBadge`, `UserStatusBadge`, `Pagination`,
+  `Select` (اضافه به UI primitives)
+- نقش «کاربران» در Navigation فعال شد
+- `src/lib/mock/users.ts` — ۲۴ کاربر نمایشی (بدون `Math.random()` تا
+  Hydration Mismatch رخ ندهد — از فرمول قطعی استفاده شده)
 - **`src/proxy.ts` دوباره فعال شد** — دلیل غیرفعال‌سازی قبلی (نبود Auth
   واقعی برای Preview) دیگر برطرف شده
 - KPI «تعداد مشتریان» اکنون از دیتابیس واقعی خوانده می‌شود
@@ -109,8 +126,8 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
 
 ## 4. In Progress
 
-هیچ Feature‌ای در حال توسعه نیست. Dashboard (UI+Backend) به `main`
-Merge شد و کاربر تأیید کرد. منتظر شروع Feature بعدی: Users Management.
+Users Management UI ساخته شده و منتظر تست/تأیید کاربر است. هنوز به
+`main` Merge نشده.
 
 ## 5. Planned (به ترتیب اولویت طبق Master Prompt)
 
@@ -259,6 +276,7 @@ Integration -> Final Test -> User Approval -> Merge to main
 - main - Initial Project Setup + Dashboard UI + Dashboard Backend (Merged ✅)
 - dashboard/ui - Merged into main
 - dashboard/backend - Merged into main
+- users/ui - لیست کاربران + جزئیات کاربر (Mock Data) - در انتظار تأیید، هنوز Merge نشده
 
 ## 13. Important Decisions Log
 
@@ -293,11 +311,12 @@ Integration -> Final Test -> User Approval -> Merge to main
 
 ## 15. TODO (نزدیک)
 
-- [ ] شروع Feature بعدی: Users Management
-  - [ ] `users/ui`: صفحه لیست کاربران (جدول + جستجو + Pagination UI + فیلتر نقش)، صفحه جزئیات کاربر
-  - [ ] تست و تأیید UI
-  - [ ] `users/backend`: API لیست/جستجو/Pagination واقعی (mongoose-paginate-v2)، تغییر Role، فعال/غیرفعال کردن کاربر — همه با Authorization سمت سرور (فقط super_admin/admin)
-  - [ ] Merge به `main` پس از تأیید
+- [ ] تست/تأیید کاربر روی `users/ui`
+- [ ] `users/backend`: API لیست/جستجو/Pagination واقعی
+  (mongoose-paginate-v2)، تغییر Role، فعال/غیرفعال کردن کاربر — همه با
+  Authorization سمت سرور (فقط super_admin/admin؛ super_admin نباید
+  بتواند نقش خودش را غیرفعال/تنزل کند - باید Validate شود)
+- [ ] Merge به `main` پس از تأیید
 
 ## 16. Do Not Change (بدون دلیل قوی)
 
