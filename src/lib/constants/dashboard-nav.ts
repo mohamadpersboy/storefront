@@ -22,7 +22,7 @@ export interface DashboardNavItem {
 export const dashboardNav: DashboardNavItem[] = [
   { label: "داشبورد", href: "/dashboard", icon: LayoutDashboard, enabled: true },
   { label: "محصولات", href: "/dashboard/products", icon: Package, enabled: false },
-  { label: "دسته‌بندی‌ها", href: "/dashboard/categories", icon: FolderTree, enabled: false },
+  { label: "دسته‌بندی‌ها", href: "/dashboard/categories", icon: FolderTree, enabled: true },
   { label: "سفارش‌ها", href: "/dashboard/orders", icon: ShoppingCart, enabled: false },
   { label: "مشتریان", href: "/dashboard/customers", icon: Users, enabled: false },
   { label: "کاربران", href: "/dashboard/users", icon: UserCog, enabled: true },
