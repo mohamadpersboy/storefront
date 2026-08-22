@@ -26,9 +26,9 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
 
 ## 2. Current Status
 
-**مرحله:** Users Management UI — تکمیل شد، در انتظار تست/تأیید کاربر
-**Branch فعلی:** `users/ui`
-**Feature بعدی:** پس از تأیید UI → `users/backend`
+**مرحله:** Users Management Backend — تکمیل شد، در انتظار تست/تأیید کاربر
+**Branch فعلی:** `users/backend` (شاخه‌شده از `users/ui`)
+**Feature بعدی:** پس از تست/تأیید → Merge به `main` → شروع Products
 
 ## 3. Completed
 
@@ -115,6 +115,40 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
 - نقش «کاربران» در Navigation فعال شد
 - `src/lib/mock/users.ts` — ۲۴ کاربر نمایشی (بدون `Math.random()` تا
   Hydration Mismatch رخ ندهد — از فرمول قطعی استفاده شده)
+
+### Users Management Backend (branch `users/backend`)
+
+- **API واقعی:**
+  - `GET /api/v1/users` — لیست با Pagination واقعی
+    (`mongoose-paginate-v2`)، جستجو (نام/موبایل با Regex Escape‌شده)،
+    فیلتر نقش
+  - `GET /api/v1/users/[id]` — جزئیات یک کاربر
+  - `PATCH /api/v1/users/[id]/role` — تغییر نقش
+  - `PATCH /api/v1/users/[id]/status` — فعال/غیرفعال‌سازی
+- `src/lib/auth/api-guard.ts` — `requireApiUser(permission)`: لایه
+  Authorization واقعی روی هر Route (مستقل از `proxy.ts` و
+  Dashboard Layout که فقط ناوبری صفحه را کنترل می‌کنند)
+- **قوانین امنیتی مهم پیاده‌سازی‌شده** (`canAssignRole` در
+  `rbac.ts` + منطق داخل Routeها):
+  - هیچ‌کس (حتی Super Admin) نمی‌تواند نقش/وضعیت حساب خودش را از این
+    مسیر تغییر دهد (جلوگیری از قفل‌شدن تصادفی)
+  - فقط Super Admin می‌تواند نقش `admin`/`super_admin` اعطا کند —
+    Admin نمی‌تواند خودش یا دیگری را Admin کند (جلوگیری از
+    Privilege Escalation)
+  - Admin نمی‌تواند نقش/وضعیت یک Admin یا Super Admin دیگر را تغییر دهد
+  - غیرفعال‌کردن یا تنزل آخرین Super Admin فعال سیستم مسدود می‌شود
+    (همیشه حداقل یک Super Admin فعال باقی می‌ماند)
+- `admin` اکنون permission `users.update` هم دارد (قبلاً فقط `read`)
+- Frontend به API واقعی وصل شد:
+  - لیست کاربران: Fetch واقعی با Debounce جستجو (۴۰۰ms)، Loading با
+    `useTransition` (React 19 — بدون setState همزمان داخل Effect)،
+    Error State با Retry
+  - جزئیات کاربر: Select نقش و دکمه غیرفعال‌سازی اکنون واقعاً کار
+    می‌کنند؛ `ConfirmDialog` جدید برای تأیید عملیات حساس (غیرفعال‌سازی)
+    طبق بند ۷۸ Master Prompt
+- `src/lib/mock/users.ts` حذف شد (Dead Code — دیگر استفاده نمی‌شود)
+- ۴ Unit Test جدید برای `canAssignRole` (جلوگیری از Privilege
+  Escalation) — مجموعاً ۲۰ تست، همه موفق
 - **`src/proxy.ts` دوباره فعال شد** — دلیل غیرفعال‌سازی قبلی (نبود Auth
   واقعی برای Preview) دیگر برطرف شده
 - KPI «تعداد مشتریان» اکنون از دیتابیس واقعی خوانده می‌شود
@@ -126,8 +160,8 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
 
 ## 4. In Progress
 
-Users Management UI ساخته شده و منتظر تست/تأیید کاربر است. هنوز به
-`main` Merge نشده.
+Users Management Backend ساخته شده و منتظر تست/تأیید کاربر است. هنوز
+به `main` Merge نشده.
 
 ## 5. Planned (به ترتیب اولویت طبق Master Prompt)
 
@@ -276,7 +310,8 @@ Integration -> Final Test -> User Approval -> Merge to main
 - main - Initial Project Setup + Dashboard UI + Dashboard Backend (Merged ✅)
 - dashboard/ui - Merged into main
 - dashboard/backend - Merged into main
-- users/ui - لیست کاربران + جزئیات کاربر (Mock Data) - در انتظار تأیید، هنوز Merge نشده
+- users/ui - لیست کاربران + جزئیات کاربر (Mock Data) - Merged شد داخل users/backend
+- users/backend - API واقعی + Authorization + RBAC Security - در انتظار تست/تأیید، هنوز Merge نشده به main
 
 ## 13. Important Decisions Log
 
@@ -311,12 +346,10 @@ Integration -> Final Test -> User Approval -> Merge to main
 
 ## 15. TODO (نزدیک)
 
-- [ ] تست/تأیید کاربر روی `users/ui`
-- [ ] `users/backend`: API لیست/جستجو/Pagination واقعی
-  (mongoose-paginate-v2)، تغییر Role، فعال/غیرفعال کردن کاربر — همه با
-  Authorization سمت سرور (فقط super_admin/admin؛ super_admin نباید
-  بتواند نقش خودش را غیرفعال/تنزل کند - باید Validate شود)
+- [ ] تست/تأیید کاربر روی `users/backend` (نیاز به حداقل ۲ کاربر واقعی
+  در دیتابیس برای تست کامل — یکی Super Admin و یکی معمولی)
 - [ ] Merge به `main` پس از تأیید
+- [ ] شروع Feature بعدی: Products (طبق ترتیب بند ۵ Master Prompt)
 
 ## 16. Do Not Change (بدون دلیل قوی)
 
