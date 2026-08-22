@@ -26,9 +26,9 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
 
 ## 2. Current Status
 
-**مرحله:** Categories UI — تکمیل شد، در انتظار تست/تأیید کاربر
-**Branch فعلی:** `categories/ui`
-**Feature بعدی:** پس از تأیید UI → `categories/backend`
+**مرحله:** Categories UI — Merge شد به `main` ✅
+**Branch فعلی:** `main` (طبق سیاست جدید، همیشه `main` — بخش ۱۱ را ببینید)
+**Feature بعدی:** Categories Backend (مدل واقعی + API)
 
 **تصمیم معماری:** ترتیب Featureهای بعدی از «Users → Products →
 Categories» به «Users → **Categories** → Products» تغییر کرد، چون
@@ -184,8 +184,8 @@ Categories» به «Users → **Categories** → Products» تغییر کرد، 
 
 ## 4. In Progress
 
-Categories UI ساخته شده و منتظر تست/تأیید کاربر است. هنوز به `main`
-Merge نشده.
+Categories UI به `main` Merge شد. طبق سیاست جدید (push مستقیم روی
+main)، Categories Backend همینجا روی main ادامه پیدا می‌کند.
 
 ## 5. Planned (به ترتیب اولویت طبق Master Prompt)
 
@@ -319,20 +319,31 @@ Variant، Inventory، Order، Payment، Discount، AmazingOffer، Address.
 
 ## 11. Git Workflow
 
-Branch Naming: {feature}/{sub-feature?}/{ui|backend} - مثلا
-dashboard/users/ui، products/backend.
+**⚠️ تغییر سیاست (تصمیم صریح کاربر):** از این مرحله به بعد،
+Push مستقیماً روی `main` انجام می‌شود — بدون Branch جداگانه برای هر
+Feature و بدون توقف برای تأیید UI/Backend به‌صورت جدا. دلیل: تست هر
+مرحله نیاز به Login واقعی با OTP دارد که هزینه پیامک واقعی روی کاربر
+می‌گذارد؛ Branch/Approval جداگانه برای UI و Backand این هزینه را
+دوبرابر می‌کرد.
 
-فرآیند اجباری هر Feature:
-```
-UI -> UI Test -> UI Approval -> Backend -> Backend Test ->
-Integration -> Final Test -> User Approval -> Merge to main
-```
-هیچ Merge‌ای بدون تأیید صریح کاربر انجام نمی‌شود.
+**آنچه همچنان قبل از هر Push رعایت می‌شود** (کیفیت فدای سرعت نمی‌شود):
+- Lint، Typecheck، Test، Build باید همه سبز باشند
+- `CLAUDE.md` بعد از هر تغییر مهم به‌روز می‌شود
+- Commit Messageهای واضح و توصیفی
+- هنوز هیچ Secret/کلید واقعی Commit نمی‌شود
+
+**آنچه دیگر اعمال نمی‌شود:** ساخت Branch جدا برای هر Feature، توقف
+میان‌مرحله‌ای برای تأیید صریح قبل از هر Merge. اگر کاربر بخواهد به
+سیاست قبلی (Branch جدا + تأیید مرحله‌ای) برگردد، کافی است اعلام کند.
+
+Branch Naming (در صورت نیاز به Branch موقت برای کاری پرریسک):
+{feature}/{sub-feature?}/{ui|backend}.
 
 ## 12. Completed Git Branches
 
-- main - Initial Project Setup + Dashboard (UI+Backend) + Users Management (UI+Backend) + Vercel env sync script (Merged ✅)
-- dashboard/ui, dashboard/backend, users/ui, users/backend, chore/vercel-env-sync - Merged و حذف شدند
+- main - Initial Project Setup + Dashboard (UI+Backend) + Users Management (UI+Backend) + Categories UI + Vercel env sync script (Merged ✅)
+- dashboard/ui, dashboard/backend, users/ui, users/backend, categories/ui, chore/vercel-env-sync - Merged و حذف شدند
+- از این پس (طبق سیاست جدید بالا) توسعه مستقیماً روی main ثبت می‌شود
 - categories/ui - نمای درختی + فرم دسته‌بندی (Mock Data) - در انتظار تأیید، هنوز Merge نشده
 
 ## 13. Important Decisions Log
@@ -349,6 +360,8 @@ Integration -> Final Test -> User Approval -> Merge to main
 | Dashboard Backend | اولین Super Admin با insert روی Unique Index، نه findOneAndUpdate($ne) | ساده‌تر و قطعا Atomic؛ خطای Duplicate-Key رقابت را حل می‌کند |
 | Dashboard Backend | proxy.ts دوباره فعال شد | دلیل غیرفعال‌سازی قبلی (نبود Auth واقعی برای Preview) دیگر برطرف شده |
 | Dashboard Backend | NEXT_PUBLIC_APP_URL اکنون از VERCEL_URL خودکار Vercel استخراج می‌شود اگر تنظیم نشده باشد، و https:// را خودکار اضافه می‌کند اگر بدون Protocol وارد شده باشد | رفع خطای واقعی Build: "Invalid URL" - چون هر Preview روی Vercel آدرس متفاوتی دارد و نمی‌شود یک مقدار ثابت دستی برایش گذاشت |
+| Categories UI | ترتیب Feature از Products به Categories تغییر کرد | Product.category اجباری و به Category وابسته است |
+| بعد از Categories UI | Push مستقیم روی main، بدون Branch/Approval جدا برای هر مرحله | تصمیم صریح کاربر - تست هر مرحله نیاز به OTP واقعی دارد و هزینه پیامک روی کاربر است؛ Lint/Test/Build همچنان قبل از هر Push اجباری می‌ماند |
 
 ## 14. Known Issues
 
