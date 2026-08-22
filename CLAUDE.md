@@ -26,9 +26,9 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
 
 ## 2. Current Status
 
-**مرحله:** Users Management Backend — تکمیل شد، در انتظار تست/تأیید کاربر
-**Branch فعلی:** `users/backend` (شاخه‌شده از `users/ui`)
-**Feature بعدی:** پس از تست/تأیید → Merge به `main` → شروع Products
+**مرحله:** Users Management (UI + Backend) — Merge شد به `main` ✅
+**Branch فعلی:** `main`
+**Feature بعدی:** Products (طبق ترتیب بند ۵ Master Prompt)
 
 ## 3. Completed
 
@@ -160,8 +160,9 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
 
 ## 4. In Progress
 
-Users Management Backend ساخته شده و منتظر تست/تأیید کاربر است. هنوز
-به `main` Merge نشده.
+هیچ Feature‌ای در حال توسعه نیست. همه Branchها (dashboard/ui,
+dashboard/backend, users/ui, users/backend, chore/vercel-env-sync) به
+`main` Merge شدند. منتظر شروع Feature بعدی: Products.
 
 ## 5. Planned (به ترتیب اولویت طبق Master Prompt)
 
@@ -307,11 +308,12 @@ Integration -> Final Test -> User Approval -> Merge to main
 
 ## 12. Completed Git Branches
 
-- main - Initial Project Setup + Dashboard UI + Dashboard Backend (Merged ✅)
+- main - Initial Project Setup + Dashboard (UI+Backend) + Users Management (UI+Backend) + Vercel env sync script (Merged ✅)
 - dashboard/ui - Merged into main
 - dashboard/backend - Merged into main
-- users/ui - لیست کاربران + جزئیات کاربر (Mock Data) - Merged شد داخل users/backend
-- users/backend - API واقعی + Authorization + RBAC Security - در انتظار تست/تأیید، هنوز Merge نشده به main
+- users/ui - Merged into main
+- users/backend - Merged into main
+- chore/vercel-env-sync - Merged into main
 
 ## 13. Important Decisions Log
 
