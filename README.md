@@ -44,8 +44,26 @@ cp .env.example .env.local
 | `AUTH_SECRET` | رشته تصادفی ۳۲+ کاراکتری برای امضای JWT جلسه |
 | `OTP_HASH_SECRET` | رشته تصادفی جدا برای Hash کردن کدهای OTP |
 | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | اطلاعات Cloudinary |
-| `SMS_IR_API_KEY` / `SMS_IR_LINE_NUMBER` | اطلاعات sms.ir برای ارسال OTP |
-| `NEXT_PUBLIC_APP_URL` | آدرس عمومی اپلیکیشن |
+| `SMS_IR_API_KEY` / `SMS_IR_LINE_NUMBER` / `SMS_IR_OTP_TEMPLATE_ID` | اطلاعات sms.ir برای ارسال OTP |
+| `NEXT_PUBLIC_APP_URL` | آدرس عمومی اپلیکیشن (اختیاری — به‌طور خودکار از `VERCEL_URL` ساخته می‌شود) |
+
+### تنظیم یکجای همه‌ی Environment Variableها روی Vercel
+
+به‌جای وارد کردن دستی هر متغیر در Vercel Dashboard، می‌توانید همه را
+یکجا با اسکریپت زیر ثبت کنید (روی هر سه محیط Production/Preview/
+Development):
+
+```bash
+npm i -g vercel        # اگر نصب نیست
+vercel login
+cp .env.vercel.local.example .env.vercel.local
+# مقادیر واقعی را در .env.vercel.local پر کنید (این فایل هرگز Commit نمی‌شود)
+bash scripts/vercel-env-sync.sh
+```
+
+بعد از تغییر یک مقدار، کافیست دوباره همین دستور را اجرا کنید — مقادیر
+موجود Overwrite می‌شوند. توجه: Vercel مقادیر جدید را فقط روی
+Deploymentهای *بعد از* تغییر اعمال می‌کند، نه Deployment فعلی.
 
 ## Development
 

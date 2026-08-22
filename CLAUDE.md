@@ -331,5 +331,14 @@ sms.ir با یک پارامتر به نام Code). SMS_IR_LINE_NUMBER فعلاً
   وصل است. کاربر خودش هیچ Commit/Push‌ای انجام نمی‌دهد - Claude مستقیما
   Git را مدیریت می‌کند. Environment Variables باید در Vercel Dashboard
   تعریف شوند (لیست بخش ۱۷).
+- **`scripts/vercel-env-sync.sh`**: اسکریپت کمکی برای ثبت یکجای همه‌ی
+  Environment Variableها روی هر سه محیط Vercel (Production/Preview/
+  Development) با استفاده از Vercel CLI، به‌جای وارد کردن دستی هر
+  متغیر در Dashboard برای هر Deployment. کاربر باید `.env.vercel.local`
+  را از روی `.env.vercel.local.example` بسازد (این فایل هرگز Commit
+  نمی‌شود) و یک‌بار محلی اجرا کند. Claude نمی‌تواند این اسکریپت را از
+  محیط خودش اجرا کند چون Sandbox Claude به `api.vercel.com` دسترسی
+  شبکه ندارد (فقط دامنه‌های محدودی مثل GitHub/npm مجاز هستند) —
+  مستندات کامل در README بخش Environment Variables.
 - next.config.ts هنوز پیش‌فرض است - تنظیمات Image Domains برای
   Cloudinary باید موقع Wire شدن Feature تصاویر اضافه شود.
