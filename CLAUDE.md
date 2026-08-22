@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# CLAUDE.md — کارت‌من (فروشگاه اینترنتی تخصصی فرش)
+# CLAUDE.md — فرش سقطچی (فروشگاه اینترنتی تخصصی فرش)
 
 > این فایل مرجع اصلی پروژه است. اگر Chat جدید باز شد یا Context قبلی
 > از دست رفت، فقط با خواندن این فایل و `README.md` باید بتوانی ادامه
@@ -26,10 +26,10 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
 
 ## 2. Current Status
 
-**مرحله:** Initial Project Setup — تکمیل شد
-**Branch فعلی:** `main`
-**Feature بعدی:** Dashboard UI (`dashboard/ui` branch) — شروع نشده،
-منتظر تأیید کاربر برای شروع.
+**مرحله:** Dashboard UI — تکمیل شد، در انتظار تأیید کاربر
+**Branch فعلی:** `dashboard/ui`
+**Feature بعدی:** پس از تأیید UI توسط کاربر → `dashboard/backend`
+(اتصال KPI/Chart/جدول به داده واقعی + OTP Auth واقعی)
 
 ## 3. Completed
 
@@ -53,9 +53,28 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
 - .env.example کامل
 - Lint / Typecheck / Build — همه سبز
 
+### Dashboard UI (branch `dashboard/ui`)
+
+- UI Primitives: Button، Card، Badge، Skeleton، EmptyState، ErrorState
+- `DashboardShell`: Sidebar ثابت (Desktop) + Drawer موبایل + Topbar با
+  منوی کاربر
+- Navigation config متمرکز (`src/lib/constants/dashboard-nav.ts`) —
+  بخش‌های بدون Backend به‌صورت غیرفعال با برچسب «به‌زودی» نمایش داده
+  می‌شوند (نه Fake Functionality)
+- صفحه Overview: ۸ KPI Card، نمودار روند فروش (Recharts/Area)، توزیع
+  وضعیت سفارش‌ها، جدول سفارش‌های اخیر، لیست پرفروش‌ترین محصولات
+- `loading.tsx` (Skeleton) و `error.tsx` (Retry) برای مسیر `/dashboard`
+- صفحه Placeholder `/login` (فقط برای این‌که Redirect بهینه `proxy.ts`
+  به یک صفحه واقعی برسد — پیاده‌سازی واقعی OTP در Feature بعدی)
+- تمام داده‌های این فاز از `src/lib/mock/dashboard.ts` می‌آید و به‌صراحت
+  با کامنت/بنر زرد در صفحه به‌عنوان Mock علامت‌گذاری شده (طبق قانون
+  «No Fake Data»)
+- فرمت‌دهی اعداد/مبلغ فارسی (`src/lib/utils/format.ts`)
+
 ## 4. In Progress
 
-هیچ Feature‌ای در حال توسعه نیست — منتظر شروع Dashboard UI.
+Dashboard UI ساخته شده و منتظر تست/تأیید کاربر است. هنوز به `main`
+Merge نشده.
 
 ## 5. Planned (به ترتیب اولویت طبق Master Prompt)
 
@@ -200,7 +219,8 @@ Integration -> Final Test -> User Approval -> Merge to main
 
 ## 12. Completed Git Branches
 
-- main - Initial Project Setup (این Commit)
+- main - Initial Project Setup
+- dashboard/ui - Dashboard Layout + Overview page (Mock Data) - در انتظار تأیید کاربر، هنوز Merge نشده
 
 ## 13. Important Decisions Log
 
@@ -215,7 +235,12 @@ Integration -> Final Test -> User Approval -> Merge to main
 
 ## 14. Known Issues
 
-هیچ - پروژه تازه Bootstrap شده.
+- **موقتاً غیرفعال:** بررسی Auth در `src/proxy.ts` برای `/dashboard/*`
+  به‌طور موقت (به درخواست صریح کاربر) غیرفعال شده تا UI بدون نیاز به
+  Login قابل بررسی باشد. غیرفعال‌سازی فقط روی Preview/Development اثر
+  دارد (بر اساس `VERCEL_ENV`/`NODE_ENV`) و روی یک Deploy واقعی
+  Production هرگز اعمال نمی‌شود. **باید قبل از شروع `dashboard/backend`
+  و هر Merge به `main` دوباره فعال شود** — تا وقتی کاربر صراحتاً بگوید.
 
 ## 15. TODO (نزدیک)
 
@@ -232,7 +257,9 @@ Integration -> Final Test -> User Approval -> Merge to main
 - نام‌گذاری Branch ({feature}/{ui|backend})
 - Design Tokens پایه (رنگ Primary، Radius) - تغییر باید تصمیم آگاهانه
   با تأیید کاربر باشد
-- استفاده از src/proxy.ts (نه middleware.ts) - نام‌گذاری Next.js 16
+- ایمیل Commit Author باید همیشه `persboy.dev@gmail.com` باشد (باید با
+  ایمیل حساب GitHub مطابقت داشته باشد، وگرنه Vercel Deployment را با
+  خطای "Deployment Blocked - Fix Git Configuration" مسدود می‌کند)
 
 ## 17. Environment Variables
 
