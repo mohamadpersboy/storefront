@@ -272,6 +272,7 @@ Integration -> Final Test -> User Approval -> Merge to main
 | Dashboard Backend | متد Pattern/Verify sms.ir (نه Bulk) با Template ID تأییدشده `963650` | خود مستندات sms.ir این متد را برای OTP توصیه می‌کند: اولویت بالا از خط خدماتی، حتی برای کاربرانی که پیامک تبلیغاتی را مسدود کرده‌اند هم می‌رسد؛ متد Bulk اولیه (که ابتدا انتخاب شده بود) این تضمین‌ها را نداشت |
 | Dashboard Backend | اولین Super Admin با insert روی Unique Index، نه findOneAndUpdate($ne) | ساده‌تر و قطعا Atomic؛ خطای Duplicate-Key رقابت را حل می‌کند |
 | Dashboard Backend | proxy.ts دوباره فعال شد | دلیل غیرفعال‌سازی قبلی (نبود Auth واقعی برای Preview) دیگر برطرف شده |
+| Dashboard Backend | NEXT_PUBLIC_APP_URL اکنون از VERCEL_URL خودکار Vercel استخراج می‌شود اگر تنظیم نشده باشد، و https:// را خودکار اضافه می‌کند اگر بدون Protocol وارد شده باشد | رفع خطای واقعی Build: "Invalid URL" - چون هر Preview روی Vercel آدرس متفاوتی دارد و نمی‌شود یک مقدار ثابت دستی برایش گذاشت |
 
 ## 14. Known Issues
 
