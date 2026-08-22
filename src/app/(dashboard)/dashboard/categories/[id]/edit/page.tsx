@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { CategoryForm } from "@/components/categories/category-form";
-import { initialMockCategories } from "@/lib/mock/categories";
+import { connectToDatabase } from "@/lib/db/connect";
+import { Category } from "@/models/Category";
 
 export default async function EditCategoryPage({
   params,
@@ -10,7 +11,9 @@ export default async function EditCategoryPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const category = initialMockCategories.find((c) => c.id === id);
+
+  await connectToDatabase();
+  const category = await Category.findById(id).lean().catch(() => null);
 
   if (!category) {
     notFound();
@@ -25,7 +28,16 @@ export default async function EditCategoryPage({
         <ChevronRight className="size-4" />
         بازگشت به لیست دسته‌بندی‌ها
       </Link>
-      <CategoryForm mode="edit" initial={category} />
+      <CategoryForm
+        mode="edit"
+        initial={{
+          id: String(category._id),
+          name: category.name,
+          slug: category.slug,
+          parentId: category.parentId ? String(category.parentId) : null,
+          isActive: category.isActive,
+        }}
+      />
     </div>
   );
 }

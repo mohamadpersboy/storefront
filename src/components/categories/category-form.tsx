@@ -1,20 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { slugify } from "@/lib/utils/slugify";
-import { initialMockCategories, type MockCategory } from "@/lib/mock/categories";
+import type { ApiCategory } from "@/components/categories/categories-tree";
+
+export interface CategoryFormInitial {
+  id: string;
+  name: string;
+  slug: string;
+  parentId: string | null;
+  isActive: boolean;
+}
 
 export function CategoryForm({
   mode,
   initial,
 }: {
   mode: "create" | "edit";
-  initial?: MockCategory;
+  initial?: CategoryFormInitial;
 }) {
   const router = useRouter();
   const [name, setName] = useState(initial?.name ?? "");
@@ -25,13 +34,32 @@ export function CategoryForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const hasChildren = initial
-    ? initialMockCategories.some((c) => c.parentId === initial.id)
-    : false;
+  const [allCategories, setAllCategories] = useState<ApiCategory[] | null>(null);
+  const [hasChildren, setHasChildren] = useState(false);
 
-  // Depth-2 rule: only top-level categories can be a parent, and the
-  // category itself is excluded so it can't become its own parent.
-  const parentOptions = initialMockCategories.filter(
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/v1/categories")
+      .then((res) => res.json())
+      .then((body) => {
+        if (cancelled || !body.success) return;
+        const all: ApiCategory[] = body.data;
+        setAllCategories(all);
+        if (initial) {
+          setHasChildren(all.some((c) => c.parentId === initial.id));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setAllCategories([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [initial]);
+
+  // Depth-2 rule at the UI layer too: only top-level categories can be
+  // a parent, and the category itself is excluded from its own options.
+  const parentOptions = (allCategories ?? []).filter(
     (c) => !c.parentId && c.id !== initial?.id,
   );
 
@@ -40,7 +68,7 @@ export function CategoryForm({
     if (!slugTouched) setSlug(slugify(value));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
@@ -54,20 +82,37 @@ export function CategoryForm({
     }
 
     setSaving(true);
-    // Mock-only: no real persistence yet — simulate the round-trip and
-    // navigate back, per this phase's "No Fake Data" messaging.
-    setTimeout(() => {
+    try {
+      const payload = { name, slug, parentId: parentId || null, isActive };
+      const url =
+        mode === "create"
+          ? "/api/v1/categories"
+          : `/api/v1/categories/${initial!.id}`;
+      const method = mode === "create" ? "POST" : "PATCH";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json();
+
+      if (!res.ok || !body.success) {
+        setError(body.message ?? "خطایی رخ داد");
+        return;
+      }
+
       router.push("/dashboard/categories");
-    }, 400);
+      router.refresh();
+    } catch {
+      setError("ارتباط با سرور برقرار نشد");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="rounded-[var(--radius-md)] border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
-        این فرم فعلاً چیزی را واقعاً ذخیره نمی‌کند (Mock) — در فاز
-        Backend به API واقعی وصل می‌شود.
-      </div>
-
       <Card>
         <CardHeader
           title={mode === "create" ? "دسته‌بندی جدید" : "ویرایش دسته‌بندی"}
@@ -103,18 +148,22 @@ export function CategoryForm({
             <label className="mb-1.5 block text-xs font-medium text-foreground/80">
               دسته‌بندی والد (اختیاری)
             </label>
-            <Select
-              value={parentId}
-              disabled={hasChildren}
-              onChange={(e) => setParentId(e.target.value)}
-            >
-              <option value="">بدون والد (دسته اصلی)</option>
-              {parentOptions.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </Select>
+            {allCategories === null ? (
+              <Skeleton className="h-11 w-full" />
+            ) : (
+              <Select
+                value={parentId}
+                disabled={hasChildren}
+                onChange={(e) => setParentId(e.target.value)}
+              >
+                <option value="">بدون والد (دسته اصلی)</option>
+                {parentOptions.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
+            )}
             {hasChildren ? (
               <p className="mt-1.5 text-xs text-muted">
                 چون این دسته زیردسته دارد، نمی‌تواند زیرمجموعه دسته دیگری

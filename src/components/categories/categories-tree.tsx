@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -15,17 +15,56 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toPersianDigits } from "@/lib/utils/format";
-import { initialMockCategories, type MockCategory } from "@/lib/mock/categories";
+
+export interface ApiCategory {
+  id: string;
+  name: string;
+  slug: string;
+  parentId: string | null;
+  isActive: boolean;
+  sortOrder: number;
+}
 
 export function CategoriesTree() {
   const router = useRouter();
-  const [categories, setCategories] = useState(initialMockCategories);
-  const [expanded, setExpanded] = useState<Set<string>>(
-    new Set(initialMockCategories.filter((c) => !c.parentId).map((c) => c.id)),
-  );
-  const [pendingDelete, setPendingDelete] = useState<MockCategory | null>(null);
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [error, setError] = useState(false);
+  const [loading, startTransition] = useTransition();
+  const [reloadToken, setReloadToken] = useState(0);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [pendingDelete, setPendingDelete] = useState<ApiCategory | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/v1/categories");
+        const body = await res.json();
+        if (!res.ok || !body.success) throw new Error(body.message);
+        if (cancelled) return;
+        setCategories(body.data);
+        setExpanded(
+          new Set(
+            (body.data as ApiCategory[])
+              .filter((c) => !c.parentId)
+              .map((c) => c.id),
+          ),
+        );
+        setError(false);
+      } catch {
+        if (!cancelled) setError(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadToken]);
 
   const topLevel = categories.filter((c) => !c.parentId);
   const childrenOf = (id: string) => categories.filter((c) => c.parentId === id);
@@ -39,28 +78,32 @@ export function CategoriesTree() {
     });
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!pendingDelete) return;
-    setCategories((prev) =>
-      prev.filter(
-        (c) => c.id !== pendingDelete.id && c.parentId !== pendingDelete.id,
-      ),
-    );
-    setPendingDelete(null);
+    setDeleting(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/v1/categories/${pendingDelete.id}`, {
+        method: "DELETE",
+      });
+      const body = await res.json();
+      if (!res.ok || !body.success) {
+        setActionError(body.message ?? "خطا در حذف دسته‌بندی");
+        return;
+      }
+      setPendingDelete(null);
+      setReloadToken((t) => t + 1);
+    } catch {
+      setActionError("ارتباط با سرور برقرار نشد");
+    } finally {
+      setDeleting(false);
+    }
   }
 
-  const childCount = pendingDelete
-    ? childrenOf(pendingDelete.id).length
-    : 0;
+  const childCount = pendingDelete ? childrenOf(pendingDelete.id).length : 0;
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-[var(--radius-md)] border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
-        داده‌های این صفحه نمایشی (Mock) هستند. افزودن/ویرایش/حذف در همین
-        صفحه شبیه‌سازی می‌شود ولی با رفرش صفحه از بین می‌رود — در فاز
-        Backend به دیتابیس واقعی وصل می‌شود.
-      </div>
-
       <div className="flex justify-end">
         <Link href="/dashboard/categories/new">
           <Button size="sm">
@@ -70,8 +113,22 @@ export function CategoriesTree() {
         </Link>
       </div>
 
+      {actionError ? (
+        <div className="rounded-[var(--radius-md)] border border-red-200 bg-red-50 px-4 py-2.5 text-xs text-danger">
+          {actionError}
+        </div>
+      ) : null}
+
       <Card>
-        {topLevel.length === 0 ? (
+        {loading ? (
+          <div className="p-5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="mb-3 h-10 w-full last:mb-0" />
+            ))}
+          </div>
+        ) : error ? (
+          <ErrorState onRetry={() => setReloadToken((t) => t + 1)} />
+        ) : topLevel.length === 0 ? (
           <EmptyState
             icon={FolderTree}
             title="هنوز دسته‌بندی‌ای ثبت نشده"
@@ -103,9 +160,6 @@ export function CategoriesTree() {
                     </span>
 
                     {!parent.isActive ? <Badge tone="danger">غیرفعال</Badge> : null}
-                    <span className="text-xs text-muted">
-                      {toPersianDigits(parent.productsCount)} محصول
-                    </span>
 
                     <div className="flex items-center gap-1">
                       <button
@@ -140,9 +194,6 @@ export function CategoriesTree() {
                           {!child.isActive ? (
                             <Badge tone="danger">غیرفعال</Badge>
                           ) : null}
-                          <span className="text-xs text-muted">
-                            {toPersianDigits(child.productsCount)} محصول
-                          </span>
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() =>
@@ -184,6 +235,7 @@ export function CategoriesTree() {
         }
         confirmLabel="حذف"
         confirmVariant="danger"
+        loading={deleting}
         onCancel={() => setPendingDelete(null)}
         onConfirm={handleDelete}
       />
