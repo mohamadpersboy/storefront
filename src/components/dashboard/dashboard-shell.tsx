@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, LogOut, ChevronDown } from "lucide-react";
 import { dashboardNav } from "@/lib/constants/dashboard-nav";
 import { cn } from "@/lib/utils/cn";
 import type { Role } from "@/lib/constants/rbac";
+
+const DRAWER_TRANSITION_MS = 250;
 
 const roleLabels: Record<Role, string> = {
   super_admin: "مدیر کل",
@@ -93,9 +95,37 @@ export function DashboardShell({
   user: SessionUser;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [drawerMounted, setDrawerMounted] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const router = useRouter();
+
+  function openDrawer() {
+    setDrawerMounted(true);
+    // Mount in the closed position first, then flip to open on the
+    // next frame — otherwise React/CSS commit both the mount and the
+    // "open" transform classes in the same paint and there's nothing
+    // to transition from, so the drawer would just pop in instantly.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setMobileOpen(true));
+    });
+  }
+
+  function closeDrawer() {
+    setMobileOpen(false);
+  }
+
+  // Keep the drawer mounted for the duration of the closing transition
+  // instead of unmounting it the instant mobileOpen flips to false —
+  // otherwise there's nothing left in the DOM to animate.
+  useEffect(() => {
+    if (mobileOpen || !drawerMounted) return;
+    const timeout = setTimeout(
+      () => setDrawerMounted(false),
+      DRAWER_TRANSITION_MS,
+    );
+    return () => clearTimeout(timeout);
+  }, [mobileOpen, drawerMounted]);
 
   const displayName = user.fullName || user.phoneNumber;
   const initials = displayName.slice(0, 2);
@@ -119,25 +149,33 @@ export function DashboardShell({
       </aside>
 
       {/* Mobile drawer */}
-      {mobileOpen ? (
+      {drawerMounted ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setMobileOpen(false)}
+            className={cn(
+              "absolute inset-0 bg-black/40 transition-opacity duration-[250ms] ease-out",
+              mobileOpen ? "opacity-100" : "opacity-0",
+            )}
+            onClick={() => closeDrawer()}
             aria-hidden="true"
           />
-          <aside className="absolute inset-y-0 right-0 w-72 bg-surface shadow-lg">
+          <aside
+            className={cn(
+              "absolute inset-y-0 right-0 w-72 bg-surface shadow-lg transition-transform duration-[250ms] ease-out",
+              mobileOpen ? "translate-x-0" : "translate-x-full",
+            )}
+          >
             <div className="flex items-center justify-between px-4 py-4">
               <BrandMark />
               <button
-                onClick={() => setMobileOpen(false)}
+                onClick={() => closeDrawer()}
                 aria-label="بستن منو"
                 className="flex size-9 items-center justify-center rounded-[var(--radius-md)] text-muted hover:bg-surface-subtle"
               >
                 <X className="size-5" />
               </button>
             </div>
-            <NavList onNavigate={() => setMobileOpen(false)} />
+            <NavList onNavigate={() => closeDrawer()} />
           </aside>
         </div>
       ) : null}
@@ -146,7 +184,7 @@ export function DashboardShell({
       <div className="lg:mr-64">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-surface px-4 lg:px-6">
           <button
-            onClick={() => setMobileOpen(true)}
+            onClick={() => openDrawer()}
             aria-label="باز کردن منو"
             className="flex size-9 items-center justify-center rounded-[var(--radius-md)] text-muted hover:bg-surface-subtle lg:hidden"
           >
