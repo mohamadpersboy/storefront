@@ -30,10 +30,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (never commit real secrets — .env.example is the exception,
-# it only lists variable names with no real values)
+# env files (never commit real secrets — .env.example and
+# .env.vercel.local.example are the exceptions, they only list
+# variable names / are templates with no real values)
 .env*
 !.env.example
+!.env.vercel.local.example
 
 # vercel
 .vercel
