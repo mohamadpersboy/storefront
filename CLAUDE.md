@@ -26,10 +26,9 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
 
 ## 2. Current Status
 
-**مرحله:** Dashboard Backend — تکمیل شد، در انتظار تست/تأیید کاربر
-**Branch فعلی:** `dashboard/backend` (شاخه‌شده از `dashboard/ui`)
-**Feature بعدی:** پس از تست End-to-End توسط کاربر (با MongoDB/sms.ir
-واقعی روی Vercel) → Integration نهایی → تأیید کاربر → Merge به `main`
+**مرحله:** Dashboard (UI + Backend) — Merge شد به `main` ✅
+**Branch فعلی:** `main`
+**Feature بعدی:** Users Management (`users/ui` → `users/backend`)
 
 ## 3. Completed
 
@@ -110,8 +109,8 @@ Full specification در پرامپت اصلی کاربر (Master Prompt) آمد�
 
 ## 4. In Progress
 
-Dashboard UI ساخته شده و منتظر تست/تأیید کاربر است. هنوز به `main`
-Merge نشده.
+هیچ Feature‌ای در حال توسعه نیست. Dashboard (UI+Backend) به `main`
+Merge شد و کاربر تأیید کرد. منتظر شروع Feature بعدی: Users Management.
 
 ## 5. Planned (به ترتیب اولویت طبق Master Prompt)
 
@@ -257,9 +256,9 @@ Integration -> Final Test -> User Approval -> Merge to main
 
 ## 12. Completed Git Branches
 
-- main - Initial Project Setup
-- dashboard/ui - Dashboard Layout + Overview page (Mock Data) - در انتظار تأیید، هنوز Merge نشده
-- dashboard/backend - OTP Auth واقعی + Session + KPI مشتریان واقعی - در انتظار تست/تأیید، هنوز Merge نشده
+- main - Initial Project Setup + Dashboard UI + Dashboard Backend (Merged ✅)
+- dashboard/ui - Merged into main
+- dashboard/backend - Merged into main
 
 ## 13. Important Decisions Log
 
@@ -294,9 +293,11 @@ Integration -> Final Test -> User Approval -> Merge to main
 
 ## 15. TODO (نزدیک)
 
-- [ ] تست End-to-End واقعی OTP روی Vercel Preview (نیاز به Env واقعی)
-- [ ] بعد از تأیید: Merge کامل `dashboard/ui` + `dashboard/backend` به `main`
 - [ ] شروع Feature بعدی: Users Management
+  - [ ] `users/ui`: صفحه لیست کاربران (جدول + جستجو + Pagination UI + فیلتر نقش)، صفحه جزئیات کاربر
+  - [ ] تست و تأیید UI
+  - [ ] `users/backend`: API لیست/جستجو/Pagination واقعی (mongoose-paginate-v2)، تغییر Role، فعال/غیرفعال کردن کاربر — همه با Authorization سمت سرور (فقط super_admin/admin)
+  - [ ] Merge به `main` پس از تأیید
 
 ## 16. Do Not Change (بدون دلیل قوی)
 
