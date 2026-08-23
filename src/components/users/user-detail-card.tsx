@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShoppingCart, Phone, Calendar, Clock } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Select } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import { RoleBadge } from "@/components/users/role-badge";
 import { UserStatusBadge } from "@/components/users/user-status-badge";
@@ -167,24 +167,18 @@ export function UserDetailCard({
               <label className="mb-1.5 block text-xs font-medium text-foreground/80">
                 تغییر نقش
               </label>
-              <Select
+              <Combobox
                 value={selectedRole}
                 disabled={!canEditThisUser}
-                onChange={(e) => setSelectedRole(e.target.value as Role)}
-              >
-                {roleOptions.map((opt) => (
-                  <option
-                    key={opt.value}
-                    value={opt.value}
-                    disabled={
-                      !canElevateToPrivileged &&
-                      (opt.value === "admin" || opt.value === "super_admin")
-                    }
-                  >
-                    {opt.label}
-                  </option>
-                ))}
-              </Select>
+                onChange={(v) => setSelectedRole(v as Role)}
+                options={roleOptions.map((opt) => ({
+                  value: opt.value,
+                  label: opt.label,
+                  disabled:
+                    !canElevateToPrivileged &&
+                    (opt.value === "admin" || opt.value === "super_admin"),
+                }))}
+              />
             </div>
             <Button
               variant="secondary"

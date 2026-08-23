@@ -26,7 +26,8 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین Feature تکمیل‌شده:** Products (مدل + API واقعی + UI کامل)
+**آخرین Feature تکمیل‌شده:** Products + رفع دو مشکل (Select بومی →
+Combobox سفارشی در کل پروژه، دکمه حذف محصول اضافه شد)
 **Branch فعلی:** `main`
 **Feature بعدی:** Orders
 
@@ -145,8 +146,8 @@ src/
     login/page.tsx
     layout.tsx, page.tsx, globals.css
   components/
-    ui/         - Button, Card, Badge, Input, Select, Textarea, Pagination,
-                  Skeleton, EmptyState, ErrorState, ConfirmDialog
+    ui/         - Button, Card, Badge, Input, Textarea, Combobox,
+                  Pagination, Skeleton, EmptyState, ErrorState, ConfirmDialog
     dashboard/  - DashboardShell, KpiCard, charts, ...
     users/      - RoleBadge, UserStatusBadge, users-page-client, ...
     categories/ - CategoriesTree, CategoryForm
@@ -269,6 +270,8 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Products | آپلود تصویر با Cloudinary Signed Upload (نه Unsigned Preset) | امضا سمت Server تولید می‌شود (Secret هرگز به Client نمی‌رسد)، ولی نیازی به ساخت Upload Preset در پنل Cloudinary هم نیست |
 | Products | Cropper با react-easy-crop، نسبت ثابت ۳:۴ | الزام صریح بند ۴۲ Master Prompt |
 | Products | حذف محصول = Soft Delete، تصاویر Cloudinary پاک نمی‌شوند | امکان Restore بدون از دست دادن تصاویر؛ پاک‌سازی دائمی Cloudinary یک اقدام مدیریتی جدا و ساخته‌نشده است |
+| بعد از Products | `<select>` بومی HTML با `Combobox` سفارشی (`src/components/ui/combobox.tsx`) جایگزین شد در همه‌جا (دسته‌بندی، نقش، وضعیت) | بازخورد کاربر: `<select>` بومی روی موبایل یه Overlay تمام‌صفحه با همه گزینه‌ها باز می‌کند که با تعداد گزینه زیاد آزاردهنده است؛ Combobox جدید در همان صفحه باز می‌شود و برای بیش از ۶ گزینه جستجو هم دارد |
+| بعد از Products | دکمه حذف به لیست محصولات اضافه شد | اشتباه/فراموشی در تحویل قبلی — API حذف (Soft Delete) از قبل آماده بود ولی دکمه UI نداشت |
 
 ## 14. Known Issues
 

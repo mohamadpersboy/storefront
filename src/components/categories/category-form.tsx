@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { slugify } from "@/lib/utils/slugify";
@@ -151,18 +151,16 @@ export function CategoryForm({
             {allCategories === null ? (
               <Skeleton className="h-11 w-full" />
             ) : (
-              <Select
+              <Combobox
                 value={parentId}
                 disabled={hasChildren}
-                onChange={(e) => setParentId(e.target.value)}
-              >
-                <option value="">بدون والد (دسته اصلی)</option>
-                {parentOptions.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
+                onChange={setParentId}
+                placeholder="بدون والد (دسته اصلی)"
+                options={[
+                  { value: "", label: "بدون والد (دسته اصلی)" },
+                  ...parentOptions.map((c) => ({ value: c.id, label: c.name })),
+                ]}
+              />
             )}
             {hasChildren ? (
               <p className="mt-1.5 text-xs text-muted">

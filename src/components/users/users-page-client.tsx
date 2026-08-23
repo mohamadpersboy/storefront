@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Search, Users as UsersIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Pagination } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
@@ -101,19 +101,14 @@ export function UsersPageClient() {
           />
         </div>
         <div className="sm:w-48">
-          <Select
+          <Combobox
             value={roleFilter}
-            onChange={(e) => {
-              setRoleFilter(e.target.value as Role | "all");
+            onChange={(v) => {
+              setRoleFilter(v as Role | "all");
               setPage(1);
             }}
-          >
-            {roleOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </Select>
+            options={roleOptions}
+          />
         </div>
       </div>
 

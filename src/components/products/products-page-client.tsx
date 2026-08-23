@@ -3,15 +3,17 @@
 import { useEffect, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Package, Plus, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Package, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ProductStatusBadge } from "@/components/products/product-status-badge";
 import { formatToman, toPersianDigits } from "@/lib/utils/format";
 import type { ProductStatus } from "@/models/Product";
@@ -39,6 +41,7 @@ const statusOptions: Array<{ value: ProductStatus | "all"; label: string }> = [
 ];
 
 export function ProductsPageClient() {
+  const router = useRouter();
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProductStatus | "all">("all");
@@ -49,6 +52,10 @@ export function ProductsPageClient() {
   const [error, setError] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
   const [loading, startTransition] = useTransition();
+
+  const [pendingDelete, setPendingDelete] = useState<ApiProduct | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -86,6 +93,28 @@ export function ProductsPageClient() {
     };
   }, [page, search, statusFilter, reloadToken]);
 
+  async function handleDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/v1/products/${pendingDelete.id}`, {
+        method: "DELETE",
+      });
+      const body = await res.json();
+      if (!res.ok || !body.success) {
+        setActionError(body.message ?? "خطا در حذف محصول");
+        return;
+      }
+      setPendingDelete(null);
+      setReloadToken((t) => t + 1);
+    } catch {
+      setActionError("ارتباط با سرور برقرار نشد");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -99,19 +128,14 @@ export function ProductsPageClient() {
           />
         </div>
         <div className="sm:w-44">
-          <Select
+          <Combobox
             value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value as ProductStatus | "all");
+            onChange={(v) => {
+              setStatusFilter(v as ProductStatus | "all");
               setPage(1);
             }}
-          >
-            {statusOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </Select>
+            options={statusOptions}
+          />
         </div>
         <Link href="/dashboard/products/new">
           <Button className="w-full sm:w-auto">
@@ -120,6 +144,12 @@ export function ProductsPageClient() {
           </Button>
         </Link>
       </div>
+
+      {actionError ? (
+        <div className="rounded-[var(--radius-md)] border border-red-200 bg-red-50 px-4 py-2.5 text-xs text-danger">
+          {actionError}
+        </div>
+      ) : null}
 
       <Card>
         {loading ? (
@@ -138,7 +168,7 @@ export function ProductsPageClient() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <thead>
                 <tr className="border-b border-border text-right text-xs text-muted">
                   <th className="px-5 py-3 font-medium">محصول</th>
@@ -147,6 +177,7 @@ export function ProductsPageClient() {
                   <th className="px-5 py-3 font-medium">شروع قیمت</th>
                   <th className="px-5 py-3 font-medium">موجودی</th>
                   <th className="px-5 py-3 font-medium">وضعیت</th>
+                  <th className="px-5 py-3 font-medium"></th>
                 </tr>
               </thead>
               <tbody>
@@ -191,6 +222,26 @@ export function ProductsPageClient() {
                     <td className="px-5 py-3">
                       <ProductStatusBadge status={p.status} />
                     </td>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() =>
+                            router.push(`/dashboard/products/${p.id}/edit`)
+                          }
+                          aria-label="ویرایش"
+                          className="flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-surface-subtle"
+                        >
+                          <Pencil className="size-4" />
+                        </button>
+                        <button
+                          onClick={() => setPendingDelete(p)}
+                          aria-label="حذف"
+                          className="flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-danger hover:bg-red-50"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -202,6 +253,17 @@ export function ProductsPageClient() {
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         ) : null}
       </Card>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="حذف محصول"
+        description={`آیا از حذف «${pendingDelete?.title}» مطمئن هستید؟ محصول از فروشگاه حذف می‌شود (قابل بازیابی توسط مدیر سیستم).`}
+        confirmLabel="حذف"
+        confirmVariant="danger"
+        loading={deleting}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

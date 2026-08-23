@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -231,17 +231,15 @@ export function ProductForm({
             {categories === null ? (
               <Skeleton className="h-11 w-full" />
             ) : (
-              <Select
+              <Combobox
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                <option value="">انتخاب کنید</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.parentId ? `⤷ ${c.name}` : c.name}
-                  </option>
-                ))}
-              </Select>
+                onChange={setCategory}
+                placeholder="انتخاب کنید"
+                options={categories.map((c) => ({
+                  value: c.id,
+                  label: c.parentId ? `⤷ ${c.name}` : c.name,
+                }))}
+              />
             )}
           </div>
 
@@ -271,16 +269,14 @@ export function ProductForm({
             <label className="mb-1.5 block text-xs font-medium text-foreground/80">
               وضعیت
             </label>
-            <Select
+            <Combobox
               value={status}
-              onChange={(e) => setStatus(e.target.value as ProductStatus)}
-            >
-              {statusOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </Select>
+              onChange={(v) => setStatus(v as ProductStatus)}
+              options={statusOptions.map((opt) => ({
+                value: opt.value,
+                label: opt.label,
+              }))}
+            />
           </div>
         </CardContent>
       </Card>
