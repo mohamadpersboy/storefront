@@ -26,9 +26,9 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین Feature تکمیل‌شده:** Categories (UI + Backend واقعی)
-**Branch فعلی:** `main` (طبق سیاست جدید بخش ۱۱، همیشه `main`)
-**Feature بعدی:** Products
+**آخرین Feature تکمیل‌شده:** Products (مدل + API واقعی + UI کامل)
+**Branch فعلی:** `main`
+**Feature بعدی:** Orders
 
 ## 3. Completed Features
 
@@ -43,6 +43,10 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
   امنیتی کامل
 - ✅ Categories Management: نمای درختی ۲ سطحی، CRUD کامل، Validation
   عمق در Server (نه فقط UI)
+- ✅ Products Management: مدل کامل (Variant تعبیه‌شده با واحد/ویژگی/
+  قیمت/تخفیف/موجودی، ویژگی‌های فنی Flexible، تصاویر)، آپلود واقعی
+  تصویر به Cloudinary با Cropper نسبت ۳:۴، لیست با جستجو/فیلتر/
+  Pagination، فرم کامل ساخت/ویرایش، Soft Delete
 - ✅ ابزار `scripts/vercel-env-sync.sh` برای تنظیم یکجای Environment
   Variables (کاربر دستی استفاده کرد، فعلاً نیازی به اجرای مجدد نیست)
 
@@ -52,13 +56,12 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 5. Planned (به ترتیب)
 
-1. **Products** (بعدی) — شامل Variant، Inventory، تصاویر (Cloudinary)،
-   ویژگی‌های فنی، قیمت/تخفیف
-2. Orders
-3. Discounts + Amazing Offers
-4. Customers (نمای مدیریتی جدا از Users، تمرکز روی مشتریان)
-5. Settings
-6. بعد از تکمیل کامل Dashboard: شروع Storefront (Home, Products,
+1. **Orders** (بعدی)
+2. Discounts + Amazing Offers (شامل startAt/endAt برای Amazing Offer —
+   عمداً از Products جدا نگه داشته شد، طبق بند ۲۵-۲۶ Master Prompt)
+3. Customers (نمای مدیریتی جدا از Users، تمرکز روی مشتریان)
+4. Settings
+5. بعد از تکمیل کامل Dashboard: شروع Storefront (Home, Products,
    Category, Product Detail, Search, Cart, Checkout, Account, ...)
 
 ## 6. Architecture
@@ -131,31 +134,39 @@ src/
       page.tsx, layout.tsx, loading.tsx, error.tsx
       users/  page.tsx + [id]/page.tsx
       categories/  page.tsx + new/ + [id]/edit/
+      products/  page.tsx + new/ + [id]/edit/ + loading.tsx + error.tsx
     (storefront)/              - هنوز خالی
     api/v1/
       auth/  otp/{request,verify}/route.ts, logout/route.ts
       users/  route.ts + [id]/route.ts + [id]/role/route.ts + [id]/status/route.ts
       categories/  route.ts + [id]/route.ts
+      products/  route.ts + [id]/route.ts
+      uploads/sign/route.ts
     login/page.tsx
     layout.tsx, page.tsx, globals.css
   components/
-    ui/         - Button, Card, Badge, Input, Select, Pagination,
+    ui/         - Button, Card, Badge, Input, Select, Textarea, Pagination,
                   Skeleton, EmptyState, ErrorState, ConfirmDialog
     dashboard/  - DashboardShell, KpiCard, charts, ...
     users/      - RoleBadge, UserStatusBadge, users-page-client, ...
     categories/ - CategoriesTree, CategoryForm
+    products/   - ProductForm, ProductImageUploader, ImageCropModal,
+                  VariantEditor, TechnicalSpecsEditor, ProductStatusBadge,
+                  products-page-client
     auth/       - OtpLoginForm
   config/env.ts
   fonts/index.ts
   lib/
     auth/       session.ts, otp.ts, current-user.ts, api-guard.ts
+    cloudinary/ config.ts (server-only — signed uploads, secret never in client)
     db/         connect.ts
     constants/  rbac.ts, dashboard-nav.ts
     sms/        send-otp-sms.ts
-    utils/      api-response.ts, cn.ts, format.ts, slugify.ts
-    validations/ auth.ts, users.ts, categories.ts, category-depth.ts
+    utils/      api-response.ts, cn.ts, format.ts, slugify.ts,
+                pricing.ts, image-crop.ts
+    validations/ auth.ts, users.ts, categories.ts, category-depth.ts, products.ts
     mock/       dashboard.ts (فقط همین باقی مانده Mock)
-  models/       User.ts, Otp.ts, SystemFlag.ts, Category.ts
+  models/       User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts
   proxy.ts
 public/fonts/  - IRANYekanX woff2 (۴ وزن)
 scripts/vercel-env-sync.sh
@@ -181,8 +192,22 @@ Category | null — حداکثر عمق ۲ سطح، Validate شده در
 `src/lib/validations/category-depth.ts` نه در خود Model)، `isActive`,
 `sortOrder`, timestamps.
 
-**Planned models:** Product, Variant, Inventory, Order, Payment,
-Discount, AmazingOffer, Address.
+### Product
+`title`, `slug` (unique)، `description?`, `technicalDescription?`,
+`technicalSpecifications: {key,value}[]` (کاملاً Flexible، Hard-code
+نشده)، `category` (ref Category, required)، `images: {url,publicId}[]`
+(حداکثر ۱۰، از Cloudinary)، `variants` (حداقل ۱، هرکدام: `unit`
+[تخته/عدد/جفت/متر/متر مربع]، `attributes: {name,value}[]` [رنگ/اندازه/
+شانه/...]، `sku?`، `price`، `discountPercent`، `discountAmount`،
+`stock`، `isActive`)، `status` (draft/published/archived)، `seo`
+(title?/description?)، `deletedAt` (Soft Delete)، timestamps.
+
+قیمت نهایی هر Variant با `computeFinalPrice()` در
+`src/lib/utils/pricing.ts` محاسبه می‌شود (درصد و مبلغ ثابت هردو
+پشتیبانی می‌شوند) — این تابع منبع واحد محاسبه قیمت در کل پروژه است،
+هم API هم UI از همین استفاده می‌کنند.
+
+**Planned models:** Order, Payment, Discount, AmazingOffer, Address.
 
 ## 10. UI System (Design Tokens)
 
@@ -239,6 +264,11 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Categories | ترتیب Feature از Products به Categories تغییر کرد | Product.category اجباری و وابسته به Category است |
 | Categories | Validation عمق ۲ سطح در یک Helper مستقل (`category-depth.ts`) نه در Mongoose Middleware | تایپ‌های Mongoose Middleware با async/this ناسازگار بودند؛ Helper ساده‌تر و قابل تست‌تر است |
 | بعد از Categories UI | Push مستقیم روی main، بدون Branch/Approval جدا | تصمیم صریح کاربر - هزینه پیامک هر بار تست |
+| Products | قیمت/تخفیف در سطح Variant، نه Product | هر Variant واحد فروش و قیمت متفاوت دارد (بند ۲۱)؛ تکرار فیلد قیمت در دو سطح منبع خطا می‌شد |
+| Products | Amazing Offer (با startAt/endAt) به Feature جدا موکول شد، اینجا فقط discountPercent/discountAmount ساده در Variant | طبق ترتیب Master Prompt، Amazing Offer یک Feature مستقل با منطق Countdown/Expiry خودش است |
+| Products | آپلود تصویر با Cloudinary Signed Upload (نه Unsigned Preset) | امضا سمت Server تولید می‌شود (Secret هرگز به Client نمی‌رسد)، ولی نیازی به ساخت Upload Preset در پنل Cloudinary هم نیست |
+| Products | Cropper با react-easy-crop، نسبت ثابت ۳:۴ | الزام صریح بند ۴۲ Master Prompt |
+| Products | حذف محصول = Soft Delete، تصاویر Cloudinary پاک نمی‌شوند | امکان Restore بدون از دست دادن تصاویر؛ پاک‌سازی دائمی Cloudinary یک اقدام مدیریتی جدا و ساخته‌نشده است |
 
 ## 14. Known Issues
 
@@ -251,9 +281,11 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 
 ## 15. TODO (نزدیک)
 
-- [ ] شروع Feature Products: مدل Product + Variant + Inventory،
-  Cloudinary برای تصاویر (نسبت ۳:۴)، ویژگی‌های فنی Flexible، قیمت/تخفیف
-- [ ] بعد از Products: Orders
+- [ ] تست واقعی Products روی Vercel (آپلود تصویر واقعی به Cloudinary،
+  ساخت/ویرایش محصول با Variant واقعی)
+- [ ] شروع Feature Orders: مدل Order (Customer, Products, Variants,
+  Quantity, Pricing, Shipping, Payment, Status)، صفحه لیست/جزئیات
+  سفارش در Dashboard
 
 ## 16. Do Not Change (بدون دلیل قوی)
 
@@ -266,6 +298,9 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 - محدودیت عمق ۲ سطح Category — اگر تغییر کند، هم UI هم
   `category-depth.ts` هم Products (چون به Category وابسته است) باید
   هماهنگ به‌روز شوند
+- منبع محاسبه قیمت نهایی فقط `computeFinalPrice()` در
+  `src/lib/utils/pricing.ts` — هرگز این فرمول را در جای دیگری (مثلاً
+  مستقیم در JSX) تکرار نکن، چون بعداً ناهماهنگ می‌شود
 
 ## 17. Environment Variables
 
