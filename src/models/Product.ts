@@ -13,6 +13,7 @@ export interface IVariantAttribute {
 export interface IProductVariant {
   _id: Types.ObjectId;
   unit: string; // تخته / عدد / جفت / متر / متر مربع
+  colorId: Types.ObjectId | null; // حداکثر یک رنگ در هر Variant
   attributes: IVariantAttribute[];
   sku?: string;
   price: number; // قیمت پایه این Variant (تومان)
@@ -65,6 +66,11 @@ const VariantAttributeSchema = new Schema<IVariantAttribute>(
 
 const ProductVariantSchema = new Schema<IProductVariant>({
   unit: { type: String, required: true, trim: true },
+  colorId: {
+    type: Schema.Types.ObjectId,
+    ref: "Color",
+    default: null,
+  },
   attributes: { type: [VariantAttributeSchema], default: [] },
   sku: { type: String, trim: true },
   price: { type: Number, required: true, min: 0 },

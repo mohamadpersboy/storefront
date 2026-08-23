@@ -3,6 +3,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import { computeFinalPrice, hasDiscount } from "@/lib/utils/pricing";
 import { formatToman } from "@/lib/utils/format";
 
@@ -11,9 +12,16 @@ export interface VariantAttributeForm {
   value: string;
 }
 
+export interface ColorOption {
+  id: string;
+  name: string;
+  hexCode: string;
+}
+
 export interface VariantForm {
   id: string; // client-side key only, not sent for new variants
   unit: string;
+  colorId: string | null;
   attributes: VariantAttributeForm[];
   sku: string;
   price: string; // kept as string while editing, parsed on submit
@@ -27,6 +35,7 @@ export function createEmptyVariant(): VariantForm {
   return {
     id: crypto.randomUUID(),
     unit: "",
+    colorId: null,
     attributes: [],
     sku: "",
     price: "",
@@ -42,9 +51,11 @@ const UNIT_SUGGESTIONS = ["تخته", "عدد", "جفت", "متر", "متر مر
 export function VariantEditor({
   variants,
   onChange,
+  colors,
 }: {
   variants: VariantForm[];
   onChange: (variants: VariantForm[]) => void;
+  colors: ColorOption[];
 }) {
   function updateVariant(id: string, patch: Partial<VariantForm>) {
     onChange(variants.map((v) => (v.id === id ? { ...v, ...patch } : v)));
@@ -152,6 +163,27 @@ export function VariantEditor({
 
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-foreground/80">
+                  رنگ — اختیاری
+                </label>
+                <Combobox
+                  value={variant.colorId ?? ""}
+                  onChange={(v) =>
+                    updateVariant(variant.id, { colorId: v || null })
+                  }
+                  placeholder="بدون رنگ مشخص"
+                  options={[
+                    { value: "", label: "بدون رنگ مشخص" },
+                    ...colors.map((c) => ({
+                      value: c.id,
+                      label: c.name,
+                      swatch: c.hexCode,
+                    })),
+                  ]}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-foreground/80">
                   قیمت پایه (تومان)
                 </label>
                 <Input
@@ -232,7 +264,7 @@ export function VariantEditor({
 
             <div className="mt-3 border-t border-dashed border-border pt-3">
               <p className="mb-2 text-xs font-medium text-foreground/80">
-                ویژگی‌ها (رنگ، اندازه، شانه، تراکم و ...)
+                سایر ویژگی‌ها (اندازه، شانه، تراکم، جنس و ...)
               </p>
               <div className="flex flex-col gap-2">
                 {variant.attributes.map((attr, i) => (

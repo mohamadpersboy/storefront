@@ -42,6 +42,7 @@ export default async function EditProductPage({
           variants: product.variants.map((v) => ({
             id: String(v._id),
             unit: v.unit,
+            colorId: v.colorId ? String(v.colorId) : null,
             attributes: v.attributes,
             sku: v.sku ?? "",
             price: v.price,

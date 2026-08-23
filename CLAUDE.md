@@ -26,8 +26,8 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین Feature تکمیل‌شده:** Products + رفع دو مشکل (Select بومی →
-Combobox سفارشی در کل پروژه، دکمه حذف محصول اضافه شد)
+**آخرین Feature تکمیل‌شده:** Colors (مدیریت رنگ در Settings + اتصال به
+Variant محصولات)
 **Branch فعلی:** `main`
 **Feature بعدی:** Orders
 
@@ -48,6 +48,11 @@ Combobox سفارشی در کل پروژه، دکمه حذف محصول اضاف
   قیمت/تخفیف/موجودی، ویژگی‌های فنی Flexible، تصاویر)، آپلود واقعی
   تصویر به Cloudinary با Cropper نسبت ۳:۴، لیست با جستجو/فیلتر/
   Pagination، فرم کامل ساخت/ویرایش، Soft Delete
+- ✅ Colors (زیرمجموعه Settings): مدل مستقل Color (نام + کد Hex)،
+  مدیریت کامل در `/dashboard/settings/colors`، انتخاب رنگ در هر
+  Variant محصول (حداکثر یک رنگ در هر Variant، با نمایش دایره رنگی
+  واقعی نه فقط متن)
+- ✅ `Combobox` سفارشی جایگزین `<select>` بومی HTML شد در کل پروژه
 - ✅ ابزار `scripts/vercel-env-sync.sh` برای تنظیم یکجای Environment
   Variables (کاربر دستی استفاده کرد، فعلاً نیازی به اجرای مجدد نیست)
 
@@ -136,12 +141,14 @@ src/
       users/  page.tsx + [id]/page.tsx
       categories/  page.tsx + new/ + [id]/edit/
       products/  page.tsx + new/ + [id]/edit/ + loading.tsx + error.tsx
+      settings/  page.tsx + colors/page.tsx
     (storefront)/              - هنوز خالی
     api/v1/
       auth/  otp/{request,verify}/route.ts, logout/route.ts
       users/  route.ts + [id]/route.ts + [id]/role/route.ts + [id]/status/route.ts
       categories/  route.ts + [id]/route.ts
       products/  route.ts + [id]/route.ts
+      colors/  route.ts + [id]/route.ts
       uploads/sign/route.ts
     login/page.tsx
     layout.tsx, page.tsx, globals.css
@@ -154,6 +161,7 @@ src/
     products/   - ProductForm, ProductImageUploader, ImageCropModal,
                   VariantEditor, TechnicalSpecsEditor, ProductStatusBadge,
                   products-page-client
+    settings/   - ColorsManager, ColorFormModal
     auth/       - OtpLoginForm
   config/env.ts
   fonts/index.ts
@@ -167,7 +175,7 @@ src/
                 pricing.ts, image-crop.ts
     validations/ auth.ts, users.ts, categories.ts, category-depth.ts, products.ts
     mock/       dashboard.ts (فقط همین باقی مانده Mock)
-  models/       User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts
+  models/       User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts, Color.ts
   proxy.ts
 public/fonts/  - IRANYekanX woff2 (۴ وزن)
 scripts/vercel-env-sync.sh
@@ -193,15 +201,24 @@ Category | null — حداکثر عمق ۲ سطح، Validate شده در
 `src/lib/validations/category-depth.ts` نه در خود Model)، `isActive`,
 `sortOrder`, timestamps.
 
+### Color
+`name` (unique)، `hexCode` (`#RRGGBB`، Uppercase)، `isActive`،
+`sortOrder`، timestamps. مستقل از Product — هر Variant حداکثر یک
+`colorId` می‌تواند داشته باشد (نه بیشتر؛ تصمیم آگاهانه چون هر Variant
+معادل یک SKU مشخص است). حذف رنگی که روی حداقل یک محصول استفاده شده،
+مسدود می‌شود (نه Cascade) تا Variant بدون رنگ باقی نماند.
+
 ### Product
 `title`, `slug` (unique)، `description?`, `technicalDescription?`,
 `technicalSpecifications: {key,value}[]` (کاملاً Flexible، Hard-code
 نشده)، `category` (ref Category, required)، `images: {url,publicId}[]`
 (حداکثر ۱۰، از Cloudinary)، `variants` (حداقل ۱، هرکدام: `unit`
-[تخته/عدد/جفت/متر/متر مربع]، `attributes: {name,value}[]` [رنگ/اندازه/
-شانه/...]، `sku?`، `price`، `discountPercent`، `discountAmount`،
-`stock`، `isActive`)، `status` (draft/published/archived)، `seo`
-(title?/description?)، `deletedAt` (Soft Delete)، timestamps.
+[تخته/عدد/جفت/متر/متر مربع]، `colorId?` [ref Color، حداکثر یکی]،
+`attributes: {name,value}[]` [اندازه/شانه/تراکم/... — رنگ دیگر اینجا
+نیست، فیلد اختصاصی خودش را دارد]، `sku?`، `price`، `discountPercent`،
+`discountAmount`، `stock`، `isActive`)، `status` (draft/published/
+archived)، `seo` (title?/description?)، `deletedAt` (Soft Delete)،
+timestamps.
 
 قیمت نهایی هر Variant با `computeFinalPrice()` در
 `src/lib/utils/pricing.ts` محاسبه می‌شود (درصد و مبلغ ثابت هردو
@@ -272,6 +289,10 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Products | حذف محصول = Soft Delete، تصاویر Cloudinary پاک نمی‌شوند | امکان Restore بدون از دست دادن تصاویر؛ پاک‌سازی دائمی Cloudinary یک اقدام مدیریتی جدا و ساخته‌نشده است |
 | بعد از Products | `<select>` بومی HTML با `Combobox` سفارشی (`src/components/ui/combobox.tsx`) جایگزین شد در همه‌جا (دسته‌بندی، نقش، وضعیت) | بازخورد کاربر: `<select>` بومی روی موبایل یه Overlay تمام‌صفحه با همه گزینه‌ها باز می‌کند که با تعداد گزینه زیاد آزاردهنده است؛ Combobox جدید در همان صفحه باز می‌شود و برای بیش از ۶ گزینه جستجو هم دارد |
 | بعد از Products | دکمه حذف به لیست محصولات اضافه شد | اشتباه/فراموشی در تحویل قبلی — API حذف (Soft Delete) از قبل آماده بود ولی دکمه UI نداشت |
+| Colors | یک Model مستقل `Color` (نه بخشی از Category/Product) | رنگ یک مفهوم مستقل با ساختار خودش (نام+Hex) است که در آینده هم فقط به Variant محدود نمی‌ماند |
+| Colors | هر Variant حداکثر **یک** `colorId` (نه آرایه) | هر Variant معادل یک SKU/ترکیب مشخص است؛ چند رنگ روی یک Variant یعنی موجودی/قیمت معلوم نیست مال کدام رنگ است — برای رنگ‌های مختلف باید Variant جدا ساخت |
+| Colors | حذف رنگِ درحال‌استفاده مسدود می‌شود (نه Cascade روی Variantها) | حذف خاموش رنگ از Variantهای موجود می‌توانست داده گمراه‌کننده (Variant بدون رنگ که قبلاً رنگ داشت) بسازد |
+| Colors | صفحه مدیریت زیرمجموعه Settings (`/dashboard/settings/colors`) | درخواست صریح کاربر؛ Settings هم برای اولین‌بار در این مرحله فعال شد |
 
 ## 14. Known Issues
 
@@ -284,8 +305,8 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 
 ## 15. TODO (نزدیک)
 
-- [ ] تست واقعی Products روی Vercel (آپلود تصویر واقعی به Cloudinary،
-  ساخت/ویرایش محصول با Variant واقعی)
+- [ ] تست واقعی Products + Colors روی Vercel (آپلود تصویر واقعی به
+  Cloudinary، ساخت رنگ در Settings، انتخاب رنگ در Variant محصول)
 - [ ] شروع Feature Orders: مدل Order (Customer, Products, Variants,
   Quantity, Pricing, Shipping, Payment, Status)، صفحه لیست/جزئیات
   سفارش در Dashboard

@@ -9,6 +9,11 @@ const variantAttributeSchema = z.object({
 
 const variantSchema = z.object({
   unit: z.string().trim().min(1, "واحد فروش الزامی است"),
+  colorId: z
+    .string()
+    .regex(objectIdRegex, "رنگ انتخاب‌شده معتبر نیست")
+    .nullable()
+    .optional(),
   attributes: z.array(variantAttributeSchema).default([]),
   sku: z.string().trim().optional(),
   price: z.number().min(0, "قیمت نمی‌تواند منفی باشد"),

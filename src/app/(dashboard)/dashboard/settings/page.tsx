@@ -1,0 +1,47 @@
+import Link from "next/link";
+import { Palette, ChevronLeft } from "lucide-react";
+import { Card } from "@/components/ui/card";
+
+const settingsSections = [
+  {
+    href: "/dashboard/settings/colors",
+    icon: Palette,
+    title: "رنگ‌ها",
+    description: "مدیریت رنگ‌های قابل انتخاب برای Variant محصولات",
+  },
+];
+
+export default function SettingsPage() {
+  return (
+    <div className="flex flex-col gap-4">
+      <Card>
+        <ul className="divide-y divide-border">
+          {settingsSections.map((section) => {
+            const Icon = section.icon;
+            return (
+              <li key={section.href}>
+                <Link
+                  href={section.href}
+                  className="flex items-center gap-3 px-5 py-4 hover:bg-surface-subtle"
+                >
+                  <span className="flex size-9 items-center justify-center rounded-[var(--radius-md)] bg-primary-soft text-primary">
+                    <Icon className="size-4" strokeWidth={1.75} />
+                  </span>
+                  <span className="flex-1">
+                    <span className="block text-sm font-medium text-foreground">
+                      {section.title}
+                    </span>
+                    <span className="block text-xs text-muted">
+                      {section.description}
+                    </span>
+                  </span>
+                  <ChevronLeft className="size-4 text-muted" />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+    </div>
+  );
+}

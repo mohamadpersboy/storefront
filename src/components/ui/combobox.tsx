@@ -8,6 +8,7 @@ export interface ComboboxOption {
   value: string;
   label: string;
   disabled?: boolean;
+  swatch?: string; // hex color — renders a small dot before the label
 }
 
 const SEARCH_THRESHOLD = 6; // below this many options, skip the search box
@@ -73,7 +74,13 @@ export function Combobox({
           "flex h-11 w-full items-center justify-between rounded-[var(--radius-md)] border border-border bg-white px-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50",
         )}
       >
-        <span className={cn(!selected && "text-muted-foreground")}>
+        <span className={cn("flex items-center gap-2", !selected && "text-muted-foreground")}>
+          {selected?.swatch ? (
+            <span
+              className="size-3.5 shrink-0 rounded-full border border-black/10"
+              style={{ backgroundColor: selected.swatch }}
+            />
+          ) : null}
           {selected ? selected.label : placeholder}
         </span>
         <ChevronDown
@@ -116,13 +123,19 @@ export function Combobox({
                       setOpen(false);
                     }}
                     className={cn(
-                      "flex w-full items-center justify-between px-3 py-2.5 text-right text-sm hover:bg-surface-subtle disabled:cursor-not-allowed disabled:text-muted-foreground disabled:hover:bg-transparent",
+                      "flex w-full items-center gap-2 px-3 py-2.5 text-right text-sm hover:bg-surface-subtle disabled:cursor-not-allowed disabled:text-muted-foreground disabled:hover:bg-transparent",
                       option.value === value
                         ? "font-medium text-primary"
                         : "text-foreground",
                     )}
                   >
-                    {option.label}
+                    {option.swatch ? (
+                      <span
+                        className="size-3.5 shrink-0 rounded-full border border-black/10"
+                        style={{ backgroundColor: option.swatch }}
+                      />
+                    ) : null}
+                    <span className="flex-1">{option.label}</span>
                     {option.value === value ? (
                       <Check className="size-4 shrink-0" />
                     ) : null}

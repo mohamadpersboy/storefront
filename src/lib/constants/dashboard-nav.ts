@@ -28,5 +28,5 @@ export const dashboardNav: DashboardNavItem[] = [
   { label: "کاربران", href: "/dashboard/users", icon: UserCog, enabled: true },
   { label: "تخفیف‌ها", href: "/dashboard/discounts", icon: BadgePercent, enabled: false },
   { label: "تخفیف‌های شگفت‌انگیز", href: "/dashboard/amazing-offers", icon: Sparkles, enabled: false },
-  { label: "تنظیمات", href: "/dashboard/settings", icon: Settings, enabled: false },
+  { label: "تنظیمات", href: "/dashboard/settings", icon: Settings, enabled: true },
 ];

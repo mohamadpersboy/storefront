@@ -16,6 +16,7 @@ import {
   VariantEditor,
   createEmptyVariant,
   type VariantForm,
+  type ColorOption,
 } from "@/components/products/variant-editor";
 import {
   TechnicalSpecsEditor,
@@ -93,8 +94,18 @@ export function ProductForm({
   );
 
   const [categories, setCategories] = useState<CategoryOption[] | null>(null);
+  const [colors, setColors] = useState<ColorOption[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/v1/colors")
+      .then((res) => res.json())
+      .then((body) => {
+        if (body.success) setColors(body.data);
+      })
+      .catch(() => setColors([]));
+  }, []);
 
   useEffect(() => {
     fetch("/api/v1/categories")
@@ -155,6 +166,7 @@ export function ProductForm({
         images,
         variants: variants.map((v) => ({
           unit: v.unit,
+          colorId: v.colorId || null,
           attributes: v.attributes.filter(
             (a) => a.name.trim() && a.value.trim(),
           ),
@@ -294,7 +306,7 @@ export function ProductForm({
           description="واحد فروش، قیمت، تخفیف و موجودی هر حالت محصول"
         />
         <CardContent>
-          <VariantEditor variants={variants} onChange={setVariants} />
+          <VariantEditor variants={variants} onChange={setVariants} colors={colors} />
         </CardContent>
       </Card>
 
