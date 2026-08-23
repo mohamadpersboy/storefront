@@ -26,8 +26,9 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین Feature تکمیل‌شده:** Colors (مدیریت رنگ در Settings + اتصال به
-Variant محصولات)
+**آخرین کار:** رفع ۲ باگ (Session طولانی‌تر + کلیک بیرون پاپ‌اپ خروج
+کار نمی‌کرد) + تشخیص علت ریدایرکت غیرمنتظره به صفحه اصلی (نه باگ کد —
+مغایرت احتمالی MONGODB_URI بین محیط‌های Vercel، بخش ۱۴ Known Issues)
 **Branch فعلی:** `main`
 **Feature بعدی:** Orders
 
@@ -293,6 +294,8 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Colors | هر Variant حداکثر **یک** `colorId` (نه آرایه) | هر Variant معادل یک SKU/ترکیب مشخص است؛ چند رنگ روی یک Variant یعنی موجودی/قیمت معلوم نیست مال کدام رنگ است — برای رنگ‌های مختلف باید Variant جدا ساخت |
 | Colors | حذف رنگِ درحال‌استفاده مسدود می‌شود (نه Cascade روی Variantها) | حذف خاموش رنگ از Variantهای موجود می‌توانست داده گمراه‌کننده (Variant بدون رنگ که قبلاً رنگ داشت) بسازد |
 | Colors | صفحه مدیریت زیرمجموعه Settings (`/dashboard/settings/colors`) | درخواست صریح کاربر؛ Settings هم برای اولین‌بار در این مرحله فعال شد |
+| بعد از Colors | مدت Session از ۳۰ به ۹۰ روز افزایش یافت | درخواست کاربر برای کاهش دفعات Login با هزینه پیامک — هرچند علت اصلی شکایت احتمالاً تعویض Domain بین Deploymentهای مختلف Vercel است، نه انقضای Session (مستند در Known Issues) |
+| بعد از Colors | کلیک بیرون از پاپ‌اپ خروج (User Menu) حالا آن را می‌بندد | باگ گزارش‌شده توسط کاربر — Combobox از اول این رفتار را داشت ولی User Menu نداشت؛ رفع با همان الگوی Click-Outside |
 
 ## 14. Known Issues
 
@@ -302,6 +305,20 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 - تست End-to-End واقعی (OTP/SMS/DB) هرگز از داخل Sandbox Claude قابل
   اجرا نیست (بدون دسترسی شبکه به MongoDB Atlas/sms.ir/Vercel API) —
   همیشه باید توسط کاربر روی Vercel Preview/Production تست شود.
+- **مهم — عدم تطابق احتمالی MONGODB_URI بین محیط‌های Vercel:** اگه
+  کاربری که قبلاً Super Admin شده بود، دوباره Login کرد و این‌بار نقشش
+  `customer` بود (و در نتیجه Dashboard او را به `/` هدایت کرد)، علتش
+  این نیست که کد اشتباه کار می‌کند — یعنی این حساب در یک دیتابیس
+  *متفاوت* (یا خالی) ثبت‌نام شده، چون منطق «اولین کاربر = Super Admin»
+  در سطح کل یک دیتابیس فقط یک‌بار اتفاق می‌افتد. باید `MONGODB_URI` در
+  هر ۳ محیط Vercel (Production/Preview/Development) بررسی و یکسان‌سازی
+  شود؛ رفع فوری: در MongoDB Atlas مستقیماً فیلد `role` کاربر مربوطه در
+  Collection `users` را به `super_admin` تغییر بده.
+- **علت شایع «هر بار باید Login کنم»:** معمولاً به مدت‌زمان Session
+  ربطی ندارد (که الان ۹۰ روز است) بلکه به این دلیل است که هر
+  Deployment جدید روی Vercel یک URL منحصربه‌فرد دارد و Cookie بین
+  Domainهای متفاوت به اشتراک گذاشته نمی‌شود؛ باید همیشه از آدرس ثابت
+  Production (نه لینک هر Deployment) استفاده شود.
 
 ## 15. TODO (نزدیک)
 

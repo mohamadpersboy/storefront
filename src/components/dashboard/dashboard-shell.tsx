@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, LogOut, ChevronDown } from "lucide-react";
@@ -98,7 +98,31 @@ export function DashboardShell({
   const [drawerMounted, setDrawerMounted] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(e.target as Node)
+      ) {
+        setUserMenuOpen(false);
+      }
+    }
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") setUserMenuOpen(false);
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [userMenuOpen]);
 
   function openDrawer() {
     setDrawerMounted(true);
@@ -195,7 +219,7 @@ export function DashboardShell({
             داشبورد
           </h1>
 
-          <div className="relative mr-auto">
+          <div ref={userMenuRef} className="relative mr-auto">
             <button
               onClick={() => setUserMenuOpen((v) => !v)}
               className="flex items-center gap-2 rounded-[var(--radius-md)] px-2 py-1.5 hover:bg-surface-subtle"
