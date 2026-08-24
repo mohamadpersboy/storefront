@@ -6,6 +6,14 @@ import { Search, Users as UsersIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
+import {
+  Table,
+  TableHeaderRow,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 import { Pagination } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
@@ -128,51 +136,41 @@ export function UsersPageClient() {
             description="جستجو یا فیلتر را تغییر دهید."
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className="border-b border-border text-right text-xs text-muted">
-                  <th className="px-5 py-3 font-medium">نام</th>
-                  <th className="px-5 py-3 font-medium">شماره موبایل</th>
-                  <th className="px-5 py-3 font-medium">نقش</th>
-                  <th className="px-5 py-3 font-medium">وضعیت</th>
-                  <th className="px-5 py-3 font-medium">تاریخ عضویت</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr
-                    key={u.id}
-                    className="border-b border-border last:border-0 hover:bg-surface-subtle"
-                  >
-                    <td className="px-5 py-3">
-                      <Link
-                        href={`/dashboard/users/${u.id}`}
-                        className="font-medium text-foreground hover:text-primary"
-                      >
-                        {u.fullName ?? "بدون نام"}
-                      </Link>
-                    </td>
-                    <td
-                      className="px-5 py-3 tabular-nums text-foreground/80"
-                      dir="ltr"
+          <Table className="min-w-[640px]">
+            <TableHeaderRow>
+              <TableHead>نام</TableHead>
+              <TableHead>شماره موبایل</TableHead>
+              <TableHead>نقش</TableHead>
+              <TableHead>وضعیت</TableHead>
+              <TableHead>تاریخ عضویت</TableHead>
+            </TableHeaderRow>
+            <TableBody>
+              {users.map((u) => (
+                <TableRow key={u.id}>
+                  <TableCell>
+                    <Link
+                      href={`/dashboard/users/${u.id}`}
+                      className="font-medium text-foreground hover:text-primary"
                     >
-                      {u.phoneNumber}
-                    </td>
-                    <td className="px-5 py-3">
-                      <RoleBadge role={u.role} />
-                    </td>
-                    <td className="px-5 py-3">
-                      <UserStatusBadge isActive={u.isActive} />
-                    </td>
-                    <td className="px-5 py-3 tabular-nums text-muted">
-                      {formatDate(u.createdAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      {u.fullName ?? "بدون نام"}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="tabular-nums text-foreground/80">
+                    {u.phoneNumber}
+                  </TableCell>
+                  <TableCell>
+                    <RoleBadge role={u.role} />
+                  </TableCell>
+                  <TableCell>
+                    <UserStatusBadge isActive={u.isActive} />
+                  </TableCell>
+                  <TableCell className="tabular-nums text-muted">
+                    {formatDate(u.createdAt)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
 
         {!loading && !error ? (

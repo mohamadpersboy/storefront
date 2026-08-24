@@ -6,6 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { formatToman, toPersianDigits } from "@/lib/utils/format";
+import {
+  Table,
+  TableHeaderRow,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 
 export interface OrderLineItem {
   productId: string;
@@ -136,46 +144,50 @@ export function OrderItemsPicker({
   return (
     <div className="flex flex-col gap-4">
       {items.length > 0 ? (
-        <div className="overflow-x-auto rounded-[var(--radius-md)] border border-border">
-          <table className="w-full min-w-[560px] text-sm">
-            <thead>
-              <tr className="border-b border-border text-right text-xs text-muted">
-                <th className="px-3 py-2 font-medium">محصول</th>
-                <th className="px-3 py-2 font-medium">مشخصات</th>
-                <th className="px-3 py-2 font-medium">تعداد</th>
-                <th className="px-3 py-2 font-medium">قیمت واحد</th>
-                <th className="px-3 py-2 font-medium">جمع</th>
-                <th className="px-3 py-2"></th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="overflow-hidden rounded-[var(--radius-md)] border border-border">
+          <Table>
+            <TableHeaderRow>
+              <TableHead className="px-3 py-2">محصول</TableHead>
+              <TableHead className="px-3 py-2">مشخصات</TableHead>
+              <TableHead className="px-3 py-2">تعداد</TableHead>
+              <TableHead className="px-3 py-2">قیمت واحد</TableHead>
+              <TableHead className="px-3 py-2">جمع</TableHead>
+              <TableHead className="px-3 py-2"></TableHead>
+            </TableHeaderRow>
+            <TableBody>
               {items.map((item, i) => (
-                <tr key={i} className="border-b border-border last:border-0">
-                  <td className="px-3 py-2 font-medium text-foreground">{item.title}</td>
-                  <td className="px-3 py-2 text-xs text-muted">
+                <TableRow key={i}>
+                  <TableCell className="px-3 py-2 font-medium text-foreground">
+                    {item.title}
+                  </TableCell>
+                  <TableCell className="px-3 py-2 text-xs text-muted">
                     {item.unit}
                     {item.colorName ? ` · ${item.colorName}` : ""}
                     {item.attributesText ? ` · ${item.attributesText}` : ""}
-                  </td>
-                  <td className="px-3 py-2 tabular-nums">{toPersianDigits(item.quantity)}</td>
-                  <td className="px-3 py-2 tabular-nums">{formatToman(item.unitPrice)}</td>
-                  <td className="px-3 py-2 tabular-nums font-medium">
+                  </TableCell>
+                  <TableCell className="px-3 py-2 tabular-nums">
+                    {toPersianDigits(item.quantity)}
+                  </TableCell>
+                  <TableCell className="px-3 py-2 tabular-nums">
+                    {formatToman(item.unitPrice)}
+                  </TableCell>
+                  <TableCell className="px-3 py-2 tabular-nums font-medium">
                     {formatToman(item.unitPrice * item.quantity)}
-                  </td>
-                  <td className="px-3 py-2">
+                  </TableCell>
+                  <TableCell className="px-3 py-2">
                     <button
                       type="button"
                       onClick={() => removeItem(i)}
-                      className="flex size-7 items-center justify-center rounded-[var(--radius-sm)] text-danger hover:bg-red-50"
+                      className="mx-auto flex size-7 items-center justify-center rounded-[var(--radius-sm)] text-danger hover:bg-red-50"
                       aria-label="حذف قلم"
                     >
                       <Trash2 className="size-4" />
                     </button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
           <div className="border-t border-border px-3 py-2 text-left text-sm">
             جمع اقلام: <span className="font-medium">{formatToman(subtotal)}</span>
           </div>

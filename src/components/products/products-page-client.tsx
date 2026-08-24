@@ -14,6 +14,14 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  Table,
+  TableHeaderRow,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 import { ProductStatusBadge } from "@/components/products/product-status-badge";
 import { formatToman, toPersianDigits } from "@/lib/utils/format";
 import type { ProductStatus } from "@/models/Product";
@@ -167,86 +175,79 @@ export function ProductsPageClient() {
             description="جستجو یا فیلتر را تغییر دهید، یا محصول جدیدی بسازید."
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
-              <thead>
-                <tr className="border-b border-border text-right text-xs text-muted">
-                  <th className="px-5 py-3 font-medium">محصول</th>
-                  <th className="px-5 py-3 font-medium">دسته‌بندی</th>
-                  <th className="px-5 py-3 font-medium">Variantها</th>
-                  <th className="px-5 py-3 font-medium">شروع قیمت</th>
-                  <th className="px-5 py-3 font-medium">موجودی</th>
-                  <th className="px-5 py-3 font-medium">وضعیت</th>
-                  <th className="px-5 py-3 font-medium"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((p) => (
-                  <tr
-                    key={p.id}
-                    className="border-b border-border last:border-0 hover:bg-surface-subtle"
-                  >
-                    <td className="px-5 py-3">
-                      <Link
-                        href={`/dashboard/products/${p.id}/edit`}
-                        className="flex items-center gap-3"
-                      >
-                        <div className="relative size-10 shrink-0 overflow-hidden rounded-[var(--radius-sm)] bg-surface-subtle">
-                          {p.coverImage ? (
-                            <Image
-                              src={p.coverImage}
-                              alt=""
-                              fill
-                              sizes="40px"
-                              className="object-cover"
-                            />
-                          ) : null}
-                        </div>
-                        <span className="font-medium text-foreground hover:text-primary">
-                          {p.title}
-                        </span>
-                      </Link>
-                    </td>
-                    <td className="px-5 py-3 text-foreground/80">
-                      {p.category?.name ?? "—"}
-                    </td>
-                    <td className="px-5 py-3 tabular-nums text-foreground/80">
-                      {toPersianDigits(p.variantsCount)}
-                    </td>
-                    <td className="px-5 py-3 tabular-nums text-foreground/80">
-                      {formatToman(p.minPrice)}
-                    </td>
-                    <td className="px-5 py-3 tabular-nums text-foreground/80">
-                      {toPersianDigits(p.totalStock)}
-                    </td>
-                    <td className="px-5 py-3">
-                      <ProductStatusBadge status={p.status} />
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() =>
-                            router.push(`/dashboard/products/${p.id}/edit`)
-                          }
-                          aria-label="ویرایش"
-                          className="flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-surface-subtle"
-                        >
-                          <Pencil className="size-4" />
-                        </button>
-                        <button
-                          onClick={() => setPendingDelete(p)}
-                          aria-label="حذف"
-                          className="flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-danger hover:bg-red-50"
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
+          <Table className="min-w-[760px]">
+            <TableHeaderRow>
+              <TableHead>محصول</TableHead>
+              <TableHead>دسته‌بندی</TableHead>
+              <TableHead>Variantها</TableHead>
+              <TableHead>شروع قیمت</TableHead>
+              <TableHead>موجودی</TableHead>
+              <TableHead>وضعیت</TableHead>
+              <TableHead></TableHead>
+            </TableHeaderRow>
+            <TableBody>
+              {products.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell>
+                    <Link
+                      href={`/dashboard/products/${p.id}/edit`}
+                      className="flex items-center justify-center gap-3"
+                    >
+                      <div className="relative size-10 shrink-0 overflow-hidden rounded-[var(--radius-sm)] bg-surface-subtle">
+                        {p.coverImage ? (
+                          <Image
+                            src={p.coverImage}
+                            alt=""
+                            fill
+                            sizes="40px"
+                            className="object-cover"
+                          />
+                        ) : null}
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      <span className="font-medium text-foreground hover:text-primary">
+                        {p.title}
+                      </span>
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-foreground/80">
+                    {p.category?.name ?? "—"}
+                  </TableCell>
+                  <TableCell className="tabular-nums text-foreground/80">
+                    {toPersianDigits(p.variantsCount)}
+                  </TableCell>
+                  <TableCell className="tabular-nums text-foreground/80">
+                    {formatToman(p.minPrice)}
+                  </TableCell>
+                  <TableCell className="tabular-nums text-foreground/80">
+                    {toPersianDigits(p.totalStock)}
+                  </TableCell>
+                  <TableCell>
+                    <ProductStatusBadge status={p.status} />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-center gap-1">
+                      <button
+                        onClick={() =>
+                          router.push(`/dashboard/products/${p.id}/edit`)
+                        }
+                        aria-label="ویرایش"
+                        className="flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-surface-subtle"
+                      >
+                        <Pencil className="size-4" />
+                      </button>
+                      <button
+                        onClick={() => setPendingDelete(p)}
+                        aria-label="حذف"
+                        className="flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-danger hover:bg-red-50"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
 
         {!loading && !error ? (

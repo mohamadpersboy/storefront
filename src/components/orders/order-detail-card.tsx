@@ -8,6 +8,14 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { OrderStatusBadge, orderStatusLabels } from "@/components/orders/order-status-badge";
 import { formatToman, toPersianDigits } from "@/lib/utils/format";
 import {
+  Table,
+  TableHeaderRow,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
+import {
   getAllowedNextStatuses,
   type OrderStatus,
 } from "@/lib/constants/order-status";
@@ -125,50 +133,75 @@ export function OrderDetailCard({ order }: { order: OrderDetailData }) {
 
       <Card>
         <CardHeader title="اقلام سفارش" />
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] text-sm">
-            <thead>
-              <tr className="border-b border-border text-right text-xs text-muted">
-                <th className="px-5 py-3 font-medium">محصول</th>
-                <th className="px-5 py-3 font-medium">مشخصات</th>
-                <th className="px-5 py-3 font-medium">تعداد</th>
-                <th className="px-5 py-3 font-medium">قیمت واحد</th>
-                <th className="px-5 py-3 font-medium">جمع</th>
-              </tr>
-            </thead>
-            <tbody>
-              {order.items.map((item, i) => (
-                <tr key={i} className="border-b border-border last:border-0">
-                  <td className="px-5 py-3 font-medium text-foreground">{item.title}</td>
-                  <td className="px-5 py-3 text-xs text-muted">
-                    {[item.unit, item.colorName, ...item.attributes.map((a) => a.value)]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </td>
-                  <td className="px-5 py-3 tabular-nums">{toPersianDigits(item.quantity)}</td>
-                  <td className="px-5 py-3 tabular-nums">{formatToman(item.unitPrice)}</td>
-                  <td className="px-5 py-3 tabular-nums font-medium">
-                    {formatToman(item.lineTotal)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table className="min-w-[560px]">
+          <TableHeaderRow>
+            <TableHead>محصول</TableHead>
+            <TableHead>مشخصات</TableHead>
+            <TableHead>تعداد</TableHead>
+            <TableHead>قیمت واحد</TableHead>
+            <TableHead>جمع</TableHead>
+          </TableHeaderRow>
+          <TableBody>
+            {order.items.map((item, i) => (
+              <TableRow key={i}>
+                <TableCell className="font-medium text-foreground">{item.title}</TableCell>
+                <TableCell className="text-xs text-muted">
+                  {[item.unit, item.colorName, ...item.attributes.map((a) => a.value)]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </TableCell>
+                <TableCell className="tabular-nums">{toPersianDigits(item.quantity)}</TableCell>
+                <TableCell className="tabular-nums">{formatToman(item.unitPrice)}</TableCell>
+                <TableCell className="tabular-nums font-medium">
+                  {formatToman(item.lineTotal)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader title="آدرس ارسال" />
-          <CardContent className="flex flex-col gap-1.5 text-sm text-foreground/80">
-            <p>{order.shippingAddress.recipientName}</p>
-            <p dir="ltr" className="text-left">{order.shippingAddress.phoneNumber}</p>
+          <CardContent className="flex flex-col gap-2 text-sm">
             <p>
-              {order.shippingAddress.province}، {order.shippingAddress.city}
+              <span className="text-muted">تحویل‌گیرنده: </span>
+              <span className="font-medium text-foreground">
+                {order.shippingAddress.recipientName}
+              </span>
             </p>
-            <p>{order.shippingAddress.addressLine}</p>
-            <p className="text-xs text-muted">
-              کد پستی: {toPersianDigits(order.shippingAddress.postalCode)}
+            <p className="tabular-nums">
+              <span className="text-muted">شماره تماس: </span>
+              <span className="font-medium text-foreground">
+                {order.shippingAddress.phoneNumber}
+              </span>
+            </p>
+            <div className="flex gap-4">
+              <p>
+                <span className="text-muted">استان: </span>
+                <span className="font-medium text-foreground">
+                  {order.shippingAddress.province}
+                </span>
+              </p>
+              <p>
+                <span className="text-muted">شهر: </span>
+                <span className="font-medium text-foreground">
+                  {order.shippingAddress.city}
+                </span>
+              </p>
+            </div>
+            <p>
+              <span className="text-muted">آدرس: </span>
+              <span className="font-medium text-foreground">
+                {order.shippingAddress.addressLine}
+              </span>
+            </p>
+            <p className="tabular-nums">
+              <span className="text-muted">کد پستی: </span>
+              <span className="font-medium text-foreground">
+                {toPersianDigits(order.shippingAddress.postalCode)}
+              </span>
             </p>
           </CardContent>
         </Card>

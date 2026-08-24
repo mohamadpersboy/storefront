@@ -11,6 +11,14 @@ import { Pagination } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableHeaderRow,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import { formatToman, toPersianDigits } from "@/lib/utils/format";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/constants/order-status";
@@ -131,52 +139,45 @@ export function OrdersPageClient() {
             description="جستجو یا فیلتر را تغییر دهید، یا سفارش جدیدی ثبت کنید."
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className="border-b border-border text-right text-xs text-muted">
-                  <th className="px-5 py-3 font-medium">شماره سفارش</th>
-                  <th className="px-5 py-3 font-medium">مشتری</th>
-                  <th className="px-5 py-3 font-medium">اقلام</th>
-                  <th className="px-5 py-3 font-medium">مبلغ کل</th>
-                  <th className="px-5 py-3 font-medium">وضعیت</th>
-                  <th className="px-5 py-3 font-medium">تاریخ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((o) => (
-                  <tr
-                    key={o.id}
-                    className="border-b border-border last:border-0 hover:bg-surface-subtle"
-                  >
-                    <td className="px-5 py-3">
-                      <Link
-                        href={`/dashboard/orders/${o.id}`}
-                        className="font-medium text-foreground hover:text-primary"
-                      >
-                        #{toPersianDigits(o.orderNumber)}
-                      </Link>
-                    </td>
-                    <td className="px-5 py-3 text-foreground/80">
-                      {o.customer?.fullName ?? o.customer?.phoneNumber ?? "—"}
-                    </td>
-                    <td className="px-5 py-3 tabular-nums text-foreground/80">
-                      {toPersianDigits(o.itemsCount)}
-                    </td>
-                    <td className="px-5 py-3 tabular-nums text-foreground/80">
-                      {formatToman(o.totalAmount)}
-                    </td>
-                    <td className="px-5 py-3">
-                      <OrderStatusBadge status={o.status} />
-                    </td>
-                    <td className="px-5 py-3 tabular-nums text-muted">
-                      {formatDate(o.createdAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table className="min-w-[640px]">
+            <TableHeaderRow>
+              <TableHead>شماره سفارش</TableHead>
+              <TableHead>مشتری</TableHead>
+              <TableHead>اقلام</TableHead>
+              <TableHead>مبلغ کل</TableHead>
+              <TableHead>وضعیت</TableHead>
+              <TableHead>تاریخ</TableHead>
+            </TableHeaderRow>
+            <TableBody>
+              {orders.map((o) => (
+                <TableRow key={o.id}>
+                  <TableCell>
+                    <Link
+                      href={`/dashboard/orders/${o.id}`}
+                      className="font-medium text-foreground hover:text-primary"
+                    >
+                      #{toPersianDigits(o.orderNumber)}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-foreground/80">
+                    {o.customer?.fullName ?? o.customer?.phoneNumber ?? "—"}
+                  </TableCell>
+                  <TableCell className="tabular-nums text-foreground/80">
+                    {toPersianDigits(o.itemsCount)}
+                  </TableCell>
+                  <TableCell className="tabular-nums text-foreground/80">
+                    {formatToman(o.totalAmount)}
+                  </TableCell>
+                  <TableCell>
+                    <OrderStatusBadge status={o.status} />
+                  </TableCell>
+                  <TableCell className="tabular-nums text-muted">
+                    {formatDate(o.createdAt)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
 
         {!loading && !error ? (

@@ -3,6 +3,14 @@ import { formatToman, toPersianDigits } from "@/lib/utils/format";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ShoppingCart } from "lucide-react";
+import {
+  Table,
+  TableHeaderRow,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 
 export function RecentOrdersTable({
   orders = mockRecentOrders,
@@ -20,46 +28,35 @@ export function RecentOrdersTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[560px] text-sm">
-        <thead>
-          <tr className="border-b border-border text-right text-xs text-muted">
-            <th className="px-5 py-3 font-medium">شماره سفارش</th>
-            <th className="px-5 py-3 font-medium">مشتری</th>
-            <th className="px-5 py-3 font-medium">اقلام</th>
-            <th className="px-5 py-3 font-medium">مبلغ</th>
-            <th className="px-5 py-3 font-medium">وضعیت</th>
-            <th className="px-5 py-3 font-medium">تاریخ</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map((order) => (
-            <tr
-              key={order.id}
-              className="border-b border-border last:border-0 hover:bg-surface-subtle"
-            >
-              <td className="px-5 py-3 font-medium text-foreground">
-                #{toPersianDigits(order.id)}
-              </td>
-              <td className="px-5 py-3 text-foreground/80">
-                {order.customerName}
-              </td>
-              <td className="px-5 py-3 tabular-nums text-foreground/80">
-                {toPersianDigits(order.itemsCount)}
-              </td>
-              <td className="px-5 py-3 tabular-nums text-foreground/80">
-                {formatToman(order.total)}
-              </td>
-              <td className="px-5 py-3">
-                <OrderStatusBadge status={order.status} />
-              </td>
-              <td className="px-5 py-3 tabular-nums text-muted">
-                {order.createdAt}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table className="min-w-[560px]">
+      <TableHeaderRow>
+        <TableHead>شماره سفارش</TableHead>
+        <TableHead>مشتری</TableHead>
+        <TableHead>اقلام</TableHead>
+        <TableHead>مبلغ</TableHead>
+        <TableHead>وضعیت</TableHead>
+        <TableHead>تاریخ</TableHead>
+      </TableHeaderRow>
+      <TableBody>
+        {orders.map((order) => (
+          <TableRow key={order.id}>
+            <TableCell className="font-medium text-foreground">
+              #{toPersianDigits(order.id)}
+            </TableCell>
+            <TableCell className="text-foreground/80">{order.customerName}</TableCell>
+            <TableCell className="tabular-nums text-foreground/80">
+              {toPersianDigits(order.itemsCount)}
+            </TableCell>
+            <TableCell className="tabular-nums text-foreground/80">
+              {formatToman(order.total)}
+            </TableCell>
+            <TableCell>
+              <OrderStatusBadge status={order.status} />
+            </TableCell>
+            <TableCell className="tabular-nums text-muted">{order.createdAt}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }

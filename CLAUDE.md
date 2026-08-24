@@ -26,8 +26,9 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین Feature تکمیل‌شده:** Orders (مدل کامل + State Machine وضعیت +
-UI ساخت/مدیریت سفارش)
+**آخرین کار:** رفع مشکلات UI گزارش‌شده در Orders: تراز جدول‌ها (همه
+جدول‌های پروژه اکنون Header+Body یکدست Center)، بازطراحی آدرس ارسال
+با فرمت برچسب‌دار، رفع پرش شماره تماس به چپ
 **Branch فعلی:** `main`
 **Feature بعدی:** Discounts + Amazing Offers
 
@@ -169,7 +170,7 @@ src/
     login/page.tsx
     layout.tsx, page.tsx, globals.css
   components/
-    ui/         - Button, Card, Badge, Input, Textarea, Combobox,
+    ui/         - Button, Card, Badge, Input, Textarea, Combobox, Table,
                   Pagination, Skeleton, EmptyState, ErrorState, ConfirmDialog
     dashboard/  - DashboardShell, KpiCard, charts, ...
     users/      - RoleBadge, UserStatusBadge, users-page-client, ...
@@ -346,6 +347,8 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Orders | Payment مستقل (بند ۳۱) هنوز ساخته نشده؛ فعلاً فیلدهای پرداخت مستقیم روی Order هستند | چون Gateway واقعی هنوز انتخاب نشده (تصمیم Bootstrap)؛ وقتی انتخاب شد، Payment از Order جدا می‌شود بدون Breaking Change در Schema فعلی (فیلدهای فعلی به‌عنوان Snapshot باقی می‌مانند) |
 | Orders | State Machine وضعیت با یک Map انتقال مجاز (`order-status.ts`)، نه enum ساده با هر تغییر آزاد | جلوگیری از پرش وضعیت غیرمنطقی (مثلاً pending مستقیم به delivered)؛ الگو مشابه `category-depth.ts`: تابع مستقل، قابل تست، هم در UI هم API استفاده می‌شود |
 | Orders | لغو/مرجوعی سفارش، موجودی Variant را خودکار برمی‌گرداند | جلوگیری از قفل‌شدن دائمی موجودی روی سفارش‌های لغوشده |
+| بعد از Orders | یک Table primitive مشترک (`src/components/ui/table.tsx`) ساخته و همه ۶ جدول پروژه با آن بازنویسی شد | باگ گزارش‌شده: Header با Center پیش‌فرض مرورگر (`th`) نمایش داده می‌شد ولی `td` از تراز RTL ارث می‌برد (راست) — ناهماهنگ؛ به‌جای اصلاح تک‌تک، یک Component مشترک ساخته شد تا جدول‌های بعدی هم خودکار هماهنگ بمانند |
+| بعد از Orders | آدرس ارسال به فرمت برچسب‌دار (تحویل‌گیرنده/شماره تماس/استان+شهر/آدرس/کدپستی) تغییر کرد؛ `dir="ltr"` از نمایش شماره تلفن‌ها (نه Inputها) حذف شد | خوانایی بهتر + رفع باگ گزارش‌شده: `dir="ltr"` روی یک `<p>` تمام‌عرض باعث می‌شد کل خط به چپ بچسبد؛ اعداد لاتین داخل متن RTL بدون نیاز به override جهت درست نمایش داده می‌شوند (رفتار استاندارد Bidi) |
 | بعد از Colors | مدت Session از ۳۰ به ۹۰ روز افزایش یافت | درخواست کاربر برای کاهش دفعات Login با هزینه پیامک — هرچند علت اصلی شکایت احتمالاً تعویض Domain بین Deploymentهای مختلف Vercel است، نه انقضای Session (مستند در Known Issues) |
 | بعد از Colors | کلیک بیرون از پاپ‌اپ خروج (User Menu) حالا آن را می‌بندد | باگ گزارش‌شده توسط کاربر — Combobox از اول این رفتار را داشت ولی User Menu نداشت؛ رفع با همان الگوی Click-Outside |
 
