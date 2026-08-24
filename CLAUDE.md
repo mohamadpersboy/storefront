@@ -26,11 +26,10 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار:** رفع ۲ باگ (Session طولانی‌تر + کلیک بیرون پاپ‌اپ خروج
-کار نمی‌کرد) + تشخیص علت ریدایرکت غیرمنتظره به صفحه اصلی (نه باگ کد —
-مغایرت احتمالی MONGODB_URI بین محیط‌های Vercel، بخش ۱۴ Known Issues)
+**آخرین Feature تکمیل‌شده:** Orders (مدل کامل + State Machine وضعیت +
+UI ساخت/مدیریت سفارش)
 **Branch فعلی:** `main`
-**Feature بعدی:** Orders
+**Feature بعدی:** Discounts + Amazing Offers
 
 ## 3. Completed Features
 
@@ -56,6 +55,16 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 - ✅ `Combobox` سفارشی جایگزین `<select>` بومی HTML شد در کل پروژه
 - ✅ ابزار `scripts/vercel-env-sync.sh` برای تنظیم یکجای Environment
   Variables (کاربر دستی استفاده کرد، فعلاً نیازی به اجرای مجدد نیست)
+- ✅ رفع باگ: کلیک بیرون پاپ‌اپ خروج از حساب حالا آن را می‌بندد؛ مدت
+  Session به ۹۰ روز افزایش یافت
+- ✅ Orders Management: مدل کامل با Snapshot محصول/قیمت در زمان سفارش
+  (تغییر بعدی قیمت محصول، سفارش‌های قبلی را دستکاری نمی‌کند)، State
+  Machine وضعیت سفارش (Transitionهای مجاز اعتبارسنجی می‌شوند، نه هر
+  تغییری)، ۳ حالت پرداخت (آنلاین/نقدی/ترکیبی با محاسبه خودکار
+  پیش‌پرداخت سمت Server)، کسر/بازگردانی خودکار موجودی، ساخت سفارش
+  دستی توسط کارمند/ادمین (چون Storefront/Checkout واقعی هنوز ساخته
+  نشده) با جستجوی محصول زنده و Find-or-Create مشتری بر اساس شماره
+  موبایل
 
 ## 4. In Progress
 
@@ -63,13 +72,16 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 5. Planned (به ترتیب)
 
-1. **Orders** (بعدی)
-2. Discounts + Amazing Offers (شامل startAt/endAt برای Amazing Offer —
-   عمداً از Products جدا نگه داشته شد، طبق بند ۲۵-۲۶ Master Prompt)
-3. Customers (نمای مدیریتی جدا از Users، تمرکز روی مشتریان)
-4. Settings
-5. بعد از تکمیل کامل Dashboard: شروع Storefront (Home, Products,
-   Category, Product Detail, Search, Cart, Checkout, Account, ...)
+1. **Discounts + Amazing Offers** (بعدی — شامل startAt/endAt برای
+   Amazing Offer، طبق بند ۲۵-۲۶ Master Prompt)
+2. Customers (نمای مدیریتی جدا از Users، تمرکز روی مشتریان — احتمالاً
+   بخش زیادی از UI لیست از همان الگوی Users قابل استفاده مجدد است)
+3. Payment (مدل مستقل Payment طبق بند ۳۱ — انتخاب Gateway واقعی هنوز
+   باقی مانده)
+4. بعد از تکمیل کامل Dashboard: شروع Storefront (Home, Products,
+   Category, Product Detail, Search, Cart, Checkout, Account, ...) —
+   وقتی Storefront ساخته شد، Checkout واقعی باید به همین مدل Order و
+   منطق موجود در `src/app/api/v1/orders/route.ts` وصل شود (نه بازنویسی)
 
 ## 6. Architecture
 
@@ -143,6 +155,7 @@ src/
       categories/  page.tsx + new/ + [id]/edit/
       products/  page.tsx + new/ + [id]/edit/ + loading.tsx + error.tsx
       settings/  page.tsx + colors/page.tsx
+      orders/  page.tsx + new/ + [id]/page.tsx + loading.tsx + error.tsx
     (storefront)/              - هنوز خالی
     api/v1/
       auth/  otp/{request,verify}/route.ts, logout/route.ts
@@ -150,6 +163,8 @@ src/
       categories/  route.ts + [id]/route.ts
       products/  route.ts + [id]/route.ts
       colors/  route.ts + [id]/route.ts
+      orders/  route.ts + [id]/route.ts + [id]/status/route.ts
+      customers/find-or-create/route.ts
       uploads/sign/route.ts
     login/page.tsx
     layout.tsx, page.tsx, globals.css
@@ -163,6 +178,8 @@ src/
                   VariantEditor, TechnicalSpecsEditor, ProductStatusBadge,
                   products-page-client
     settings/   - ColorsManager, ColorFormModal
+    orders/     - OrderForm, OrderItemsPicker, OrderDetailCard,
+                  OrderStatusBadge, orders-page-client
     auth/       - OtpLoginForm
   config/env.ts
   fonts/index.ts
@@ -176,7 +193,8 @@ src/
                 pricing.ts, image-crop.ts
     validations/ auth.ts, users.ts, categories.ts, category-depth.ts, products.ts
     mock/       dashboard.ts (فقط همین باقی مانده Mock)
-  models/       User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts, Color.ts
+  models/       User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts,
+                Color.ts, Order.ts, Counter.ts
   proxy.ts
 public/fonts/  - IRANYekanX woff2 (۴ وزن)
 scripts/vercel-env-sync.sh
@@ -226,7 +244,36 @@ timestamps.
 پشتیبانی می‌شوند) — این تابع منبع واحد محاسبه قیمت در کل پروژه است،
 هم API هم UI از همین استفاده می‌کنند.
 
-**Planned models:** Order, Payment, Discount, AmazingOffer, Address.
+### Order
+`orderNumber` (عدد صحیح یکتا، تولیدشده Atomic از `Counter`، شروع از
+۱۰۰۰۱)، `customer` (ref User)، `items[]` (هرکدام **Snapshot کامل**
+لحظه سفارش: عنوان، واحد، نام رنگ، ویژگی‌ها، قیمت واحد نهایی، تعداد،
+جمع — نه فقط رفرنس، چون تغییر بعدی قیمت/محصول نباید سفارش‌های قبلی را
+دستکاری کند)، `shippingAddress` (Embedded: گیرنده/موبایل/استان/شهر/
+آدرس/کدپستی)، `subtotal`، `shippingCost`، `totalAmount`،
+`paymentMethod` (online/cash/split)، `prepaymentPercent/Amount`،
+`remainingAmount` (محاسبه‌شده توسط `computePrepayment()` در
+`pricing.ts` — کاربر هرگز مستقیماً مبلغ را وارد نمی‌کند، فقط درصد را
+برای حالت split)، `status` (State Machine، بخش زیر)، `notes`،
+timestamps.
+
+**Order Status State Machine** (`src/lib/constants/order-status.ts`):
+`pending → confirmed → processing → ready_to_ship → shipped →
+delivered`، با `cancelled` مجاز از هر مرحله قبل از ارسال، و `returned`
+فقط بعد از `shipped`/`delivered`. `cancelled`/`returned` نهایی
+هستند. تمام تغییرات وضعیت (چه از UI چه مستقیم API) از
+`canTransitionOrderStatus()` عبور می‌کنند — این تابع منبع حقیقت
+انتقال وضعیت است، هم UI (کدام گزینه‌ها را نشان بدهد) هم API (کدام
+تغییر واقعاً مجاز است) از همین استفاده می‌کنند. لغو/مرجوعی موجودی
+Variant را خودکار برمی‌گرداند.
+
+### Counter
+`key` (unique)، `value`. Helper عمومی `getNextSequence(key)` برای
+شماره‌گذاری اتمیک (فعلاً فقط `orderNumber` از آن استفاده می‌کند).
+
+**Planned models:** Payment (مستقل، طبق بند ۳۱)، Discount,
+AmazingOffer, Address (Address فعلاً به‌صورت Embedded داخل Order است؛
+Address Book مستقل مشتری بخشی از Storefront/Account است).
 
 ## 10. UI System (Design Tokens)
 
@@ -294,6 +341,11 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Colors | هر Variant حداکثر **یک** `colorId` (نه آرایه) | هر Variant معادل یک SKU/ترکیب مشخص است؛ چند رنگ روی یک Variant یعنی موجودی/قیمت معلوم نیست مال کدام رنگ است — برای رنگ‌های مختلف باید Variant جدا ساخت |
 | Colors | حذف رنگِ درحال‌استفاده مسدود می‌شود (نه Cascade روی Variantها) | حذف خاموش رنگ از Variantهای موجود می‌توانست داده گمراه‌کننده (Variant بدون رنگ که قبلاً رنگ داشت) بسازد |
 | Colors | صفحه مدیریت زیرمجموعه Settings (`/dashboard/settings/colors`) | درخواست صریح کاربر؛ Settings هم برای اولین‌بار در این مرحله فعال شد |
+| Orders | سفارش دستی از Dashboard (نه Checkout واقعی) | چون Storefront/Checkout هنوز ساخته نشده؛ فروشگاه فرش عملاً سفارش تلفنی هم زیاد دارد، پس این UI به‌خودی‌خود مفید است، نه صرفاً Placeholder |
+| Orders | هر Item سفارش یک Snapshot کامل است (نه فقط productId/variantId) | اگر بعداً قیمت یا عنوان محصول عوض شود، سفارش‌های ثبت‌شده قبلی نباید تغییر کنند — تاریخچه مالی باید Immutable باشد |
+| Orders | Payment مستقل (بند ۳۱) هنوز ساخته نشده؛ فعلاً فیلدهای پرداخت مستقیم روی Order هستند | چون Gateway واقعی هنوز انتخاب نشده (تصمیم Bootstrap)؛ وقتی انتخاب شد، Payment از Order جدا می‌شود بدون Breaking Change در Schema فعلی (فیلدهای فعلی به‌عنوان Snapshot باقی می‌مانند) |
+| Orders | State Machine وضعیت با یک Map انتقال مجاز (`order-status.ts`)، نه enum ساده با هر تغییر آزاد | جلوگیری از پرش وضعیت غیرمنطقی (مثلاً pending مستقیم به delivered)؛ الگو مشابه `category-depth.ts`: تابع مستقل، قابل تست، هم در UI هم API استفاده می‌شود |
+| Orders | لغو/مرجوعی سفارش، موجودی Variant را خودکار برمی‌گرداند | جلوگیری از قفل‌شدن دائمی موجودی روی سفارش‌های لغوشده |
 | بعد از Colors | مدت Session از ۳۰ به ۹۰ روز افزایش یافت | درخواست کاربر برای کاهش دفعات Login با هزینه پیامک — هرچند علت اصلی شکایت احتمالاً تعویض Domain بین Deploymentهای مختلف Vercel است، نه انقضای Session (مستند در Known Issues) |
 | بعد از Colors | کلیک بیرون از پاپ‌اپ خروج (User Menu) حالا آن را می‌بندد | باگ گزارش‌شده توسط کاربر — Combobox از اول این رفتار را داشت ولی User Menu نداشت؛ رفع با همان الگوی Click-Outside |
 
@@ -322,11 +374,9 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 
 ## 15. TODO (نزدیک)
 
-- [ ] تست واقعی Products + Colors روی Vercel (آپلود تصویر واقعی به
-  Cloudinary، ساخت رنگ در Settings، انتخاب رنگ در Variant محصول)
-- [ ] شروع Feature Orders: مدل Order (Customer, Products, Variants,
-  Quantity, Pricing, Shipping, Payment, Status)، صفحه لیست/جزئیات
-  سفارش در Dashboard
+- [ ] تست واقعی Orders روی Vercel (ساخت سفارش دستی، جستجوی محصول
+  زنده، تغییر وضعیت با State Machine، بررسی کسر/بازگردانی موجودی)
+- [ ] شروع Feature بعدی: Discounts + Amazing Offers
 
 ## 16. Do Not Change (بدون دلیل قوی)
 

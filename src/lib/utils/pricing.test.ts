@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeFinalPrice, hasDiscount } from "@/lib/utils/pricing";
+import { computeFinalPrice, hasDiscount, computePrepayment } from "@/lib/utils/pricing";
 
 describe("computeFinalPrice", () => {
   it("returns the original price when there is no discount", () => {
@@ -36,5 +36,44 @@ describe("hasDiscount", () => {
   it("is true when either discount field is non-zero", () => {
     expect(hasDiscount(10, 0)).toBe(true);
     expect(hasDiscount(0, 5000)).toBe(true);
+  });
+});
+
+describe("computePrepayment", () => {
+  it("is 100% for 'online' regardless of the requested split percent", () => {
+    const result = computePrepayment("online", 1_000_000, 10);
+    expect(result).toEqual({
+      prepaymentPercent: 100,
+      prepaymentAmount: 1_000_000,
+      remainingAmount: 0,
+    });
+  });
+
+  it("is 0% for 'cash' regardless of the requested split percent", () => {
+    const result = computePrepayment("cash", 1_000_000, 50);
+    expect(result).toEqual({
+      prepaymentPercent: 0,
+      prepaymentAmount: 0,
+      remainingAmount: 1_000_000,
+    });
+  });
+
+  it("uses the given percent for 'split'", () => {
+    const result = computePrepayment("split", 1_000_000, 10);
+    expect(result).toEqual({
+      prepaymentPercent: 10,
+      prepaymentAmount: 100_000,
+      remainingAmount: 900_000,
+    });
+  });
+
+  it("clamps an out-of-range split percent into 0-100", () => {
+    expect(computePrepayment("split", 1_000_000, 150).prepaymentPercent).toBe(100);
+    expect(computePrepayment("split", 1_000_000, -20).prepaymentPercent).toBe(0);
+  });
+
+  it("defaults split percent to 0 when not provided", () => {
+    const result = computePrepayment("split", 1_000_000);
+    expect(result.prepaymentPercent).toBe(0);
   });
 });
