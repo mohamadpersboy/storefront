@@ -26,12 +26,12 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار:** تکمیل Feature «Discounts + Amazing Offers» — مدل مستقل
-`AmazingOffer` با startAt/endAt، محاسبه وضعیت (فعال/زمان‌بندی‌شده/
-منقضی/متوقف‌شده) کاملاً در Backend، صفحه مدیریت با Countdown، و صفحه
-نمای کلی Discounts (خواندنی، لینک به فرم ویرایش محصول برای تغییر واقعی)
+**آخرین کار:** تکمیل Feature «Customers» — نمای مدیریتی مشتریان
+(role=customer) جدا از Users، با تعداد سفارش و مجموع خرید محاسبه‌شده
+از طریق Aggregation، صفحه جزئیات با تاریخچه سفارش‌های مشتری؛ تغییر
+نقش/وضعیت حساب همچنان فقط از صفحه Users انجام می‌شود
 **Branch فعلی:** `main`
-**Feature بعدی:** Customers
+**Feature بعدی:** Payment
 
 ## 3. Completed Features
 
@@ -75,19 +75,21 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
   (فقط UX، منبع حقیقت Backend است)؛ صفحه `/dashboard/discounts` به‌عنوان
   نمای کلی خواندنی محصولات تخفیف‌دار (خودِ ویرایش تخفیف همچنان در فرم
   محصول انجام می‌شود تا دو منبع حقیقت برای یک داده ساخته نشود)
+- ✅ Customers: نمای خواندنی مشتریان (role=customer) با جستجو،
+  Pagination، تعداد سفارش و مجموع خرید (از Aggregation روی Order، نه
+  فیلد ذخیره‌شده — همیشه به‌روز است)، صفحه جزئیات با تاریخچه سفارش‌های
+  همان مشتری؛ تغییر نقش/فعال‌سازی حساب عمداً اینجا تکرار نشده و به
+  صفحه Users که قبلاً همین قابلیت را دارد ارجاع داده می‌شود
 
 ## 4. In Progress
 
-هیچ‌کدام — منتظر شروع Customers.
+هیچ‌کدام — منتظر شروع Payment.
 
 ## 5. Planned (به ترتیب)
 
-1. **Customers** (بعدی — نمای مدیریتی جدا از Users، تمرکز روی
-   مشتریان — احتمالاً بخش زیادی از UI لیست از همان الگوی Users قابل
-   استفاده مجدد است)
-2. Payment (مدل مستقل Payment طبق بند ۳۱ — انتخاب Gateway واقعی هنوز
-   باقی مانده)
-3. بعد از تکمیل کامل Dashboard: شروع Storefront (Home, Products,
+1. **Payment** (بعدی — مدل مستقل Payment طبق بند ۳۱؛ انتخاب Gateway
+   واقعی هنوز باقی مانده)
+2. بعد از تکمیل کامل Dashboard: شروع Storefront (Home, Products,
    Category, Product Detail, Search, Cart, Checkout, Account, ...) —
    وقتی Storefront ساخته شد، Checkout واقعی باید به همین مدل Order و
    منطق موجود در `src/app/api/v1/orders/route.ts` وصل شود (نه بازنویسی)
@@ -167,6 +169,7 @@ src/
       orders/  page.tsx + new/ + [id]/page.tsx + loading.tsx + error.tsx
       discounts/  page.tsx
       amazing-offers/  page.tsx + new/ + [id]/edit/
+      customers/  page.tsx + [id]/page.tsx
     (storefront)/              - هنوز خالی
     api/v1/
       auth/  otp/{request,verify}/route.ts, logout/route.ts
@@ -176,7 +179,7 @@ src/
       colors/  route.ts + [id]/route.ts
       orders/  route.ts + [id]/route.ts + [id]/status/route.ts
       amazing-offers/  route.ts + [id]/route.ts
-      customers/find-or-create/route.ts
+      customers/  route.ts + [id]/route.ts + find-or-create/route.ts
       uploads/sign/route.ts
     login/page.tsx
     layout.tsx, page.tsx, globals.css
@@ -195,6 +198,7 @@ src/
     amazing-offers/ - AmazingOfferForm, AmazingOfferStatusBadge,
                   AmazingOfferCountdown, amazing-offers-page-client
     discounts/  - discounts-page-client (فقط خواندنی)
+    customers/  - customers-page-client, CustomerDetailCard
     auth/       - OtpLoginForm
   config/env.ts
   fonts/index.ts
@@ -207,7 +211,7 @@ src/
     utils/      api-response.ts, cn.ts, format.ts, slugify.ts,
                 pricing.ts, image-crop.ts, amazing-offer.ts
     validations/ auth.ts, users.ts, categories.ts, category-depth.ts, products.ts,
-                amazing-offers.ts
+                amazing-offers.ts, customers.ts
     mock/       dashboard.ts (فقط همین باقی مانده Mock)
   models/       User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts,
                 Color.ts, Order.ts, Counter.ts, AmazingOffer.ts
@@ -400,6 +404,9 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Amazing Offers | وضعیت (فعال/زمان‌بندی‌شده/منقضی/متوقف‌شده) هرگز در DB ذخیره نمی‌شود، همیشه محاسبه‌شده از `isActive` + `startAt`/`endAt` | بند ۲۵: «از ذخیره کردن وضعیت‌های محاسباتی به شکل ناسازگار خودداری کن»؛ الگو مشابه `canTransitionOrderStatus` — یک Helper مستقل، هم API هم UI از همان استفاده می‌کنند |
 | Amazing Offers | ساخت Offer جدید روی Variantی که از قبل Offer فعال/زمان‌بندی‌شده دارد مسدود می‌شود | جلوگیری از دو تخفیف شگفت‌انگیز همپوشان روی یک Variant که قیمت نهایی را مبهم می‌کرد |
 | Discounts | صفحه `/dashboard/discounts` فقط خواندنی است؛ ویرایش واقعی تخفیف در فرم محصول (سطح Variant) باقی می‌ماند | آن فیلدها (`discountPercent`/`discountAmount`) از قبل در Products ساخته شده بودند؛ ساخت مسیر نوشتن دوم برای همان داده، دو منبع حقیقت می‌ساخت |
+| Customers | بدون مدل جدا — همان `User` با `role=customer`، لیست/جزئیات از طریق Aggregation با `orders` ($lookup) | Customer از ابتدا در User model جای گرفته بود (اولین کاربر Super Admin، بقیه پیش‌فرض Customer)؛ مدل جدا داده را دوپاره می‌کرد بدون فایده معماری |
+| Customers | صفحه Customers فقط خواندنی (بدون تغییر نقش/فعال‌سازی) — لینک به همان صفحه Users موجود | آن قابلیت از قبل در User Management ساخته شده بود؛ تکرارش هم دو مسیر نوشتن برای یک داده می‌ساخت هم Authorization را دو جا نگه می‌داشت |
+| Customers | `totalSpent` فقط از سفارش‌های واقعاً برگردانده‌شده (حداکثر ۲۰ سفارش اخیر) جمع می‌شود، با پرچم `partialTotalSpent` به UI | جمع زدن روی کل تاریخچه سفارش یک مشتری پرمعامله در API لیست هزینه محاسباتی داشت؛ عدد ناقص با برچسب صادقانه بهتر از عدد کامل ولی کند یا گمراه‌کننده بدون برچسب است |
 
 ## 14. Known Issues
 
@@ -432,7 +439,9 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 - [ ] تست واقعی Discounts + Amazing Offers روی Vercel (ساخت Offer،
   بررسی Countdown، انقضای خودکار بعد از `endAt`، جلوگیری از Offer
   همپوشان، نمای `/dashboard/discounts`)
-- [ ] شروع Feature بعدی: Customers
+- [ ] تست واقعی Customers روی Vercel (جستجو، Pagination، تعداد سفارش
+  و مجموع خرید صحیح، صفحه جزئیات با تاریخچه سفارش‌ها)
+- [ ] شروع Feature بعدی: Payment
 
 ## 16. Do Not Change (بدون دلیل قوی)
 
