@@ -10,6 +10,7 @@ export function ConfirmDialog({
   cancelLabel = "انصراف",
   confirmVariant = "primary",
   loading = false,
+  extraContent,
   onConfirm,
   onCancel,
 }: {
@@ -20,6 +21,7 @@ export function ConfirmDialog({
   cancelLabel?: string;
   confirmVariant?: "primary" | "danger";
   loading?: boolean;
+  extraContent?: React.ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -45,6 +47,7 @@ export function ConfirmDialog({
           {title}
         </h2>
         <p className="mt-2 text-sm text-muted">{description}</p>
+        {extraContent ? <div className="mt-3">{extraContent}</div> : null}
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="secondary" size="sm" onClick={onCancel} disabled={loading}>
             {cancelLabel}

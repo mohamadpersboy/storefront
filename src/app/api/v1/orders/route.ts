@@ -10,6 +10,7 @@ import { requireApiUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { computeFinalPrice, computePrepayment } from "@/lib/utils/pricing";
 import { createOrderSchema, ordersListQuerySchema } from "@/lib/validations/orders";
+import { sendOrderStatusSms } from "@/lib/sms/send-order-status-sms";
 
 const ORDER_NUMBER_OFFSET = 10_000;
 
@@ -96,6 +97,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   const guard = await requireApiUser(PERMISSIONS.ORDERS_UPDATE);
   if (guard.response) return guard.response;
+  const { user: actor } = guard;
 
   const json = await request.json().catch(() => null);
   const parsed = createOrderSchema.safeParse(json);
@@ -193,7 +195,22 @@ export async function POST(request: Request) {
     prepaymentAmount,
     remainingAmount,
     notes,
+    statusHistory: [
+      {
+        status: "pending",
+        changedAt: new Date(),
+        changedBy: actor._id,
+        note: "",
+      },
+    ],
   });
+
+  // Best-effort order-confirmation SMS — must never fail order creation.
+  try {
+    await sendOrderStatusSms(customer.phoneNumber, order.orderNumber, "pending");
+  } catch (error) {
+    console.error("Failed to send order confirmation SMS:", error);
+  }
 
   return apiSuccess(
     { id: order.id, orderNumber: order.orderNumber },

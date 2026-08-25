@@ -26,9 +26,9 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار:** رفع مشکلات UI گزارش‌شده در Orders: تراز جدول‌ها (همه
-جدول‌های پروژه اکنون Header+Body یکدست Center)، بازطراحی آدرس ارسال
-با فرمت برچسب‌دار، رفع پرش شماره تماس به چپ
+**آخرین کار:** تکمیل درخواست کاربر روی Orders — تاریخچه کامل تغییر
+وضعیت (چه کسی، کِی)، یادداشت اختیاری هنگام تغییر وضعیت، و پیامک
+اطلاعیه خودکار به مشتری در هر تغییر وضعیت
 **Branch فعلی:** `main`
 **Feature بعدی:** Discounts + Amazing Offers
 
@@ -189,7 +189,7 @@ src/
     cloudinary/ config.ts (server-only — signed uploads, secret never in client)
     db/         connect.ts
     constants/  rbac.ts, dashboard-nav.ts
-    sms/        send-otp-sms.ts
+    sms/        send-otp-sms.ts, send-order-status-sms.ts
     utils/      api-response.ts, cn.ts, format.ts, slugify.ts,
                 pricing.ts, image-crop.ts
     validations/ auth.ts, users.ts, categories.ts, category-depth.ts, products.ts
@@ -255,8 +255,10 @@ timestamps.
 `paymentMethod` (online/cash/split)، `prepaymentPercent/Amount`،
 `remainingAmount` (محاسبه‌شده توسط `computePrepayment()` در
 `pricing.ts` — کاربر هرگز مستقیماً مبلغ را وارد نمی‌کند، فقط درصد را
-برای حالت split)، `status` (State Machine، بخش زیر)، `notes`،
-timestamps.
+برای حالت split)، `status` (State Machine، بخش زیر)، `statusHistory[]`
+(هر رکورد: وضعیت، زمان، `changedBy` [ref User]، `note?` اختیاری — یک
+رکورد اولیه با وضعیت `pending` موقع ساخت سفارش هم ثبت می‌شود)، `notes`
+(یادداشت کلی سفارش، مجزا از یادداشت هر تغییر وضعیت)، timestamps.
 
 **Order Status State Machine** (`src/lib/constants/order-status.ts`):
 `pending → confirmed → processing → ready_to_ship → shipped →
@@ -267,6 +269,14 @@ delivered`، با `cancelled` مجاز از هر مرحله قبل از ارسا
 انتقال وضعیت است، هم UI (کدام گزینه‌ها را نشان بدهد) هم API (کدام
 تغییر واقعاً مجاز است) از همین استفاده می‌کنند. لغو/مرجوعی موجودی
 Variant را خودکار برمی‌گرداند.
+
+**اطلاع‌رسانی پیامکی تغییر وضعیت:** `src/lib/sms/send-order-status-sms.ts`
+با متد **Bulk** sms.ir (نه Pattern/Verify مثل OTP، چون این پیام‌ها
+اطلاع‌رسانی عمومی‌اند نه کد تأیید حساس زمان و نیازی به Template
+تأییدشده ندارند) در هر تغییر وضعیت (هم ساخت سفارش هم هر Transition
+بعدی) برای مشتری ارسال می‌شود. **Best-effort:** اگر ارسال پیامک شکست
+بخورد، فقط در Log ثبت می‌شود و درخواست اصلی (ساخت سفارش/تغییر وضعیت)
+هرگز به همین دلیل Fail نمی‌شود.
 
 ### Counter
 `key` (unique)، `value`. Helper عمومی `getNextSequence(key)` برای
@@ -349,6 +359,8 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Orders | لغو/مرجوعی سفارش، موجودی Variant را خودکار برمی‌گرداند | جلوگیری از قفل‌شدن دائمی موجودی روی سفارش‌های لغوشده |
 | بعد از Orders | یک Table primitive مشترک (`src/components/ui/table.tsx`) ساخته و همه ۶ جدول پروژه با آن بازنویسی شد | باگ گزارش‌شده: Header با Center پیش‌فرض مرورگر (`th`) نمایش داده می‌شد ولی `td` از تراز RTL ارث می‌برد (راست) — ناهماهنگ؛ به‌جای اصلاح تک‌تک، یک Component مشترک ساخته شد تا جدول‌های بعدی هم خودکار هماهنگ بمانند |
 | بعد از Orders | آدرس ارسال به فرمت برچسب‌دار (تحویل‌گیرنده/شماره تماس/استان+شهر/آدرس/کدپستی) تغییر کرد؛ `dir="ltr"` از نمایش شماره تلفن‌ها (نه Inputها) حذف شد | خوانایی بهتر + رفع باگ گزارش‌شده: `dir="ltr"` روی یک `<p>` تمام‌عرض باعث می‌شد کل خط به چپ بچسبد؛ اعداد لاتین داخل متن RTL بدون نیاز به override جهت درست نمایش داده می‌شوند (رفتار استاندارد Bidi) |
+| بعد از Orders | تاریخچه کامل تغییر وضعیت سفارش (`statusHistory[]`) + یادداشت اختیاری هر تغییر + پیامک اطلاع‌رسانی خودکار (Bulk، نه Pattern) | درخواست صریح کاربر؛ هر سه با هم اضافه شدند تا معلق نماند |
+| بعد از Orders | پیامک وضعیت سفارش Best-effort است (خطای ارسال، درخواست اصلی را Fail نمی‌کند) | یک مشکل موقت sms.ir نباید مانع ثبت/تغییر وضعیت سفارش واقعی در دیتابیس شود |
 | بعد از Colors | مدت Session از ۳۰ به ۹۰ روز افزایش یافت | درخواست کاربر برای کاهش دفعات Login با هزینه پیامک — هرچند علت اصلی شکایت احتمالاً تعویض Domain بین Deploymentهای مختلف Vercel است، نه انقضای Session (مستند در Known Issues) |
 | بعد از Colors | کلیک بیرون از پاپ‌اپ خروج (User Menu) حالا آن را می‌بندد | باگ گزارش‌شده توسط کاربر — Combobox از اول این رفتار را داشت ولی User Menu نداشت؛ رفع با همان الگوی Click-Outside |
 
@@ -378,7 +390,8 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 ## 15. TODO (نزدیک)
 
 - [ ] تست واقعی Orders روی Vercel (ساخت سفارش دستی، جستجوی محصول
-  زنده، تغییر وضعیت با State Machine، بررسی کسر/بازگردانی موجودی)
+  زنده، تغییر وضعیت با State Machine، بررسی کسر/بازگردانی موجودی،
+  دریافت واقعی پیامک اطلاع‌رسانی تغییر وضعیت)
 - [ ] شروع Feature بعدی: Discounts + Amazing Offers
 
 ## 16. Do Not Change (بدون دلیل قوی)

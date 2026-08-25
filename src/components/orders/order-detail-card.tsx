@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Clock } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Combobox } from "@/components/ui/combobox";
+import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { OrderStatusBadge, orderStatusLabels } from "@/components/orders/order-status-badge";
 import { formatToman, toPersianDigits } from "@/lib/utils/format";
@@ -19,6 +21,13 @@ import {
   getAllowedNextStatuses,
   type OrderStatus,
 } from "@/lib/constants/order-status";
+
+export interface OrderStatusHistoryItem {
+  status: OrderStatus;
+  changedAt: string;
+  changedByName: string;
+  note?: string;
+}
 
 export interface OrderDetailData {
   id: string;
@@ -49,6 +58,7 @@ export interface OrderDetailData {
   prepaymentAmount: number;
   remainingAmount: number;
   status: OrderStatus;
+  statusHistory: OrderStatusHistoryItem[];
   notes: string;
   createdAt: string;
 }
@@ -59,11 +69,19 @@ const paymentMethodLabels: Record<string, string> = {
   split: "پرداخت ترکیبی",
 };
 
+function formatDateTime(iso: string) {
+  return new Intl.DateTimeFormat("fa-IR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(iso));
+}
+
 export function OrderDetailCard({ order }: { order: OrderDetailData }) {
   const router = useRouter();
   const allowedNext = getAllowedNextStatuses(order.status);
 
   const [pendingStatus, setPendingStatus] = useState<OrderStatus | null>(null);
+  const [statusNote, setStatusNote] = useState("");
   const [changing, setChanging] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,7 +93,10 @@ export function OrderDetailCard({ order }: { order: OrderDetailData }) {
       const res = await fetch(`/api/v1/orders/${order.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: pendingStatus }),
+        body: JSON.stringify({
+          status: pendingStatus,
+          note: statusNote.trim() || undefined,
+        }),
       });
       const body = await res.json();
       if (!res.ok || !body.success) {
@@ -83,6 +104,7 @@ export function OrderDetailCard({ order }: { order: OrderDetailData }) {
         return;
       }
       setPendingStatus(null);
+      setStatusNote("");
       router.refresh();
     } catch {
       setError("ارتباط با سرور برقرار نشد");
@@ -237,9 +259,34 @@ export function OrderDetailCard({ order }: { order: OrderDetailData }) {
         </Card>
       </div>
 
+      <Card>
+        <CardHeader title="تاریخچه وضعیت" description="پیامک اطلاع‌رسانی هم در هر تغییر برای مشتری ارسال می‌شود" />
+        <CardContent className="p-0">
+          <ul className="divide-y divide-border">
+            {[...order.statusHistory].reverse().map((entry, i) => (
+              <li key={i} className="flex flex-col gap-1 px-5 py-3">
+                <div className="flex items-center justify-between">
+                  <OrderStatusBadge status={entry.status} />
+                  <span className="flex items-center gap-1 text-xs text-muted">
+                    <Clock className="size-3.5" />
+                    {formatDateTime(entry.changedAt)}
+                  </span>
+                </div>
+                <p className="text-xs text-muted">توسط {entry.changedByName}</p>
+                {entry.note ? (
+                  <p className="mt-1 rounded-[var(--radius-sm)] bg-surface-subtle px-3 py-2 text-xs text-foreground/80">
+                    {entry.note}
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+
       {order.notes ? (
         <Card>
-          <CardHeader title="یادداشت" />
+          <CardHeader title="یادداشت سفارش" />
           <CardContent className="text-sm text-foreground/80">{order.notes}</CardContent>
         </Card>
       ) : null}
@@ -249,13 +296,29 @@ export function OrderDetailCard({ order }: { order: OrderDetailData }) {
         title="تغییر وضعیت سفارش"
         description={
           pendingStatus
-            ? `آیا از تغییر وضعیت سفارش به «${orderStatusLabels[pendingStatus]}» مطمئن هستید؟`
+            ? `آیا از تغییر وضعیت سفارش به «${orderStatusLabels[pendingStatus]}» مطمئن هستید؟ پیامک اطلاع‌رسانی برای مشتری ارسال می‌شود.`
             : ""
         }
         confirmLabel="تأیید تغییر"
         loading={changing}
-        onCancel={() => setPendingStatus(null)}
+        onCancel={() => {
+          setPendingStatus(null);
+          setStatusNote("");
+        }}
         onConfirm={confirmStatusChange}
+        extraContent={
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-foreground/80">
+              یادداشت (اختیاری)
+            </label>
+            <Textarea
+              rows={2}
+              value={statusNote}
+              onChange={(e) => setStatusNote(e.target.value)}
+              placeholder="مثلاً دلیل لغو، شماره پیگیری پست و..."
+            />
+          </div>
+        }
       />
     </div>
   );

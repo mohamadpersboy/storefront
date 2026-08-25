@@ -15,6 +15,7 @@ export default async function OrderDetailPage({
   await connectToDatabase();
   const order = await Order.findById(id)
     .populate("customer", "fullName phoneNumber")
+    .populate("statusHistory.changedBy", "fullName phoneNumber")
     .lean()
     .catch(() => null);
 
@@ -58,6 +59,17 @@ export default async function OrderDetailPage({
           prepaymentAmount: order.prepaymentAmount,
           remainingAmount: order.remainingAmount,
           status: order.status,
+          statusHistory: order.statusHistory.map((entry) => ({
+            status: entry.status,
+            changedAt: entry.changedAt.toISOString(),
+            changedByName:
+              (entry.changedBy as unknown as { fullName?: string; phoneNumber: string })
+                ?.fullName ??
+              (entry.changedBy as unknown as { fullName?: string; phoneNumber: string })
+                ?.phoneNumber ??
+              "—",
+            note: entry.note,
+          })),
           notes: order.notes,
           createdAt: order.createdAt.toISOString(),
         }}

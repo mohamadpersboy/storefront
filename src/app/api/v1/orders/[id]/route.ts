@@ -16,6 +16,7 @@ export async function GET(
 
   const order = await Order.findById(id)
     .populate("customer", "fullName phoneNumber")
+    .populate("statusHistory.changedBy", "fullName phoneNumber")
     .lean();
 
   if (!order) {
@@ -36,6 +37,7 @@ export async function GET(
     prepaymentAmount: order.prepaymentAmount,
     remainingAmount: order.remainingAmount,
     status: order.status,
+    statusHistory: order.statusHistory,
     notes: order.notes,
     createdAt: order.createdAt,
   });

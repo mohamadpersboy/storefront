@@ -36,6 +36,7 @@ export const createOrderSchema = z.object({
 
 export const updateOrderStatusSchema = z.object({
   status: z.enum(ORDER_STATUSES as [string, ...string[]]),
+  note: z.string().trim().max(500).optional(),
 });
 
 export const ordersListQuerySchema = z.object({

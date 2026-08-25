@@ -1,11 +1,13 @@
 import { connectToDatabase } from "@/lib/db/connect";
 import { Order } from "@/models/Order";
 import { Product } from "@/models/Product";
+import { User } from "@/models/User";
 import { PERMISSIONS } from "@/lib/constants/rbac";
 import { requireApiUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { updateOrderStatusSchema } from "@/lib/validations/orders";
 import { canTransitionOrderStatus, type OrderStatus } from "@/lib/constants/order-status";
+import { sendOrderStatusSms } from "@/lib/sms/send-order-status-sms";
 
 export async function PATCH(
   request: Request,
@@ -13,6 +15,7 @@ export async function PATCH(
 ) {
   const guard = await requireApiUser(PERMISSIONS.ORDERS_UPDATE);
   if (guard.response) return guard.response;
+  const { user: actor } = guard;
 
   const { id } = await params;
   const json = await request.json().catch(() => null);
@@ -26,6 +29,7 @@ export async function PATCH(
   }
 
   const nextStatus = parsed.data.status as OrderStatus;
+  const note = parsed.data.note ?? "";
 
   await connectToDatabase();
   const order = await Order.findById(id);
@@ -52,7 +56,24 @@ export async function PATCH(
   }
 
   order.status = nextStatus;
+  order.statusHistory.push({
+    status: nextStatus,
+    changedAt: new Date(),
+    changedBy: actor._id,
+    note,
+  });
   await order.save();
+
+  // Best-effort customer notification — a failed SMS must never fail
+  // (or roll back) the status change itself.
+  try {
+    const customer = await User.findById(order.customer).select("phoneNumber").lean();
+    if (customer) {
+      await sendOrderStatusSms(customer.phoneNumber, order.orderNumber, nextStatus);
+    }
+  } catch (error) {
+    console.error("Failed to send order status SMS:", error);
+  }
 
   return apiSuccess(
     { id: order.id, status: order.status },

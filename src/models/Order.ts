@@ -30,6 +30,13 @@ export interface IShippingAddress {
   postalCode: string;
 }
 
+export interface IOrderStatusHistoryEntry {
+  status: OrderStatus;
+  changedAt: Date;
+  changedBy: Types.ObjectId;
+  note?: string;
+}
+
 export interface IOrder {
   orderNumber: number;
   customer: Types.ObjectId;
@@ -43,6 +50,7 @@ export interface IOrder {
   prepaymentAmount: number;
   remainingAmount: number;
   status: OrderStatus;
+  statusHistory: IOrderStatusHistoryEntry[];
   notes: string;
   createdAt: Date;
   updatedAt: Date;
@@ -76,6 +84,16 @@ const ShippingAddressSchema = new Schema<IShippingAddress>(
     city: { type: String, required: true, trim: true },
     addressLine: { type: String, required: true, trim: true },
     postalCode: { type: String, required: true, trim: true },
+  },
+  { _id: false },
+);
+
+const OrderStatusHistorySchema = new Schema<IOrderStatusHistoryEntry>(
+  {
+    status: { type: String, enum: ORDER_STATUSES, required: true },
+    changedAt: { type: Date, required: true, default: Date.now },
+    changedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    note: { type: String, trim: true, default: "" },
   },
   { _id: false },
 );
@@ -114,6 +132,7 @@ const OrderSchema = new Schema<IOrder>(
       default: "pending",
       index: true,
     },
+    statusHistory: { type: [OrderStatusHistorySchema], default: [] },
     notes: { type: String, trim: true, default: "" },
   },
   { timestamps: true },
