@@ -26,7 +26,7 @@ export const dashboardNav: DashboardNavItem[] = [
   { label: "سفارش‌ها", href: "/dashboard/orders", icon: ShoppingCart, enabled: true },
   { label: "مشتریان", href: "/dashboard/customers", icon: Users, enabled: false },
   { label: "کاربران", href: "/dashboard/users", icon: UserCog, enabled: true },
-  { label: "تخفیف‌ها", href: "/dashboard/discounts", icon: BadgePercent, enabled: false },
-  { label: "تخفیف‌های شگفت‌انگیز", href: "/dashboard/amazing-offers", icon: Sparkles, enabled: false },
+  { label: "تخفیف‌ها", href: "/dashboard/discounts", icon: BadgePercent, enabled: true },
+  { label: "تخفیف‌های شگفت‌انگیز", href: "/dashboard/amazing-offers", icon: Sparkles, enabled: true },
   { label: "تنظیمات", href: "/dashboard/settings", icon: Settings, enabled: true },
 ];

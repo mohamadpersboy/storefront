@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     search: searchParams.get("search") ?? undefined,
     category: searchParams.get("category") ?? undefined,
     status: searchParams.get("status") ?? undefined,
+    hasDiscount: searchParams.get("hasDiscount") ?? undefined,
   });
 
   if (!parsed.success) {
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const { page, limit, search, category, status } = parsed.data;
+  const { page, limit, search, category, status, hasDiscount } = parsed.data;
   await connectToDatabase();
 
   const filter: Record<string, unknown> = {};
@@ -46,6 +47,12 @@ export async function GET(request: NextRequest) {
   if (search) {
     const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     filter.title = { $regex: escaped, $options: "i" };
+  }
+  if (hasDiscount) {
+    filter.$or = [
+      { "variants.discountPercent": { $gt: 0 } },
+      { "variants.discountAmount": { $gt: 0 } },
+    ];
   }
 
   const result = await Product.paginate(filter, {
@@ -62,6 +69,9 @@ export async function GET(request: NextRequest) {
         computeFinalPrice(v.price, v.discountPercent, v.discountAmount),
       );
       const totalStock = p.variants.reduce((sum, v) => sum + v.stock, 0);
+      const discountedVariantsCount = p.variants.filter(
+        (v) => v.discountPercent > 0 || v.discountAmount > 0,
+      ).length;
       return {
         id: String(p._id),
         title: p.title,
@@ -70,6 +80,7 @@ export async function GET(request: NextRequest) {
         status: p.status,
         coverImage: p.images[0]?.url ?? null,
         variantsCount: p.variants.length,
+        discountedVariantsCount,
         minPrice: prices.length ? Math.min(...prices) : 0,
         totalStock,
         createdAt: p.createdAt,

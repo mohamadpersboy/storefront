@@ -26,11 +26,12 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار:** تکمیل درخواست کاربر روی Orders — تاریخچه کامل تغییر
-وضعیت (چه کسی، کِی)، یادداشت اختیاری هنگام تغییر وضعیت، و پیامک
-اطلاعیه خودکار به مشتری در هر تغییر وضعیت
+**آخرین کار:** تکمیل Feature «Discounts + Amazing Offers» — مدل مستقل
+`AmazingOffer` با startAt/endAt، محاسبه وضعیت (فعال/زمان‌بندی‌شده/
+منقضی/متوقف‌شده) کاملاً در Backend، صفحه مدیریت با Countdown، و صفحه
+نمای کلی Discounts (خواندنی، لینک به فرم ویرایش محصول برای تغییر واقعی)
 **Branch فعلی:** `main`
-**Feature بعدی:** Discounts + Amazing Offers
+**Feature بعدی:** Customers
 
 ## 3. Completed Features
 
@@ -66,20 +67,27 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
   دستی توسط کارمند/ادمین (چون Storefront/Checkout واقعی هنوز ساخته
   نشده) با جستجوی محصول زنده و Find-or-Create مشتری بر اساس شماره
   موبایل
+- ✅ Discounts + Amazing Offers: مدل مستقل `AmazingOffer` (بدون Snapshot
+  — همیشه از قیمت/عنوان زنده محصول می‌خواند، چون یک Overlay تبلیغاتی
+  زنده است نه رکورد مالی مثل Order)، وضعیت (فعال/زمان‌بندی‌شده/منقضی/
+  متوقف‌شده) کاملاً از Backend محاسبه می‌شود، جلوگیری از Offer همپوشان
+  روی یک Variant، صفحه مدیریت با فیلتر وضعیت و Countdown سمت Client
+  (فقط UX، منبع حقیقت Backend است)؛ صفحه `/dashboard/discounts` به‌عنوان
+  نمای کلی خواندنی محصولات تخفیف‌دار (خودِ ویرایش تخفیف همچنان در فرم
+  محصول انجام می‌شود تا دو منبع حقیقت برای یک داده ساخته نشود)
 
 ## 4. In Progress
 
-هیچ‌کدام — منتظر شروع Products.
+هیچ‌کدام — منتظر شروع Customers.
 
 ## 5. Planned (به ترتیب)
 
-1. **Discounts + Amazing Offers** (بعدی — شامل startAt/endAt برای
-   Amazing Offer، طبق بند ۲۵-۲۶ Master Prompt)
-2. Customers (نمای مدیریتی جدا از Users، تمرکز روی مشتریان — احتمالاً
-   بخش زیادی از UI لیست از همان الگوی Users قابل استفاده مجدد است)
-3. Payment (مدل مستقل Payment طبق بند ۳۱ — انتخاب Gateway واقعی هنوز
+1. **Customers** (بعدی — نمای مدیریتی جدا از Users، تمرکز روی
+   مشتریان — احتمالاً بخش زیادی از UI لیست از همان الگوی Users قابل
+   استفاده مجدد است)
+2. Payment (مدل مستقل Payment طبق بند ۳۱ — انتخاب Gateway واقعی هنوز
    باقی مانده)
-4. بعد از تکمیل کامل Dashboard: شروع Storefront (Home, Products,
+3. بعد از تکمیل کامل Dashboard: شروع Storefront (Home, Products,
    Category, Product Detail, Search, Cart, Checkout, Account, ...) —
    وقتی Storefront ساخته شد، Checkout واقعی باید به همین مدل Order و
    منطق موجود در `src/app/api/v1/orders/route.ts` وصل شود (نه بازنویسی)
@@ -157,6 +165,8 @@ src/
       products/  page.tsx + new/ + [id]/edit/ + loading.tsx + error.tsx
       settings/  page.tsx + colors/page.tsx
       orders/  page.tsx + new/ + [id]/page.tsx + loading.tsx + error.tsx
+      discounts/  page.tsx
+      amazing-offers/  page.tsx + new/ + [id]/edit/
     (storefront)/              - هنوز خالی
     api/v1/
       auth/  otp/{request,verify}/route.ts, logout/route.ts
@@ -165,6 +175,7 @@ src/
       products/  route.ts + [id]/route.ts
       colors/  route.ts + [id]/route.ts
       orders/  route.ts + [id]/route.ts + [id]/status/route.ts
+      amazing-offers/  route.ts + [id]/route.ts
       customers/find-or-create/route.ts
       uploads/sign/route.ts
     login/page.tsx
@@ -181,6 +192,9 @@ src/
     settings/   - ColorsManager, ColorFormModal
     orders/     - OrderForm, OrderItemsPicker, OrderDetailCard,
                   OrderStatusBadge, orders-page-client
+    amazing-offers/ - AmazingOfferForm, AmazingOfferStatusBadge,
+                  AmazingOfferCountdown, amazing-offers-page-client
+    discounts/  - discounts-page-client (فقط خواندنی)
     auth/       - OtpLoginForm
   config/env.ts
   fonts/index.ts
@@ -191,11 +205,12 @@ src/
     constants/  rbac.ts, dashboard-nav.ts
     sms/        send-otp-sms.ts, send-order-status-sms.ts
     utils/      api-response.ts, cn.ts, format.ts, slugify.ts,
-                pricing.ts, image-crop.ts
-    validations/ auth.ts, users.ts, categories.ts, category-depth.ts, products.ts
+                pricing.ts, image-crop.ts, amazing-offer.ts
+    validations/ auth.ts, users.ts, categories.ts, category-depth.ts, products.ts,
+                amazing-offers.ts
     mock/       dashboard.ts (فقط همین باقی مانده Mock)
   models/       User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts,
-                Color.ts, Order.ts, Counter.ts
+                Color.ts, Order.ts, Counter.ts, AmazingOffer.ts
   proxy.ts
 public/fonts/  - IRANYekanX woff2 (۴ وزن)
 scripts/vercel-env-sync.sh
@@ -282,9 +297,26 @@ Variant را خودکار برمی‌گرداند.
 `key` (unique)، `value`. Helper عمومی `getNextSequence(key)` برای
 شماره‌گذاری اتمیک (فعلاً فقط `orderNumber` از آن استفاده می‌کند).
 
-**Planned models:** Payment (مستقل، طبق بند ۳۱)، Discount,
-AmazingOffer, Address (Address فعلاً به‌صورت Embedded داخل Order است؛
-Address Book مستقل مشتری بخشی از Storefront/Account است).
+### AmazingOffer
+`productId` (ref Product)، `variantId` (ObjectId — منطبق بر `_id`
+داخل `Product.variants`، نه یک Ref مستقل چون Variant زیرسند است نه
+Collection جدا)، `discountType` (`percent` | `fixed`)، `discountValue`،
+`startAt`، `endAt` (بند ۲۵)، `isActive` (سوییچ دستی ادمین برای توقف/
+لغو Offer، **مستقل** از زمان‌بندی — یعنی وضعیت نهایی همیشه ترکیب هر دو
+است، نه فقط یکی)، timestamps. بدون Snapshot از عنوان/قیمت محصول —
+برخلاف `Order.items[]`، این یک Overlay تبلیغاتی زنده است و باید همیشه
+از محصول واقعی بخواند، نه یک رکورد مالی که نباید عوض شود.
+
+`getAmazingOfferStatus()` در `src/lib/utils/amazing-offer.ts` تنها
+مرجع محاسبه وضعیت (`scheduled`/`active`/`expired`/`paused`) است — هم
+API هم UI از همین استفاده می‌کنند (بند ۲۶: «Countdown فقط برای UX است
+و منبع حقیقت باید Backend باشد»). هنگام ساخت Offer جدید، اگر Variant
+موردنظر از قبل یک Offer فعال/زمان‌بندی‌شده منقضی‌نشده داشته باشد، ساخت
+مسدود می‌شود (۴۰۹) تا دو تخفیف شگفت‌انگیز همزمان روی یک Variant نباشد.
+
+**Planned models:** Payment (مستقل، طبق بند ۳۱)، Address (Address
+فعلاً به‌صورت Embedded داخل Order است؛ Address Book مستقل مشتری بخشی
+از Storefront/Account است).
 
 ## 10. UI System (Design Tokens)
 
@@ -363,6 +395,11 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | بعد از Orders | پیامک وضعیت سفارش Best-effort است (خطای ارسال، درخواست اصلی را Fail نمی‌کند) | یک مشکل موقت sms.ir نباید مانع ثبت/تغییر وضعیت سفارش واقعی در دیتابیس شود |
 | بعد از Colors | مدت Session از ۳۰ به ۹۰ روز افزایش یافت | درخواست کاربر برای کاهش دفعات Login با هزینه پیامک — هرچند علت اصلی شکایت احتمالاً تعویض Domain بین Deploymentهای مختلف Vercel است، نه انقضای Session (مستند در Known Issues) |
 | بعد از Colors | کلیک بیرون از پاپ‌اپ خروج (User Menu) حالا آن را می‌بندد | باگ گزارش‌شده توسط کاربر — Combobox از اول این رفتار را داشت ولی User Menu نداشت؛ رفع با همان الگوی Click-Outside |
+| Amazing Offers | مدل `AmazingOffer` مستقل بدون Snapshot از محصول | برخلاف Order، این یک Overlay تبلیغاتی زنده است؛ باید همیشه قیمت/عنوان فعلی محصول را نشان دهد نه لحظه ساخت |
+| Amazing Offers | `variantId` بدون Ref مستقل (فقط ObjectId ساده) | Variant یک زیرسند داخل `Product.variants` است، نه یک Collection جدا؛ تطبیق با جستجوی دستی درون آرایه Variantها (همان الگوی `colorId` روی Variant) |
+| Amazing Offers | وضعیت (فعال/زمان‌بندی‌شده/منقضی/متوقف‌شده) هرگز در DB ذخیره نمی‌شود، همیشه محاسبه‌شده از `isActive` + `startAt`/`endAt` | بند ۲۵: «از ذخیره کردن وضعیت‌های محاسباتی به شکل ناسازگار خودداری کن»؛ الگو مشابه `canTransitionOrderStatus` — یک Helper مستقل، هم API هم UI از همان استفاده می‌کنند |
+| Amazing Offers | ساخت Offer جدید روی Variantی که از قبل Offer فعال/زمان‌بندی‌شده دارد مسدود می‌شود | جلوگیری از دو تخفیف شگفت‌انگیز همپوشان روی یک Variant که قیمت نهایی را مبهم می‌کرد |
+| Discounts | صفحه `/dashboard/discounts` فقط خواندنی است؛ ویرایش واقعی تخفیف در فرم محصول (سطح Variant) باقی می‌ماند | آن فیلدها (`discountPercent`/`discountAmount`) از قبل در Products ساخته شده بودند؛ ساخت مسیر نوشتن دوم برای همان داده، دو منبع حقیقت می‌ساخت |
 
 ## 14. Known Issues
 
@@ -392,7 +429,10 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 - [ ] تست واقعی Orders روی Vercel (ساخت سفارش دستی، جستجوی محصول
   زنده، تغییر وضعیت با State Machine، بررسی کسر/بازگردانی موجودی،
   دریافت واقعی پیامک اطلاع‌رسانی تغییر وضعیت)
-- [ ] شروع Feature بعدی: Discounts + Amazing Offers
+- [ ] تست واقعی Discounts + Amazing Offers روی Vercel (ساخت Offer،
+  بررسی Countdown، انقضای خودکار بعد از `endAt`، جلوگیری از Offer
+  همپوشان، نمای `/dashboard/discounts`)
+- [ ] شروع Feature بعدی: Customers
 
 ## 16. Do Not Change (بدون دلیل قوی)
 

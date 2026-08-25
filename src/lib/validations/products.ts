@@ -65,4 +65,6 @@ export const productsListQuerySchema = z.object({
   search: z.string().trim().max(100).optional(),
   category: z.string().regex(objectIdRegex).optional(),
   status: z.enum(["draft", "published", "archived"]).optional(),
+  /** Only products with at least one variant carrying a discount (§24). */
+  hasDiscount: z.coerce.boolean().optional(),
 });
