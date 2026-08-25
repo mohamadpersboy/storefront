@@ -8,6 +8,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { OrderStatusBadge, orderStatusLabels } from "@/components/orders/order-status-badge";
+import { PaymentPanel, type PaymentPanelData } from "@/components/orders/payment-panel";
 import { formatToman, toPersianDigits } from "@/lib/utils/format";
 import {
   Table,
@@ -61,6 +62,7 @@ export interface OrderDetailData {
   statusHistory: OrderStatusHistoryItem[];
   notes: string;
   createdAt: string;
+  payments: PaymentPanelData[];
 }
 
 const paymentMethodLabels: Record<string, string> = {
@@ -258,6 +260,13 @@ export function OrderDetailCard({ order }: { order: OrderDetailData }) {
           </CardContent>
         </Card>
       </div>
+
+      <PaymentPanel
+        orderId={order.id}
+        paymentMethod={order.paymentMethod}
+        prepaymentAmount={order.prepaymentAmount}
+        initialPayments={order.payments}
+      />
 
       <Card>
         <CardHeader title="تاریخچه وضعیت" description="پیامک اطلاع‌رسانی هم در هر تغییر برای مشتری ارسال می‌شود" />

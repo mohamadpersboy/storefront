@@ -32,6 +32,14 @@ const envSchema = z.object({
   SMS_IR_LINE_NUMBER: z.string().min(1),
   SMS_IR_OTP_TEMPLATE_ID: z.string().min(1),
 
+  // Zarinpal (online payment gateway)
+  ZARINPAL_MERCHANT_ID: z.string().min(1),
+  // "sandbox" hits sandbox.zarinpal.com (no real transaction, safe for
+  // testing) — "production" hits payment.zarinpal.com and requires a
+  // real Merchant ID issued after Zarinpal's business verification.
+  // Switching later is env-only, no code change (see CLAUDE.md).
+  ZARINPAL_MODE: z.enum(["sandbox", "production"]).default("sandbox"),
+
   // App
   //
   // Resolution order:

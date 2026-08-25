@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { computeFinalPrice, hasDiscount, computePrepayment } from "@/lib/utils/pricing";
+import {
+  computeFinalPrice,
+  hasDiscount,
+  computePrepayment,
+  computeRemainingOnlineAmount,
+} from "@/lib/utils/pricing";
 
 describe("computeFinalPrice", () => {
   it("returns the original price when there is no discount", () => {
@@ -75,5 +80,16 @@ describe("computePrepayment", () => {
   it("defaults split percent to 0 when not provided", () => {
     const result = computePrepayment("split", 1_000_000);
     expect(result.prepaymentPercent).toBe(0);
+  });
+});
+
+describe("computeRemainingOnlineAmount", () => {
+  it("subtracts what's already paid from the online portion owed", () => {
+    expect(computeRemainingOnlineAmount(500_000, 200_000)).toBe(300_000);
+  });
+
+  it("returns 0 once fully paid, never negative", () => {
+    expect(computeRemainingOnlineAmount(500_000, 500_000)).toBe(0);
+    expect(computeRemainingOnlineAmount(500_000, 600_000)).toBe(0);
   });
 });

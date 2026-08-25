@@ -7,3 +7,5 @@ process.env.CLOUDINARY_API_SECRET ??= "test";
 process.env.SMS_IR_API_KEY ??= "test";
 process.env.SMS_IR_LINE_NUMBER ??= "30001234";
 process.env.SMS_IR_OTP_TEMPLATE_ID ??= "963650";
+process.env.ZARINPAL_MERCHANT_ID ??= "test-merchant-id";
+process.env.ZARINPAL_MODE ??= "sandbox";

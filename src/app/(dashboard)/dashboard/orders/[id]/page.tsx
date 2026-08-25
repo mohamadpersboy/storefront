@@ -4,6 +4,7 @@ import { ChevronRight } from "lucide-react";
 import { OrderDetailCard } from "@/components/orders/order-detail-card";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Order } from "@/models/Order";
+import { Payment } from "@/models/Payment";
 
 export default async function OrderDetailPage({
   params,
@@ -26,6 +27,11 @@ export default async function OrderDetailPage({
   const customer = order.customer as unknown as
     | { fullName?: string; phoneNumber: string }
     | undefined;
+
+  const payments = await Payment.find({ order: order._id })
+    .sort({ createdAt: -1 })
+    .select("amount status refId createdAt paidAt")
+    .lean();
 
   return (
     <div className="flex flex-col gap-4">
@@ -72,6 +78,14 @@ export default async function OrderDetailPage({
           })),
           notes: order.notes,
           createdAt: order.createdAt.toISOString(),
+          payments: payments.map((p) => ({
+            id: String(p._id),
+            amount: p.amount,
+            status: p.status,
+            refId: p.refId,
+            createdAt: p.createdAt.toISOString(),
+            paidAt: p.paidAt ? p.paidAt.toISOString() : null,
+          })),
         }}
       />
     </div>

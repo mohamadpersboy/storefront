@@ -17,6 +17,20 @@ export function hasDiscount(discountPercent: number, discountAmount: number): bo
   return discountPercent > 0 || discountAmount > 0;
 }
 
+/**
+ * The online amount still owed on an order's prepayment, after
+ * subtracting whatever has already been collected through the
+ * gateway. Never negative — a rounding mismatch or a duplicate
+ * successful payment must not produce a request for a negative
+ * amount.
+ */
+export function computeRemainingOnlineAmount(
+  prepaymentAmount: number,
+  alreadyPaid: number,
+): number {
+  return Math.max(0, prepaymentAmount - alreadyPaid);
+}
+
 export type PaymentMethod = "online" | "cash" | "split";
 
 export interface PrepaymentBreakdown {

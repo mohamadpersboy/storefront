@@ -26,12 +26,16 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار:** تکمیل Feature «Customers» — نمای مدیریتی مشتریان
-(role=customer) جدا از Users، با تعداد سفارش و مجموع خرید محاسبه‌شده
-از طریق Aggregation، صفحه جزئیات با تاریخچه سفارش‌های مشتری؛ تغییر
-نقش/وضعیت حساب همچنان فقط از صفحه Users انجام می‌شود
+**آخرین کار:** تکمیل Feature «Payment» — مدل مستقل `Payment` (طبق بند
+۳۱) و اتصال واقعی به درگاه زرین‌پال (Request/Verify API v4)، با
+Merchant ID فعلاً Sandbox — سوییچ به Production فقط با تغییر دو
+Environment Variable (بدون تغییر کد، جزئیات در بخش ۱۷)
 **Branch فعلی:** `main`
-**Feature بعدی:** Payment
+**Feature بعدی:** طبق بند ۶۷ Master Prompt، Dashboard اولویت اول
+پروژه است تا زمانی که «به سطح قابل قبول» برسد؛ فعلاً همه بخش‌های اصلی
+(Auth, Dashboard, Users, Categories, Products, Colors, Orders,
+Discounts, Amazing Offers, Customers, Payment) ساخته شده‌اند. شروع
+Storefront یک تصمیم معماری بزرگ است — منتظر تأیید صریح کاربر
 
 ## 3. Completed Features
 
@@ -80,19 +84,32 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
   فیلد ذخیره‌شده — همیشه به‌روز است)، صفحه جزئیات با تاریخچه سفارش‌های
   همان مشتری؛ تغییر نقش/فعال‌سازی حساب عمداً اینجا تکرار نشده و به
   صفحه Users که قبلاً همین قابلیت را دارد ارجاع داده می‌شود
+- ✅ Payment: مدل مستقل `Payment` (طبق بند ۳۱ — جدا از `Order`، امکان
+  چند تلاش پرداخت برای یک سفارش)، اتصال واقعی به زرین‌پال (API v4،
+  `currency: "IRT"` چون کل پروژه با تومان کار می‌کند نه ریال)، آدرس
+  Sandbox/Production کاملاً از `ZARINPAL_MODE` مشتق می‌شود (سوییچ بدون
+  تغییر کد)، مسیر Callback عمومی (بدون نیاز به ورود — مرورگر مشتری،
+  نه کارمند، به آن هدایت می‌شود) که مبلغ را همیشه از رکورد ذخیره‌شده
+  Verify می‌کند نه از Query String قابل‌دستکاری، صفحه عمومی نتیجه
+  پرداخت (`/payment/result`)، و پنل «پرداخت آنلاین» در صفحه جزئیات
+  سفارش برای ساخت/کپی لینک پرداخت توسط کارمند (چون Checkout واقعی
+  Storefront هنوز نیست). موفقیت پرداخت عمداً وضعیت سفارش را خودکار
+  تغییر نمی‌دهد — State Machine سفارش یک تصمیم آگاهانه ادمین می‌ماند
 
 ## 4. In Progress
 
-هیچ‌کدام — منتظر شروع Payment.
+هیچ‌کدام — منتظر تصمیم درباره شروع Storefront.
 
 ## 5. Planned (به ترتیب)
 
-1. **Payment** (بعدی — مدل مستقل Payment طبق بند ۳۱؛ انتخاب Gateway
-   واقعی هنوز باقی مانده)
-2. بعد از تکمیل کامل Dashboard: شروع Storefront (Home, Products,
-   Category, Product Detail, Search, Cart, Checkout, Account, ...) —
-   وقتی Storefront ساخته شد، Checkout واقعی باید به همین مدل Order و
-   منطق موجود در `src/app/api/v1/orders/route.ts` وصل شود (نه بازنویسی)
+1. **Storefront** (Home, Products, Category, Product Detail, Search,
+   Amazing Offers, Cart, Checkout, Login/OTP, Account, Orders, Address
+   — بند ۶۹ Master Prompt) — Checkout واقعی باید به همین مدل‌های
+   موجود `Order` (`src/app/api/v1/orders/route.ts`) و `Payment`
+   (`src/lib/payment/zarinpal.ts`) وصل شود، نه بازنویسی؛ شروعش منوط
+   به تأیید صریح کاربر است (بند ۶۷: Dashboard First)
+2. Audit / Activity Log برای عملیات حساس Dashboard (بند ۵۳ — می‌تواند
+   در نسخه اول Minimal باشد)
 
 ## 6. Architecture
 
@@ -171,6 +188,7 @@ src/
       amazing-offers/  page.tsx + new/ + [id]/edit/
       customers/  page.tsx + [id]/page.tsx
     (storefront)/              - هنوز خالی
+    payment/result/page.tsx    - نتیجه پرداخت، Public (بدون Layout Dashboard)
     api/v1/
       auth/  otp/{request,verify}/route.ts, logout/route.ts
       users/  route.ts + [id]/route.ts + [id]/role/route.ts + [id]/status/route.ts
@@ -180,6 +198,7 @@ src/
       orders/  route.ts + [id]/route.ts + [id]/status/route.ts
       amazing-offers/  route.ts + [id]/route.ts
       customers/  route.ts + [id]/route.ts + find-or-create/route.ts
+      payments/  initiate/route.ts + callback/route.ts (Public)
       uploads/sign/route.ts
     login/page.tsx
     layout.tsx, page.tsx, globals.css
@@ -194,7 +213,8 @@ src/
                   products-page-client
     settings/   - ColorsManager, ColorFormModal
     orders/     - OrderForm, OrderItemsPicker, OrderDetailCard,
-                  OrderStatusBadge, orders-page-client
+                  OrderStatusBadge, PaymentPanel, PaymentStatusBadge,
+                  orders-page-client
     amazing-offers/ - AmazingOfferForm, AmazingOfferStatusBadge,
                   AmazingOfferCountdown, amazing-offers-page-client
     discounts/  - discounts-page-client (فقط خواندنی)
@@ -208,13 +228,14 @@ src/
     db/         connect.ts
     constants/  rbac.ts, dashboard-nav.ts
     sms/        send-otp-sms.ts, send-order-status-sms.ts
+    payment/    zarinpal.ts (server-only — merchant secret never in client)
     utils/      api-response.ts, cn.ts, format.ts, slugify.ts,
                 pricing.ts, image-crop.ts, amazing-offer.ts
     validations/ auth.ts, users.ts, categories.ts, category-depth.ts, products.ts,
-                amazing-offers.ts, customers.ts
+                amazing-offers.ts, customers.ts, payments.ts
     mock/       dashboard.ts (فقط همین باقی مانده Mock)
   models/       User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts,
-                Color.ts, Order.ts, Counter.ts, AmazingOffer.ts
+                Color.ts, Order.ts, Counter.ts, AmazingOffer.ts, Payment.ts
   proxy.ts
 public/fonts/  - IRANYekanX woff2 (۴ وزن)
 scripts/vercel-env-sync.sh
@@ -318,9 +339,34 @@ API هم UI از همین استفاده می‌کنند (بند ۲۶: «Countdo
 موردنظر از قبل یک Offer فعال/زمان‌بندی‌شده منقضی‌نشده داشته باشد، ساخت
 مسدود می‌شود (۴۰۹) تا دو تخفیف شگفت‌انگیز همزمان روی یک Variant نباشد.
 
-**Planned models:** Payment (مستقل، طبق بند ۳۱)، Address (Address
-فعلاً به‌صورت Embedded داخل Order است؛ Address Book مستقل مشتری بخشی
-از Storefront/Account است).
+### Payment
+`order` (ref Order)، `amount` (تومان — فقط سهم آنلاین قابل‌جمع‌آوری،
+نه همیشه `Order.totalAmount`)، `provider` (فعلاً فقط `zarinpal`، اما
+Enum باز برای افزودن Gatewayهای دیگر بعداً)، `status`
+(`pending`/`processing`/`paid`/`failed`/`cancelled`/`refunded`/
+`partially_paid` — دقیقاً enum بند ۳۱)، `authority` (شناسه تراکنش
+زرین‌پال، unique — مانع دو Payment با یک Authority)، `refId` (فقط بعد
+از تأیید موفق)، `cardPan`، `description`، `initiatedBy` (کارمند/ادمینی
+که لینک را ساخته)، `paidAt`، `failureReason`.
+
+هر سفارش می‌تواند چند رکورد `Payment` داشته باشد (هر تلاش پرداخت یک
+رکورد؛ اگر یک لینک هنوز `pending`/`processing` باشد، به‌جای رکورد
+جدید همان لینک بازگردانده می‌شود). مبلغ واقعی «پرداخت‌شده» یک سفارش با
+جمع `amount` رکوردهای `paid` محاسبه می‌شود، نه یک فیلد جداگانه — دو
+منبع حقیقت برای همان عدد ساخته نمی‌شود.
+
+`src/lib/payment/zarinpal.ts` تنها نقطه تماس با API زرین‌پال است (v4،
+`currency: "IRT"` چون کل پروژه با تومان کار می‌کند). آدرس‌های
+Sandbox/Production فقط از `env.ZARINPAL_MODE` مشتق می‌شوند. مسیر
+`GET /api/v1/payments/callback` عمداً بدون Auth Guard است — مرورگر
+مشتری (نه کارمند لاگین‌شده در Dashboard) به آن هدایت می‌شود — و مبلغ
+Verify همیشه از رکورد ذخیره‌شده `Payment.amount` خوانده می‌شود، هرگز
+از Query String که قابل‌دستکاری توسط کاربر است. موفقیت پرداخت وضعیت
+`Order.status` را خودکار تغییر نمی‌دهد؛ آن State Machine یک تصمیم
+آگاهانه ادمین در Dashboard می‌ماند.
+
+**Planned models:** Address (فعلاً به‌صورت Embedded داخل Order است؛
+Address Book مستقل مشتری بخشی از Storefront/Account است).
 
 ## 10. UI System (Design Tokens)
 
@@ -407,12 +453,22 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Customers | بدون مدل جدا — همان `User` با `role=customer`، لیست/جزئیات از طریق Aggregation با `orders` ($lookup) | Customer از ابتدا در User model جای گرفته بود (اولین کاربر Super Admin، بقیه پیش‌فرض Customer)؛ مدل جدا داده را دوپاره می‌کرد بدون فایده معماری |
 | Customers | صفحه Customers فقط خواندنی (بدون تغییر نقش/فعال‌سازی) — لینک به همان صفحه Users موجود | آن قابلیت از قبل در User Management ساخته شده بود؛ تکرارش هم دو مسیر نوشتن برای یک داده می‌ساخت هم Authorization را دو جا نگه می‌داشت |
 | Customers | `totalSpent` فقط از سفارش‌های واقعاً برگردانده‌شده (حداکثر ۲۰ سفارش اخیر) جمع می‌شود، با پرچم `partialTotalSpent` به UI | جمع زدن روی کل تاریخچه سفارش یک مشتری پرمعامله در API لیست هزینه محاسباتی داشت؛ عدد ناقص با برچسب صادقانه بهتر از عدد کامل ولی کند یا گمراه‌کننده بدون برچسب است |
+| Payment | زرین‌پال انتخاب شد (رایج‌ترین درگاه ایرانی، مستندات API v4 پایدار) — راه‌اندازی فعلاً با Sandbox، تصمیم صریح کاربر بود | Merchant ID واقعی فقط بعد از احراز هویت کسب‌وکار صادر می‌شود؛ کد از اول برای سوییچ بدون تغییر طراحی شد (`ZARINPAL_MODE`) |
+| Payment | مسیر Callback (`/api/v1/payments/callback`) عمداً بدون Auth Guard | مرورگری که به این مسیر می‌رسد مرورگر مشتری است، نه یک Session داشبورد؛ تنها مرجع اعتماد پاسخ Verify سمت سرور زرین‌پال است، نه هویت درخواست‌کننده |
+| Payment | مبلغ Verify همیشه از `Payment.amount` ذخیره‌شده خوانده می‌شود، هرگز از Query String Callback | Query String کاملاً در اختیار مرورگر کاربر است؛ اعتماد به آن برای مبلغ یعنی امکان دستکاری مبلغ پرداختی توسط خود کاربر |
+| Payment | موفقیت Callback باعث تغییر خودکار `Order.status` نمی‌شود | Order State Machine (`order-status.ts`) قرار بود یک تصمیم آگاهانه و Auditable ادمین بماند؛ آمیختن آن با یک Side Effect خودکار Webhook-مانند این ضمانت را می‌شکست — کارمند با دیدن پرداخت موفق در پنل، خودش وضعیت را عوض می‌کند |
+| Payment | برای هر Order چند رکورد `Payment` مجاز است، ولی یک لینک `pending`/`processing` باز، به‌جای رکورد جدید بازگردانده می‌شود | جلوگیری از تکثیر Authorityهای زرین‌پال برای یک تلاش پرداخت که کارمند چندبار روی دکمه زده |
 
 ## 14. Known Issues
 
 - اگر بعد از `claimFirstAdminSlot()` ساخت User شکست بخورد، پرچم
   قفل‌شده باقی می‌ماند و هیچ کاربری دیگر Super Admin نمی‌شود (نیاز به
   رفع دستی در دیتابیس). حالت بسیار نادر، برای سادگی فعلاً پذیرفته شده.
+- **مهم — درگاه پرداخت فعلاً Sandbox است:** تا وقتی کاربر Merchant ID
+  واقعی زرین‌پال را (بعد از احراز هویت کسب‌وکار در پنل zarinpal.com)
+  در `ZARINPAL_MERCHANT_ID` قرار ندهد و `ZARINPAL_MODE=production`
+  نشود، هیچ پرداخت واقعی/مالی از طریق لینک‌های ساخته‌شده انجام
+  نمی‌شود — فقط تراکنش تست Sandbox.
 - تست End-to-End واقعی (OTP/SMS/DB) هرگز از داخل Sandbox Claude قابل
   اجرا نیست (بدون دسترسی شبکه به MongoDB Atlas/sms.ir/Vercel API) —
   همیشه باید توسط کاربر روی Vercel Preview/Production تست شود.
@@ -441,7 +497,13 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
   همپوشان، نمای `/dashboard/discounts`)
 - [ ] تست واقعی Customers روی Vercel (جستجو، Pagination، تعداد سفارش
   و مجموع خرید صحیح، صفحه جزئیات با تاریخچه سفارش‌ها)
-- [ ] شروع Feature بعدی: Payment
+- [ ] تست واقعی Payment روی Vercel با Sandbox زرین‌پال (ساخت لینک از
+  صفحه سفارش، پرداخت تستی، بازگشت به `/payment/result`، ثبت صحیح
+  `refId`/`cardPan`، رفتار Callback روی لغو کاربر)
+- [ ] وقتی کاربر Merchant ID واقعی زرین‌پال را فرستاد: `ZARINPAL_MERCHANT_ID`
+  و `ZARINPAL_MODE=production` را در Vercel تنظیم و یک تراکنش واقعی
+  کم‌مبلغ تست کن
+- [ ] تصمیم درباره شروع Storefront (منتظر تأیید صریح کاربر — بند ۶۷)
 
 ## 16. Do Not Change (بدون دلیل قوی)
 
@@ -464,12 +526,19 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 `MONGODB_URI`, `AUTH_SECRET`, `OTP_HASH_SECRET`, `CLOUDINARY_CLOUD_NAME`,
 `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `SMS_IR_API_KEY`,
 `SMS_IR_LINE_NUMBER`, `SMS_IR_OTP_TEMPLATE_ID` (=963650)،
+`ZARINPAL_MERCHANT_ID`, `ZARINPAL_MODE` (=sandbox پیش‌فرض)،
 `NEXT_PUBLIC_APP_URL` (اختیاری — خودکار از VERCEL_URL)، `NODE_ENV`.
 
 `SMS_IR_LINE_NUMBER` فعلاً فقط برای استفاده احتمالی آینده از متد Bulk
 نگه داشته شده؛ OTP از آن استفاده نمی‌کند. هیچ مقدار واقعی Secret هرگز
 نباید Commit شود (`.gitignore` با الگوی `.env*` + استثنای فایل‌های
 `*.example`).
+
+**مهم — سوییچ زرین‌پال به Production:** هیچ کد یا Deploy جدیدی لازم
+نیست. فقط در Vercel → Settings → Environment Variables مقدار
+`ZARINPAL_MERCHANT_ID` را به Merchant ID واقعی (بعد از احراز هویت
+کسب‌وکار در پنل zarinpal.com) و `ZARINPAL_MODE` را به `production`
+تغییر بده و یک Redeploy بزن.
 
 ## 18. Deployment Notes
 
