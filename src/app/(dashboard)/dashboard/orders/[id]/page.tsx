@@ -59,6 +59,15 @@ export default async function OrderDetailPage({
           shippingAddress: order.shippingAddress,
           subtotal: order.subtotal,
           shippingCost: order.shippingCost,
+          discount: order.discount
+            ? {
+                source: order.discount.source,
+                amount: order.discount.amount,
+                discountPercentage: order.discount.discountPercentage,
+                couponCode: order.discount.couponCode,
+                rewardType: order.discount.rewardType,
+              }
+            : null,
           totalAmount: order.totalAmount,
           paymentMethod: order.paymentMethod,
           prepaymentPercent: order.prepaymentPercent,

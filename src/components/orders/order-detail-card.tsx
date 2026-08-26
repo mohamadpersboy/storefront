@@ -53,6 +53,13 @@ export interface OrderDetailData {
   };
   subtotal: number;
   shippingCost: number;
+  discount: {
+    source: "coupon" | "payment_reward";
+    amount: number;
+    discountPercentage: number;
+    couponCode: string | null;
+    rewardType: "online" | "mixed" | null;
+  } | null;
   totalAmount: number;
   paymentMethod: "online" | "cash" | "split";
   prepaymentPercent: number;
@@ -241,6 +248,17 @@ export function OrderDetailCard({ order }: { order: OrderDetailData }) {
               <span>جمع اقلام</span>
               <span className="tabular-nums">{formatToman(order.subtotal)}</span>
             </div>
+            {order.discount ? (
+              <div className="flex justify-between text-green-700">
+                <span>
+                  {order.discount.source === "coupon"
+                    ? `تخفیف کد ${order.discount.couponCode}`
+                    : `پاداش پرداخت ${order.discount.rewardType === "online" ? "آنلاین" : "ترکیبی"}`}
+                  {" "}({order.discount.discountPercentage}٪)
+                </span>
+                <span className="tabular-nums">−{formatToman(order.discount.amount)}</span>
+              </div>
+            ) : null}
             <div className="flex justify-between text-foreground/80">
               <span>هزینه ارسال</span>
               <span className="tabular-nums">{formatToman(order.shippingCost)}</span>

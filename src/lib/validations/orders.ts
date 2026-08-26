@@ -31,6 +31,7 @@ export const createOrderSchema = z.object({
   shippingCost: z.number().min(0).default(0),
   paymentMethod: z.enum(["online", "cash", "split"]),
   prepaymentPercent: z.number().min(0).max(100).optional(),
+  couponCode: z.string().trim().max(30).optional(),
   notes: z.string().trim().optional().default(""),
 });
 

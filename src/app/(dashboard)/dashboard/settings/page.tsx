@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Palette, ChevronLeft } from "lucide-react";
+import { Palette, BadgePercent, ChevronLeft } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 const settingsSections = [
@@ -8,6 +8,12 @@ const settingsSections = [
     icon: Palette,
     title: "رنگ‌ها",
     description: "مدیریت رنگ‌های قابل انتخاب برای Variant محصولات",
+  },
+  {
+    href: "/dashboard/settings/discounts",
+    icon: BadgePercent,
+    title: "تخفیف خودکار پرداخت",
+    description: "پاداش پرداخت کامل اینترنتی و پرداخت ترکیبی",
   },
 ];
 

@@ -26,16 +26,18 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار:** تکمیل Feature «Payment» — مدل مستقل `Payment` (طبق بند
-۳۱) و اتصال واقعی به درگاه زرین‌پال (Request/Verify API v4)، با
-Merchant ID فعلاً Sandbox — سوییچ به Production فقط با تغییر دو
-Environment Variable (بدون تغییر کد، جزئیات در بخش ۱۷)
+**آخرین کار:** تکمیل Feature «Coupon / Discount Code System» +
+«Automatic Post-Payment Discount» (Master Prompt جدید، بندهای ۲۵-۴۵) —
+Coupon به‌عنوان Entity کاملاً مستقل، موتور محاسبه تخفیف متمرکز
+(`src/lib/discounts/engine.ts`)، و تصمیم صریح کاربر درباره تعامل
+Coupon/Payment Reward (بند ۴۱ — جزئیات در بخش ۱۳)
 **Branch فعلی:** `main`
 **Feature بعدی:** طبق بند ۶۷ Master Prompt، Dashboard اولویت اول
 پروژه است تا زمانی که «به سطح قابل قبول» برسد؛ فعلاً همه بخش‌های اصلی
 (Auth, Dashboard, Users, Categories, Products, Colors, Orders,
-Discounts, Amazing Offers, Customers, Payment) ساخته شده‌اند. شروع
-Storefront یک تصمیم معماری بزرگ است — منتظر تأیید صریح کاربر
+Discounts, Amazing Offers, Customers, Payment, Coupons) ساخته
+شده‌اند. شروع Storefront یک تصمیم معماری بزرگ است — منتظر تأیید صریح
+کاربر
 
 ## 3. Completed Features
 
@@ -95,6 +97,21 @@ Storefront یک تصمیم معماری بزرگ است — منتظر تأیی�
   سفارش برای ساخت/کپی لینک پرداخت توسط کارمند (چون Checkout واقعی
   Storefront هنوز نیست). موفقیت پرداخت عمداً وضعیت سفارش را خودکار
   تغییر نمی‌دهد — State Machine سفارش یک تصمیم آگاهانه ادمین می‌ماند
+- ✅ Coupon / Discount Code System + Automatic Payment Reward (Master
+  Prompt جدید بندهای ۲۵-۴۵): `Coupon` Entity مستقل (نه فیلد داخل
+  Product/Order)، عمومی/خصوصی، سقف تخفیف، حداقل مبلغ سفارش، بازه
+  زمانی، محدودیت تعداد کل و محدودیت هر کاربر؛ `CouponRedemption` برای
+  ردیابی مصرف هر کاربر و جلوگیری از Race Condition (رزرو اتمیک
+  `usedCount` با `findOneAndUpdate` + شرط `$expr`)؛ `DiscountSettings`
+  Singleton برای تخفیف خودکار پرداخت آنلاین/ترکیبی؛ موتور محاسبه
+  متمرکز `src/lib/discounts/engine.ts` (بند ۴۲) که Coupon و Payment
+  Reward را طبق بند ۴۱ **متقابلاً منحصر به فرد** می‌کند (تصمیم صریح
+  کاربر — جزئیات در بخش ۱۳)؛ اعتبارسنجی Coupon به‌صورت تابع خالص جدا
+  از DB (`validate-coupon.ts`) برای تست‌پذیری کامل بند ۴۵؛ فرم ساخت
+  سفارش کد تخفیف را زنده Preview می‌کند ولی Backend همیشه دوباره و
+  مستقل محاسبه می‌کند (بند ۴۴)؛ Dashboard: `/dashboard/coupons` (لیست
+  + فرم با انتخاب کاربران خصوصی از طریق Search) و
+  `/dashboard/settings/discounts` (تنظیم پاداش پرداخت)
 
 ## 4. In Progress
 
@@ -182,10 +199,11 @@ src/
       users/  page.tsx + [id]/page.tsx
       categories/  page.tsx + new/ + [id]/edit/
       products/  page.tsx + new/ + [id]/edit/ + loading.tsx + error.tsx
-      settings/  page.tsx + colors/page.tsx
+      settings/  page.tsx + colors/page.tsx + discounts/page.tsx
       orders/  page.tsx + new/ + [id]/page.tsx + loading.tsx + error.tsx
       discounts/  page.tsx
       amazing-offers/  page.tsx + new/ + [id]/edit/
+      coupons/  page.tsx + new/ + [id]/edit/
       customers/  page.tsx + [id]/page.tsx
     (storefront)/              - هنوز خالی
     payment/result/page.tsx    - نتیجه پرداخت، Public (بدون Layout Dashboard)
@@ -197,6 +215,8 @@ src/
       colors/  route.ts + [id]/route.ts
       orders/  route.ts + [id]/route.ts + [id]/status/route.ts
       amazing-offers/  route.ts + [id]/route.ts
+      coupons/  route.ts + [id]/route.ts + validate/route.ts
+      discount-settings/  route.ts
       customers/  route.ts + [id]/route.ts + find-or-create/route.ts
       payments/  initiate/route.ts + callback/route.ts (Public)
       uploads/sign/route.ts
@@ -211,13 +231,14 @@ src/
     products/   - ProductForm, ProductImageUploader, ImageCropModal,
                   VariantEditor, TechnicalSpecsEditor, ProductStatusBadge,
                   products-page-client
-    settings/   - ColorsManager, ColorFormModal
+    settings/   - ColorsManager, ColorFormModal, DiscountSettingsForm
     orders/     - OrderForm, OrderItemsPicker, OrderDetailCard,
                   OrderStatusBadge, PaymentPanel, PaymentStatusBadge,
                   orders-page-client
     amazing-offers/ - AmazingOfferForm, AmazingOfferStatusBadge,
                   AmazingOfferCountdown, amazing-offers-page-client
     discounts/  - discounts-page-client (فقط خواندنی)
+    coupons/    - CouponForm, CouponStatusBadge, coupons-page-client
     customers/  - customers-page-client, CustomerDetailCard
     auth/       - OtpLoginForm
   config/env.ts
@@ -229,13 +250,16 @@ src/
     constants/  rbac.ts, dashboard-nav.ts
     sms/        send-otp-sms.ts, send-order-status-sms.ts
     payment/    zarinpal.ts (server-only — merchant secret never in client)
+    discounts/  engine.ts, validate-coupon.ts, redeem-coupon.ts
     utils/      api-response.ts, cn.ts, format.ts, slugify.ts,
                 pricing.ts, image-crop.ts, amazing-offer.ts
     validations/ auth.ts, users.ts, categories.ts, category-depth.ts, products.ts,
-                amazing-offers.ts, customers.ts, payments.ts
+                amazing-offers.ts, customers.ts, payments.ts, coupons.ts,
+                discount-settings.ts
     mock/       dashboard.ts (فقط همین باقی مانده Mock)
   models/       User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts,
-                Color.ts, Order.ts, Counter.ts, AmazingOffer.ts, Payment.ts
+                Color.ts, Order.ts, Counter.ts, AmazingOffer.ts, Payment.ts,
+                Coupon.ts, CouponRedemption.ts, DiscountSettings.ts
   proxy.ts
 public/fonts/  - IRANYekanX woff2 (۴ وزن)
 scripts/vercel-env-sync.sh
@@ -291,7 +315,9 @@ timestamps.
 لحظه سفارش: عنوان، واحد، نام رنگ، ویژگی‌ها، قیمت واحد نهایی، تعداد،
 جمع — نه فقط رفرنس، چون تغییر بعدی قیمت/محصول نباید سفارش‌های قبلی را
 دستکاری کند)، `shippingAddress` (Embedded: گیرنده/موبایل/استان/شهر/
-آدرس/کدپستی)، `subtotal`، `shippingCost`، `totalAmount`،
+آدرس/کدپستی)، `subtotal`، `shippingCost`، `discount` (Snapshot —
+جزئیات زیر)، `totalAmount` (= `subtotal + shippingCost -
+discount.amount`، هرگز منفی)،
 `paymentMethod` (online/cash/split)، `prepaymentPercent/Amount`،
 `remainingAmount` (محاسبه‌شده توسط `computePrepayment()` در
 `pricing.ts` — کاربر هرگز مستقیماً مبلغ را وارد نمی‌کند، فقط درصد را
@@ -367,6 +393,64 @@ Verify همیشه از رکورد ذخیره‌شده `Payment.amount` خوان�
 
 **Planned models:** Address (فعلاً به‌صورت Embedded داخل Order است؛
 Address Book مستقل مشتری بخشی از Storefront/Account است).
+
+### Coupon
+Entity کاملاً مستقل (نه فیلد داخل Product/Order — طبق تأکید صریح
+Master Prompt بند ۲۵). `code` (یکتا، همیشه Uppercase ذخیره می‌شود)،
+`discountPercentage`، `maxDiscountAmount` (`null` = بدون سقف —
+عمداً `null` نه `0`، تا «بدون محدودیت» با «سقف صفر» اشتباه نشود)،
+`minOrderAmount`، `startsAt` (اختیاری) و `expiresAt`، `status`
+(`active`/`inactive`)، `type` (`public`/`private`)، `allowedUsers[]`
+(ref User، فقط برای Private معنا دارد)، `usageLimit` (`null` =
+نامحدود)، `usedCount`، `perUserLimit` (`null` = نامحدود).
+
+### CouponRedemption
+یک رکورد به‌ازای هر استفاده موفق: `coupon`، `user`، `order` (Unique —
+یک سفارش هرگز نمی‌تواند دو رکورد Redemption داشته باشد)،
+`discountAmount`، `createdAt`. جدا از `Coupon.usedCount` نگه داشته
+می‌شود چون محدودیت هر کاربر (`perUserLimit`) نیاز به شمارش رکوردهای
+مخصوص همان کاربر دارد که یک شمارنده سراسری روی خود Coupon نمی‌تواند
+جواب بدهد.
+
+**رزرو اتمیک ظرفیت (بند ۲۸ — جلوگیری از Race Condition):**
+`reserveCouponUsage()` در `src/lib/discounts/redeem-coupon.ts` با یک
+`findOneAndUpdate` تک‌مرحله‌ای که شرط `usedCount < usageLimit` را در
+همان Query می‌گنجاند، ظرفیت را رزرو می‌کند — اگر دو درخواست همزمان به
+آخرین ظرفیت برسند، فقط یکی از آن‌ها سند را Match و آپدیت می‌کند،
+دیگری `null` می‌گیرد و رد می‌شود؛ به همین دلیل «شمارش سپس افزایش» در
+دو Query جدا هرگز استفاده نشده. اگر ساخت Order بعد از رزرو موفق شکست
+بخورد، `releaseCouponReservation()` جبران می‌کند (کم کردن `usedCount`)
+تا ظرفیت محدود یک Coupon هرگز به‌خاطر یک سفارش ناموفق هدر نرود.
+محدودیت هر کاربر (`perUserLimit`) فقط یک‌بار، قبل از رزرو، بررسی
+می‌شود (نه داخل یک Transaction) — چون در معماری فعلی سفارش‌ها فقط
+توسط کارمند و به‌صورت یکی‌یکی از Dashboard ساخته می‌شوند (نه Storefront
+عمومی هم‌زمان)؛ این محدودیت در Known Issues ثبت شده و باید قبل از
+باز شدن Coupon به Storefront بازبینی شود.
+
+### DiscountSettings (Singleton)
+یک سند با `_id` ثابت (`"discount-settings"`)، ساخته‌شده Atomic توسط
+`getDiscountSettings()` (`findOneAndUpdate` + `upsert`، نه
+find-then-create، تا دو درخواست همزمان اول هرگز دو سند نسازند).
+فیلدها: `onlinePaymentRewardEnabled/Percentage`،
+`mixedPaymentRewardEnabled/Percentage` (بند ۳۸).
+
+### Order.discount (Snapshot)
+`source` (`"coupon"` | `"payment_reward"`)، `amount`،
+`discountPercentage`، `coupon` (ref Coupon، `null` برای Reward)،
+`couponCode` (`null` برای Reward)، `rewardType` (`"online"` |
+`"mixed"`، `null` برای Coupon). این یک Snapshot است نه Reference زنده
+(بند ۳۱) — اگر Coupon بعداً ویرایش یا حذف شود، سابقه سفارش‌های قبلی
+تغییر نمی‌کند.
+
+**موتور محاسبه متمرکز** (`src/lib/discounts/engine.ts`, بند ۴۲):
+`computeCouponDiscount()`, `computePaymentReward()`, و
+`resolveOrderDiscount()` تنها جایی هستند که ریاضی تخفیف انجام
+می‌شود؛ هیچ API یا Component دیگری این محاسبه را تکرار نمی‌کند.
+اعتبارسنجی شرایط Coupon (بند ۲۷) در `validate-coupon.ts` عمداً یک
+تابع خالص است که یک Coupon از قبل Fetch‌شده و یک شمارش از‌قبل‌انجام‌شده
+می‌گیرد، نه اینکه خودش با DB کار کند — این جداسازی باعث شد تمام
+حالت‌های بند ۴۵ (منقضی/غیرفعال/Private غیرمجاز/سقف مصرف/...) بدون
+راه‌اندازی MongoDB قابل تست باشند (`validate-coupon.test.ts`).
 
 ## 10. UI System (Design Tokens)
 
@@ -458,9 +542,23 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Payment | مبلغ Verify همیشه از `Payment.amount` ذخیره‌شده خوانده می‌شود، هرگز از Query String Callback | Query String کاملاً در اختیار مرورگر کاربر است؛ اعتماد به آن برای مبلغ یعنی امکان دستکاری مبلغ پرداختی توسط خود کاربر |
 | Payment | موفقیت Callback باعث تغییر خودکار `Order.status` نمی‌شود | Order State Machine (`order-status.ts`) قرار بود یک تصمیم آگاهانه و Auditable ادمین بماند؛ آمیختن آن با یک Side Effect خودکار Webhook-مانند این ضمانت را می‌شکست — کارمند با دیدن پرداخت موفق در پنل، خودش وضعیت را عوض می‌کند |
 | Payment | برای هر Order چند رکورد `Payment` مجاز است، ولی یک لینک `pending`/`processing` باز، به‌جای رکورد جدید بازگردانده می‌شود | جلوگیری از تکثیر Authorityهای زرین‌پال برای یک تلاش پرداخت که کارمند چندبار روی دکمه زده |
+| Coupon (§41) | **Coupon و Automatic Payment Reward متقابلاً منحصر به فردند — تصمیم صریح کاربر.** هرکدام اول اعمال شود مانع دیگری می‌شود؛ چون هر دو در یک درخواست ساخت سفارش ارزیابی می‌شوند، Coupon همیشه «اول اعمال‌شده» تلقی می‌شود (اقدام آگاهانه) و Reward خودکار (اقدام غیرفعال) را بلوک می‌کند | مطابق یکی از ۴ سیاست مطرح‌شده در بند ۴۱؛ کاربر این گزینه را به‌جای ترکیب یا اولویت زنجیره‌ای انتخاب کرد |
+| Coupon | `Order Eligible Amount` برای هم Coupon هم Payment Reward همیشه `subtotal` است (جمع اقلام)، نه `totalAmount` شامل هزینه ارسال | هزینه ارسال یک هزینه واقعی تحویل است نه بخشی از ارزش خرید؛ تخفیف روی آن اعمال نمی‌شود، مطابق تفسیر رایج «Order Eligible Amount» در بند ۲۹ |
+| Coupon | Coupon Entity کاملاً مستقل با Model و API خودش، نه فیلد داخل Product/Order | تأکید صریح بند ۲۵؛ همچنین امکان گزارش‌گیری/مدیریت مستقل کدهای تخفیف بدون وابستگی به یک سفارش یا محصول خاص |
+| Coupon | رزرو ظرفیت Coupon (`usedCount`) قبل از کسر موجودی Variant انجام می‌شود، نه بعد | اگر ظرفیت Coupon تمام شده باشد، سفارش اصلاً نباید موجودی را دست بزند؛ رد سریع بدون هیچ Side Effect بهتر از رد دیرهنگام بعد از یک تغییر قابل Rollback است |
+| Coupon | حذف یک Coupon، سفارش‌های قبلی را دست‌نخورده می‌گذارد (Snapshot در `Order.discount`) ولی رکوردهای `CouponRedemption` را حذف نمی‌کند | تاریخچه مصرف (چه کسی، کِی) حتی بعد از حذف تعریف Coupon ارزش Audit دارد؛ فقط رفرنس `coupon` در آن رکوردها ممکن است در آینده Dangling شود که هرگز بدون بررسی وجود Dereference نمی‌شود |
+| Discount Settings | یک Singleton با `_id` ثابت به‌جای یک Collection عمومی Key-Value | فقط یک تنظیم با ۴ فیلد مرتبط هست؛ یک Document اختصاصی و Type-safe از یک الگوی Generic-تر برای این مورد ساده‌تر و امن‌تر است |
 
 ## 14. Known Issues
 
+- **مهم — محدودیت هر کاربر (`perUserLimit`) Coupon داخل یک
+  Transaction نیست:** فقط یک‌بار قبل از رزرو ظرفیت بررسی می‌شود. در
+  معماری فعلی (سفارش‌ها فقط توسط کارمند، یکی‌یکی، از Dashboard ساخته
+  می‌شوند) این ریسک عملاً صفر است، اما قبل از این‌که Coupon به
+  Checkout عمومی Storefront متصل شود (جایی که چند مرورگر همزمان
+  می‌توانند سفارش بدهند)، باید این بخش با یک الگوی اتمیک‌تر (مثلاً
+  Unique Index ترکیبی روی `{coupon, user}` وقتی `perUserLimit === 1`)
+  بازبینی شود.
 - اگر بعد از `claimFirstAdminSlot()` ساخت User شکست بخورد، پرچم
   قفل‌شده باقی می‌ماند و هیچ کاربری دیگر Super Admin نمی‌شود (نیاز به
   رفع دستی در دیتابیس). حالت بسیار نادر، برای سادگی فعلاً پذیرفته شده.
@@ -503,6 +601,13 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 - [ ] وقتی کاربر Merchant ID واقعی زرین‌پال را فرستاد: `ZARINPAL_MERCHANT_ID`
   و `ZARINPAL_MODE=production` را در Vercel تنظیم و یک تراکنش واقعی
   کم‌مبلغ تست کن
+- [ ] تست واقعی Coupon روی Vercel (ساخت Coupon عمومی/خصوصی، اعمال در
+  فرم سفارش، رد کد منقضی/غیرفعال/سقف مصرف/Private غیرمجاز، بررسی
+  اینکه با فعال بودن Payment Reward هم‌زمان، Coupon همیشه برنده
+  می‌شود، صفحه `/dashboard/settings/discounts`)
+- [ ] پیش از اتصال Coupon به Checkout عمومی Storefront، محدودیت
+  هر کاربر (`perUserLimit`) را به یک الگوی اتمیک‌تر ارتقا بده (بند
+  Known Issues بالا)
 - [ ] تصمیم درباره شروع Storefront (منتظر تأیید صریح کاربر — بند ۶۷)
 
 ## 16. Do Not Change (بدون دلیل قوی)

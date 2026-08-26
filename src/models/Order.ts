@@ -37,6 +37,22 @@ export interface IOrderStatusHistoryEntry {
   note?: string;
 }
 
+/**
+ * Snapshot of whichever discount (Coupon or automatic Payment Reward —
+ * never both, see §41) applied at order time. Kept as a snapshot, not
+ * a live reference, so a Coupon being edited or deleted later never
+ * changes the historical record of what a past order actually paid
+ * (§31).
+ */
+export interface IOrderDiscount {
+  source: "coupon" | "payment_reward";
+  amount: number;
+  discountPercentage: number;
+  coupon: Types.ObjectId | null;
+  couponCode: string | null;
+  rewardType: "online" | "mixed" | null;
+}
+
 export interface IOrder {
   orderNumber: number;
   customer: Types.ObjectId;
@@ -44,7 +60,8 @@ export interface IOrder {
   shippingAddress: IShippingAddress;
   subtotal: number; // sum of lineTotals before shipping
   shippingCost: number;
-  totalAmount: number; // subtotal + shippingCost
+  discount: IOrderDiscount | null;
+  totalAmount: number; // subtotal + shippingCost - (discount?.amount ?? 0), never negative
   paymentMethod: PaymentMethod;
   prepaymentPercent: number; // 0-100; 100 for 'online', 0 for 'cash', admin-set for 'split'
   prepaymentAmount: number;
@@ -98,6 +115,18 @@ const OrderStatusHistorySchema = new Schema<IOrderStatusHistoryEntry>(
   { _id: false },
 );
 
+const OrderDiscountSchema = new Schema<IOrderDiscount>(
+  {
+    source: { type: String, enum: ["coupon", "payment_reward"], required: true },
+    amount: { type: Number, required: true, min: 0 },
+    discountPercentage: { type: Number, required: true, min: 0, max: 100 },
+    coupon: { type: Schema.Types.ObjectId, ref: "Coupon", default: null },
+    couponCode: { type: String, default: null },
+    rewardType: { type: String, enum: ["online", "mixed"], default: null },
+  },
+  { _id: false },
+);
+
 const OrderSchema = new Schema<IOrder>(
   {
     orderNumber: { type: Number, required: true, unique: true },
@@ -117,6 +146,7 @@ const OrderSchema = new Schema<IOrder>(
     shippingAddress: { type: ShippingAddressSchema, required: true },
     subtotal: { type: Number, required: true, min: 0 },
     shippingCost: { type: Number, default: 0, min: 0 },
+    discount: { type: OrderDiscountSchema, default: null },
     totalAmount: { type: Number, required: true, min: 0 },
     paymentMethod: {
       type: String,

@@ -15,6 +15,12 @@ import {
 import { formatToman } from "@/lib/utils/format";
 import { computePrepayment, type PaymentMethod } from "@/lib/utils/pricing";
 
+interface AppliedCoupon {
+  code: string;
+  discountPercentage: number;
+  discountAmount: number;
+}
+
 interface ResolvedCustomer {
   id: string;
   phoneNumber: string;
@@ -48,6 +54,11 @@ export function OrderForm() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [splitPercent, setSplitPercent] = useState("50");
   const [notes, setNotes] = useState("");
+
+  const [couponCodeInput, setCouponCodeInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+  const [checkingCoupon, setCheckingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,12 +95,51 @@ export function OrderForm() {
   }
 
   const subtotal = items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
-  const totalAmount = subtotal + (Number(shippingCost) || 0);
+  const discountAmount = appliedCoupon?.discountAmount ?? 0;
+  const totalAmount = Math.max(0, subtotal + (Number(shippingCost) || 0) - discountAmount);
   const prepayment = computePrepayment(
     paymentMethod,
     totalAmount,
     Number(splitPercent) || 0,
   );
+
+  async function applyCoupon() {
+    setCouponError(null);
+    if (!resolvedCustomer) {
+      setCouponError("ابتدا مشتری را مشخص کنید");
+      return;
+    }
+    if (!couponCodeInput.trim()) return;
+
+    setCheckingCoupon(true);
+    try {
+      const res = await fetch("/api/v1/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: couponCodeInput.trim(),
+          customerId: resolvedCustomer.id,
+          eligibleAmount: subtotal,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok || !body.success) {
+        setCouponError(body.message ?? "کد تخفیف معتبر نیست");
+        return;
+      }
+      setAppliedCoupon(body.data);
+    } catch {
+      setCouponError("ارتباط با سرور برقرار نشد");
+    } finally {
+      setCheckingCoupon(false);
+    }
+  }
+
+  function removeCoupon() {
+    setAppliedCoupon(null);
+    setCouponCodeInput("");
+    setCouponError(null);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -132,6 +182,7 @@ export function OrderForm() {
           paymentMethod,
           prepaymentPercent:
             paymentMethod === "split" ? Number(splitPercent) || 0 : undefined,
+          couponCode: appliedCoupon?.code,
           notes,
         }),
       });
@@ -315,6 +366,45 @@ export function OrderForm() {
 
           <div>
             <label className="mb-1.5 block text-xs font-medium text-foreground/80">
+              کد تخفیف (اختیاری)
+            </label>
+            {appliedCoupon ? (
+              <div className="flex items-center justify-between rounded-[var(--radius-md)] border border-green-200 bg-green-50 px-4 py-2.5">
+                <span className="text-sm text-green-800" dir="ltr">
+                  {appliedCoupon.code} — {appliedCoupon.discountPercentage}٪
+                </span>
+                <button
+                  type="button"
+                  onClick={removeCoupon}
+                  className="text-xs text-green-800 underline"
+                >
+                  حذف
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Input
+                  dir="ltr"
+                  value={couponCodeInput}
+                  onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
+                  placeholder="WELCOME10"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={applyCoupon}
+                  disabled={checkingCoupon}
+                >
+                  {checkingCoupon ? "در حال بررسی..." : "اعمال"}
+                </Button>
+              </div>
+            )}
+            {couponError ? <p className="mt-1.5 text-xs text-danger">{couponError}</p> : null}
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-foreground/80">
               یادداشت (اختیاری)
             </label>
             <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
@@ -325,6 +415,12 @@ export function OrderForm() {
               <span>جمع اقلام</span>
               <span className="tabular-nums">{formatToman(subtotal)}</span>
             </div>
+            {appliedCoupon ? (
+              <div className="flex justify-between text-green-700">
+                <span>تخفیف کد {appliedCoupon.code}</span>
+                <span className="tabular-nums">−{formatToman(appliedCoupon.discountAmount)}</span>
+              </div>
+            ) : null}
             <div className="flex justify-between text-muted">
               <span>هزینه ارسال</span>
               <span className="tabular-nums">{formatToman(Number(shippingCost) || 0)}</span>
@@ -343,6 +439,12 @@ export function OrderForm() {
               <span>باقی‌مانده (در محل)</span>
               <span className="tabular-nums">{formatToman(prepayment.remainingAmount)}</span>
             </div>
+            {!appliedCoupon ? (
+              <p className="pt-1 text-xs text-muted">
+                در صورت فعال بودن پاداش خودکار پرداخت برای این روش، تخفیف پس از ثبت سفارش
+                به‌صورت خودکار در جمع کل اعمال می‌شود.
+              </p>
+            ) : null}
           </div>
         </CardContent>
       </Card>
