@@ -26,11 +26,12 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار:** تکمیل Feature «Coupon / Discount Code System» +
-«Automatic Post-Payment Discount» (Master Prompt جدید، بندهای ۲۵-۴۵) —
-Coupon به‌عنوان Entity کاملاً مستقل، موتور محاسبه تخفیف متمرکز
-(`src/lib/discounts/engine.ts`)، و تصمیم صریح کاربر درباره تعامل
-Coupon/Payment Reward (بند ۴۱ — جزئیات در بخش ۱۳)
+**آخرین کار:** تاریخ‌های Coupon (شروع/انقضا) به تقویم شمسی (Jalali)
+تبدیل شد (کتابخانه `jalaali-js` + انتخابگر سفارشی سه‌بخشی روز/ماه/
+سال، بدون هیچ ورودی Gregorian در UI)، و یک Code Generator اضافه شد که
+هنگام باز کردن فرم ساخت Coupon خودش یک کد پیشنهادی و در‌دسترس (بررسی‌
+شده با API) پیشنهاد می‌دهد؛ کاربر می‌تواند با دکمه «پیشنهاد کد تخفیف»
+پیشنهاد جدید بگیرد
 **Branch فعلی:** `main`
 **Feature بعدی:** طبق بند ۶۷ Master Prompt، Dashboard اولویت اول
 پروژه است تا زمانی که «به سطح قابل قبول» برسد؛ فعلاً همه بخش‌های اصلی
@@ -112,6 +113,16 @@ Discounts, Amazing Offers, Customers, Payment, Coupons) ساخته
   مستقل محاسبه می‌کند (بند ۴۴)؛ Dashboard: `/dashboard/coupons` (لیست
   + فرم با انتخاب کاربران خصوصی از طریق Search) و
   `/dashboard/settings/discounts` (تنظیم پاداش پرداخت)
+- ✅ تقویم شمسی برای Coupon + Coupon Code Generator: تاریخ شروع/انقضای
+  Coupon با کتابخانه `jalaali-js` به‌طور کامل Jalali نمایش و دریافت
+  می‌شود (`JalaliDatePicker` — سه Combobox روز/ماه/سال، بدون هیچ
+  المان native `<input type=date>` که همیشه Gregorian است)؛ تبدیل
+  به/از ISO با لنگر UTC نیمه‌شب (بدون درگیری Timezone). Code Generator
+  (`generateCandidateCouponCode`, تابع خالص) با ترکیب چند Theme
+  فرش‌محور و الگوی تصادفی کد پیشنهاد می‌دهد، سپس از طریق
+  `/api/v1/coupons/check-code` در‌دسترس بودن را تأیید می‌کند تا کد
+  تکراری پیشنهاد نشود؛ در فرم ساخت Coupon هم به‌صورت خودکار در بدو باز
+  شدن فرم اجرا می‌شود هم با دکمه «پیشنهاد کد تخفیف» تکرارپذیر است
 
 ## 4. In Progress
 
@@ -182,6 +193,7 @@ Cookie (JWT با jose، HttpOnly، Secure در Production). اولین کارب�
 | clsx + tailwind-merge | - | ترکیب کلاس‌های Tailwind |
 | vitest | latest | Unit Test |
 | eslint / prettier | latest | + prettier-plugin-tailwindcss |
+| jalaali-js | 2.0.1 | تبدیل تقویم شمسی↔میلادی (بدون وابستگی React) |
 
 **تصمیمات مهم Stack:**
 - Auth.js استفاده نشد؛ Session سفارشی با jose (Flow ساده Mobile+OTP،
@@ -215,7 +227,7 @@ src/
       colors/  route.ts + [id]/route.ts
       orders/  route.ts + [id]/route.ts + [id]/status/route.ts
       amazing-offers/  route.ts + [id]/route.ts
-      coupons/  route.ts + [id]/route.ts + validate/route.ts
+      coupons/  route.ts + [id]/route.ts + validate/route.ts + check-code/route.ts
       discount-settings/  route.ts
       customers/  route.ts + [id]/route.ts + find-or-create/route.ts
       payments/  initiate/route.ts + callback/route.ts (Public)
@@ -224,7 +236,8 @@ src/
     layout.tsx, page.tsx, globals.css
   components/
     ui/         - Button, Card, Badge, Input, Textarea, Combobox, Table,
-                  Pagination, Skeleton, EmptyState, ErrorState, ConfirmDialog
+                  Pagination, Skeleton, EmptyState, ErrorState, ConfirmDialog,
+                  JalaliDatePicker
     dashboard/  - DashboardShell, KpiCard, charts, ...
     users/      - RoleBadge, UserStatusBadge, users-page-client, ...
     categories/ - CategoriesTree, CategoryForm
@@ -238,7 +251,8 @@ src/
     amazing-offers/ - AmazingOfferForm, AmazingOfferStatusBadge,
                   AmazingOfferCountdown, amazing-offers-page-client
     discounts/  - discounts-page-client (فقط خواندنی)
-    coupons/    - CouponForm, CouponStatusBadge, coupons-page-client
+    coupons/    - CouponForm, CouponStatusBadge, CouponCodeGenerator,
+                  coupons-page-client
     customers/  - customers-page-client, CustomerDetailCard
     auth/       - OtpLoginForm
   config/env.ts
@@ -250,9 +264,10 @@ src/
     constants/  rbac.ts, dashboard-nav.ts
     sms/        send-otp-sms.ts, send-order-status-sms.ts
     payment/    zarinpal.ts (server-only — merchant secret never in client)
-    discounts/  engine.ts, validate-coupon.ts, redeem-coupon.ts
+    discounts/  engine.ts, validate-coupon.ts, redeem-coupon.ts,
+                generate-coupon-code.ts
     utils/      api-response.ts, cn.ts, format.ts, slugify.ts,
-                pricing.ts, image-crop.ts, amazing-offer.ts
+                pricing.ts, image-crop.ts, amazing-offer.ts, jalali.ts
     validations/ auth.ts, users.ts, categories.ts, category-depth.ts, products.ts,
                 amazing-offers.ts, customers.ts, payments.ts, coupons.ts,
                 discount-settings.ts
@@ -548,9 +563,17 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Coupon | رزرو ظرفیت Coupon (`usedCount`) قبل از کسر موجودی Variant انجام می‌شود، نه بعد | اگر ظرفیت Coupon تمام شده باشد، سفارش اصلاً نباید موجودی را دست بزند؛ رد سریع بدون هیچ Side Effect بهتر از رد دیرهنگام بعد از یک تغییر قابل Rollback است |
 | Coupon | حذف یک Coupon، سفارش‌های قبلی را دست‌نخورده می‌گذارد (Snapshot در `Order.discount`) ولی رکوردهای `CouponRedemption` را حذف نمی‌کند | تاریخچه مصرف (چه کسی، کِی) حتی بعد از حذف تعریف Coupon ارزش Audit دارد؛ فقط رفرنس `coupon` در آن رکوردها ممکن است در آینده Dangling شود که هرگز بدون بررسی وجود Dereference نمی‌شود |
 | Discount Settings | یک Singleton با `_id` ثابت به‌جای یک Collection عمومی Key-Value | فقط یک تنظیم با ۴ فیلد مرتبط هست؛ یک Document اختصاصی و Type-safe از یک الگوی Generic-تر برای این مورد ساده‌تر و امن‌تر است |
+| Coupon UI | تاریخ شروع/انقضای Coupon با `JalaliDatePicker` سفارشی (سه Combobox روز/ماه/سال) پیاده‌سازی شد، نه یک Library آماده مثل `react-multi-date-picker` | نیاز فقط به انتخاب روز/ماه/سال بدون زمان بود؛ یک Component کوچک و کاملاً هم‌سو با Design Token های پروژه از اضافه‌کردن یک Dependency سنگین‌تر با ظاهر پیش‌فرض خودش ساده‌تر و سازگارتر بود |
+| Coupon UI | تبدیل شمسی↔میلادی با `jalaali-js` (بدون UI/React) به‌جای یک پکیج Date-Picker همه‌کاره | جداسازی منطق تبدیل (تست‌پذیر، بدون DOM) از UI انتخاب تاریخ؛ سازگار با اصل «هر تکنولوژی باید دلیل داشته باشد» در بند ۷۹ |
+| Coupon Code Generator | کد پیشنهادی همیشه از طریق `/api/v1/coupons/check-code` بررسی در‌دسترس بودن می‌شود، حتی برای پیشنهاد خودکار اول | جلوگیری از برخورد کد تکراری در همان لحظه پیشنهاد؛ اگر بررسی شبکه شکست بخورد، همچنان یک پیشنهاد برمی‌گرداند و اعتبارسنجی نهایی حین ثبت (۴۰۹) تضمین صحت می‌کند |
 
 ## 14. Known Issues
 
+- **تاریخ‌های Amazing Offer هنوز شمسی نیستند:** فقط تاریخ شروع/انقضای
+  Coupon به Jalali تبدیل شد. فرم Amazing Offer همچنان از
+  `<input type="datetime-local">` میلادی استفاده می‌کند چون به دقت
+  ساعت/دقیقه نیاز دارد و `JalaliDatePicker` فعلی فقط روز/ماه/سال
+  دارد؛ در صورت درخواست باید نسخه با انتخاب ساعت/دقیقه هم اضافه شود.
 - **مهم — محدودیت هر کاربر (`perUserLimit`) Coupon داخل یک
   Transaction نیست:** فقط یک‌بار قبل از رزرو ظرفیت بررسی می‌شود. در
   معماری فعلی (سفارش‌ها فقط توسط کارمند، یکی‌یکی، از Dashboard ساخته
@@ -608,6 +631,11 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 - [ ] پیش از اتصال Coupon به Checkout عمومی Storefront، محدودیت
   هر کاربر (`perUserLimit`) را به یک الگوی اتمیک‌تر ارتقا بده (بند
   Known Issues بالا)
+- [ ] تست واقعی تقویم شمسی و Code Generator روی Vercel (ساخت Coupon
+  با تاریخ شروع/انقضای شمسی، بررسی صحت تبدیل به تاریخ میلادی ذخیره‌شده،
+  پیشنهاد خودکار کد در بدو باز شدن فرم، دکمه پیشنهاد مجدد)
+- [ ] در صورت درخواست کاربر: تاریخ‌های Amazing Offer را هم به یک
+  JalaliDatePicker با انتخاب ساعت/دقیقه منتقل کن (بند Known Issues بالا)
 - [ ] تصمیم درباره شروع Storefront (منتظر تأیید صریح کاربر — بند ۶۷)
 
 ## 16. Do Not Change (بدون دلیل قوی)

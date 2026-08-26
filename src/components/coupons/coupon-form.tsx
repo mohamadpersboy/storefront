@@ -7,6 +7,8 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
+import { CouponCodeGenerator, useSuggestCouponCode } from "@/components/coupons/coupon-code-generator";
 
 interface AllowedUser {
   id: string;
@@ -29,16 +31,22 @@ export interface CouponFormInitial {
   perUserLimit: number | null;
 }
 
-function toDateInputValue(iso: string | null): string {
-  if (!iso) return "";
-  return iso.slice(0, 10);
-}
 
 export function CouponForm({ initial }: { initial?: CouponFormInitial }) {
   const router = useRouter();
   const mode = initial ? "edit" : "create";
 
   const [code, setCode] = useState(initial?.code ?? "");
+  const { suggest: suggestInitialCode } = useSuggestCouponCode();
+
+  // Prefill a suggested code on a brand-new coupon so the field is
+  // never blank — the person can still edit it or click "پیشنهاد
+  // کد تخفیف" for a different one.
+  useEffect(() => {
+    if (mode === "create") {
+      suggestInitialCode().then(setCode);
+    }
+  }, [mode, suggestInitialCode]);
   const [discountPercentage, setDiscountPercentage] = useState(
     String(initial?.discountPercentage ?? "10"),
   );
@@ -47,8 +55,8 @@ export function CouponForm({ initial }: { initial?: CouponFormInitial }) {
     initial?.maxDiscountAmount != null ? String(initial.maxDiscountAmount) : "",
   );
   const [minOrderAmount, setMinOrderAmount] = useState(String(initial?.minOrderAmount ?? "0"));
-  const [startsAt, setStartsAt] = useState(toDateInputValue(initial?.startsAt ?? null));
-  const [expiresAt, setExpiresAt] = useState(toDateInputValue(initial?.expiresAt ?? null));
+  const [startsAt, setStartsAt] = useState<string | null>(initial?.startsAt ?? null);
+  const [expiresAt, setExpiresAt] = useState<string | null>(initial?.expiresAt ?? null);
   const [status, setStatus] = useState<"active" | "inactive">(initial?.status ?? "active");
   const [type, setType] = useState<"public" | "private">(initial?.type ?? "public");
   const [allowedUsers, setAllowedUsers] = useState<AllowedUser[]>(initial?.allowedUsers ?? []);
@@ -111,14 +119,22 @@ export function CouponForm({ initial }: { initial?: CouponFormInitial }) {
       setError("برای کد تخفیف خصوصی باید حداقل یک کاربر انتخاب شود");
       return;
     }
+    if (!expiresAt) {
+      setError("تاریخ انقضا الزامی است");
+      return;
+    }
+    if (startsAt && new Date(startsAt).getTime() >= new Date(expiresAt).getTime()) {
+      setError("تاریخ شروع باید قبل از تاریخ انقضا باشد");
+      return;
+    }
 
     const body = {
       code,
       discountPercentage: Number(discountPercentage) || 0,
       maxDiscountAmount: hasMaxDiscount ? Number(maxDiscountAmount) || 0 : null,
       minOrderAmount: Number(minOrderAmount) || 0,
-      startsAt: startsAt ? new Date(startsAt).toISOString() : null,
-      expiresAt: new Date(expiresAt).toISOString(),
+      startsAt,
+      expiresAt,
       status,
       type,
       allowedUserIds: type === "private" ? allowedUsers.map((u) => u.id) : [],
@@ -165,6 +181,10 @@ export function CouponForm({ initial }: { initial?: CouponFormInitial }) {
                 placeholder="WELCOME10"
                 required
               />
+              <CouponCodeGenerator
+                discountPercentage={Number(discountPercentage) || 0}
+                onGenerate={setCode}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-muted">وضعیت</label>
@@ -201,22 +221,11 @@ export function CouponForm({ initial }: { initial?: CouponFormInitial }) {
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-muted">تاریخ شروع (اختیاری)</label>
-              <Input
-                type="date"
-                dir="ltr"
-                value={startsAt}
-                onChange={(e) => setStartsAt(e.target.value)}
-              />
+              <JalaliDatePicker value={startsAt} onChange={setStartsAt} allowEmpty />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-muted">تاریخ انقضا</label>
-              <Input
-                type="date"
-                dir="ltr"
-                value={expiresAt}
-                onChange={(e) => setExpiresAt(e.target.value)}
-                required
-              />
+              <JalaliDatePicker value={expiresAt} onChange={setExpiresAt} />
             </div>
           </div>
 
