@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { isoToJalali, jalaliToIso, formatJalali, jalaliMonthLength } from "@/lib/utils/jalali";
+import {
+  isoToJalali,
+  jalaliToIso,
+  formatJalali,
+  jalaliMonthLength,
+  isoToJalaliDateTime,
+  jalaliDateTimeToIso,
+} from "@/lib/utils/jalali";
 
 describe("isoToJalali / jalaliToIso round trip", () => {
   it("converts a known Gregorian date to the correct Jalali date", () => {
@@ -37,5 +44,19 @@ describe("jalaliMonthLength", () => {
   it("returns 29 or 30 for Esfand depending on leap year", () => {
     expect(jalaliMonthLength(1403, 12)).toBe(30); // 1403 is a leap year
     expect(jalaliMonthLength(1404, 12)).toBe(29);
+  });
+});
+
+describe("isoToJalaliDateTime / jalaliDateTimeToIso round trip", () => {
+  it("preserves hour and minute through the round trip", () => {
+    const iso = jalaliDateTimeToIso({ jy: 1403, jm: 6, jd: 15, hh: 14, mm: 45 });
+    expect(isoToJalaliDateTime(iso)).toEqual({ jy: 1403, jm: 6, jd: 15, hh: 14, mm: 45 });
+  });
+
+  it("uses local wall-clock time, not a UTC anchor (unlike the date-only helpers)", () => {
+    const iso = jalaliDateTimeToIso({ jy: 1403, jm: 1, jd: 1, hh: 0, mm: 0 });
+    const date = new Date(iso);
+    expect(date.getHours()).toBe(0);
+    expect(date.getMinutes()).toBe(0);
   });
 });

@@ -51,3 +51,27 @@ export function todayJalali(): JalaaliDateParts {
 export function jalaliMonthLength(jy: number, jm: number): number {
   return _jalaaliMonthLength(jy, jm);
 }
+
+export interface JalaaliDateTimeParts extends JalaaliDateParts {
+  hh: number;
+  mm: number;
+}
+
+/**
+ * Time-aware variant for fields like Amazing Offer's start/end that
+ * need hour:minute precision. Unlike isoToJalali/jalaliToIso (which
+ * anchor to UTC midnight for pure calendar dates), this reads and
+ * writes the browser's *local* wall-clock time — matching how the
+ * previous `datetime-local` input behaved, so swapping the widget
+ * doesn't change what moment in time a given "day 5, 14:30" means.
+ */
+export function isoToJalaliDateTime(iso: string): JalaaliDateTimeParts {
+  const date = new Date(iso);
+  const { jy, jm, jd } = toJalaali(date.getFullYear(), date.getMonth() + 1, date.getDate());
+  return { jy, jm, jd, hh: date.getHours(), mm: date.getMinutes() };
+}
+
+export function jalaliDateTimeToIso(parts: JalaaliDateTimeParts): string {
+  const { gy, gm, gd } = toGregorian(parts.jy, parts.jm, parts.jd);
+  return new Date(gy, gm - 1, gd, parts.hh, parts.mm).toISOString();
+}

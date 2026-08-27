@@ -26,12 +26,11 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار:** تاریخ‌های Coupon (شروع/انقضا) به تقویم شمسی (Jalali)
-تبدیل شد (کتابخانه `jalaali-js` + انتخابگر سفارشی سه‌بخشی روز/ماه/
-سال، بدون هیچ ورودی Gregorian در UI)، و یک Code Generator اضافه شد که
-هنگام باز کردن فرم ساخت Coupon خودش یک کد پیشنهادی و در‌دسترس (بررسی‌
-شده با API) پیشنهاد می‌دهد؛ کاربر می‌تواند با دکمه «پیشنهاد کد تخفیف»
-پیشنهاد جدید بگیرد
+**آخرین کار:** تاریخ/ساعت تخفیف شگفت‌انگیز (Amazing Offer) هم به
+تقویم شمسی منتقل شد — `JalaliDateTimePicker` جدید (روز/ماه/سال +
+ساعت/دقیقه، لنگر Local Time نه UTC چون این فیلدها لحظه واقعی
+شروع/پایان Countdown را مشخص می‌کنند)؛ با این تغییر، دیگر هیچ ورودی
+تاریخ Gregorian در کل Dashboard باقی نمانده
 **Branch فعلی:** `main`
 **Feature بعدی:** طبق بند ۶۷ Master Prompt، Dashboard اولویت اول
 پروژه است تا زمانی که «به سطح قابل قبول» برسد؛ فعلاً همه بخش‌های اصلی
@@ -123,6 +122,15 @@ Discounts, Amazing Offers, Customers, Payment, Coupons) ساخته
   `/api/v1/coupons/check-code` در‌دسترس بودن را تأیید می‌کند تا کد
   تکراری پیشنهاد نشود؛ در فرم ساخت Coupon هم به‌صورت خودکار در بدو باز
   شدن فرم اجرا می‌شود هم با دکمه «پیشنهاد کد تخفیف» تکرارپذیر است
+- ✅ تقویم شمسی برای Amazing Offer: `JalaliDateTimePicker`
+  (`src/components/ui/jalali-datetime-picker.tsx`) با ۵ Combobox
+  (روز/ماه/سال/ساعت/دقیقه) جایگزین `<input type="datetime-local">`
+  شد. برخلاف `JalaliDatePicker` مخصوص Coupon (که لنگر UTC نیمه‌شب
+  دارد چون فقط «روز» مهم است)، این یکی زمان محلی مرورگر را می‌خواند
+  و می‌نویسد — چون این فیلدها لحظه دقیق شروع/پایان Countdown واقعی
+  را تعیین می‌کنند، نه فقط یک روز تقویمی؛ `isoToJalaliDateTime()` /
+  `jalaliDateTimeToIso()` در `src/lib/utils/jalali.ts` این تفاوت را
+  از توابع Date-Only مجزا نگه می‌دارند تا با هم اشتباه گرفته نشوند
 
 ## 4. In Progress
 
@@ -237,7 +245,7 @@ src/
   components/
     ui/         - Button, Card, Badge, Input, Textarea, Combobox, Table,
                   Pagination, Skeleton, EmptyState, ErrorState, ConfirmDialog,
-                  JalaliDatePicker
+                  JalaliDatePicker, JalaliDateTimePicker
     dashboard/  - DashboardShell, KpiCard, charts, ...
     users/      - RoleBadge, UserStatusBadge, users-page-client, ...
     categories/ - CategoriesTree, CategoryForm
@@ -566,14 +574,10 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Coupon UI | تاریخ شروع/انقضای Coupon با `JalaliDatePicker` سفارشی (سه Combobox روز/ماه/سال) پیاده‌سازی شد، نه یک Library آماده مثل `react-multi-date-picker` | نیاز فقط به انتخاب روز/ماه/سال بدون زمان بود؛ یک Component کوچک و کاملاً هم‌سو با Design Token های پروژه از اضافه‌کردن یک Dependency سنگین‌تر با ظاهر پیش‌فرض خودش ساده‌تر و سازگارتر بود |
 | Coupon UI | تبدیل شمسی↔میلادی با `jalaali-js` (بدون UI/React) به‌جای یک پکیج Date-Picker همه‌کاره | جداسازی منطق تبدیل (تست‌پذیر، بدون DOM) از UI انتخاب تاریخ؛ سازگار با اصل «هر تکنولوژی باید دلیل داشته باشد» در بند ۷۹ |
 | Coupon Code Generator | کد پیشنهادی همیشه از طریق `/api/v1/coupons/check-code` بررسی در‌دسترس بودن می‌شود، حتی برای پیشنهاد خودکار اول | جلوگیری از برخورد کد تکراری در همان لحظه پیشنهاد؛ اگر بررسی شبکه شکست بخورد، همچنان یک پیشنهاد برمی‌گرداند و اعتبارسنجی نهایی حین ثبت (۴۰۹) تضمین صحت می‌کند |
+| Jalali Dates | دو Helper مجزا برای تبدیل شمسی: یکی لنگر UTC نیمه‌شب (Coupon — فقط «روز» مهم است)، یکی لنگر Local Time (Amazing Offer — لحظه دقیق Countdown مهم است) | اگر این دو در یک تابع ادغام می‌شدند، یکی از دو Use Case حتماً با Off-by-one-day یا جابه‌جایی ساعت اشتباه محاسبه می‌شد؛ نگه‌داشتن جدا آن‌ها خواناتر و مطمئن‌تر است |
 
 ## 14. Known Issues
 
-- **تاریخ‌های Amazing Offer هنوز شمسی نیستند:** فقط تاریخ شروع/انقضای
-  Coupon به Jalali تبدیل شد. فرم Amazing Offer همچنان از
-  `<input type="datetime-local">` میلادی استفاده می‌کند چون به دقت
-  ساعت/دقیقه نیاز دارد و `JalaliDatePicker` فعلی فقط روز/ماه/سال
-  دارد؛ در صورت درخواست باید نسخه با انتخاب ساعت/دقیقه هم اضافه شود.
 - **مهم — محدودیت هر کاربر (`perUserLimit`) Coupon داخل یک
   Transaction نیست:** فقط یک‌بار قبل از رزرو ظرفیت بررسی می‌شود. در
   معماری فعلی (سفارش‌ها فقط توسط کارمند، یکی‌یکی، از Dashboard ساخته
@@ -634,8 +638,9 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 - [ ] تست واقعی تقویم شمسی و Code Generator روی Vercel (ساخت Coupon
   با تاریخ شروع/انقضای شمسی، بررسی صحت تبدیل به تاریخ میلادی ذخیره‌شده،
   پیشنهاد خودکار کد در بدو باز شدن فرم، دکمه پیشنهاد مجدد)
-- [ ] در صورت درخواست کاربر: تاریخ‌های Amazing Offer را هم به یک
-  JalaliDatePicker با انتخاب ساعت/دقیقه منتقل کن (بند Known Issues بالا)
+- [ ] تست واقعی `JalaliDateTimePicker` روی Amazing Offer روی Vercel
+  (ساخت Offer با ساعت/دقیقه شمسی، بررسی صحت لحظه Countdown نسبت به
+  زمان واقعی سرور)
 - [ ] تصمیم درباره شروع Storefront (منتظر تأیید صریح کاربر — بند ۶۷)
 
 ## 16. Do Not Change (بدون دلیل قوی)

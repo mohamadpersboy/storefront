@@ -7,6 +7,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
+import { JalaliDateTimePicker } from "@/components/ui/jalali-datetime-picker";
 import { formatToman, toPersianDigits } from "@/lib/utils/format";
 import {
   computeAmazingOfferPrice,
@@ -40,14 +41,6 @@ interface EditInitial {
   basePrice: number;
 }
 
-/** Formats a Date as the value a `datetime-local` input expects (local time, no timezone). */
-function toLocalInputValue(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
-    date.getHours(),
-  )}:${pad(date.getMinutes())}`;
-}
-
 export function AmazingOfferForm({
   mode,
   initial,
@@ -69,12 +62,12 @@ export function AmazingOfferForm({
   );
   const [discountValue, setDiscountValue] = useState(String(initial?.discountValue ?? "20"));
   const [startAt, setStartAt] = useState(() =>
-    initial ? toLocalInputValue(new Date(initial.startAt)) : toLocalInputValue(new Date()),
+    initial ? initial.startAt : new Date().toISOString(),
   );
   const [endAt, setEndAt] = useState(() =>
     initial
-      ? toLocalInputValue(new Date(initial.endAt))
-      : toLocalInputValue(new Date(Date.now() + DEFAULT_AMAZING_OFFER_DURATION_MS)),
+      ? initial.endAt
+      : new Date(Date.now() + DEFAULT_AMAZING_OFFER_DURATION_MS).toISOString(),
   );
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
 
@@ -139,14 +132,14 @@ export function AmazingOfferForm({
               variantId: selectedVariantId,
               discountType,
               discountValue: Number(discountValue) || 0,
-              startAt: new Date(startAt).toISOString(),
-              endAt: new Date(endAt).toISOString(),
+              startAt,
+              endAt,
             }
           : {
               discountType,
               discountValue: Number(discountValue) || 0,
-              startAt: new Date(startAt).toISOString(),
-              endAt: new Date(endAt).toISOString(),
+              startAt,
+              endAt,
               isActive,
             };
 
@@ -283,23 +276,13 @@ export function AmazingOfferForm({
                 onChange={(e) => setDiscountValue(e.target.value)}
               />
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
               <label className="text-xs text-muted">شروع</label>
-              <Input
-                type="datetime-local"
-                dir="ltr"
-                value={startAt}
-                onChange={(e) => setStartAt(e.target.value)}
-              />
+              <JalaliDateTimePicker value={startAt} onChange={setStartAt} />
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
               <label className="text-xs text-muted">پایان</label>
-              <Input
-                type="datetime-local"
-                dir="ltr"
-                value={endAt}
-                onChange={(e) => setEndAt(e.target.value)}
-              />
+              <JalaliDateTimePicker value={endAt} onChange={setEndAt} />
             </div>
           </div>
 
