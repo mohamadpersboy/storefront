@@ -4,6 +4,7 @@ import { PERMISSIONS, ROLES } from "@/lib/constants/rbac";
 import { requireApiUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { updateUserStatusSchema } from "@/lib/validations/users";
+import { logActivity } from "@/lib/audit/log-activity";
 
 export async function PATCH(
   request: Request,
@@ -63,6 +64,14 @@ export async function PATCH(
 
   target.isActive = isActive;
   await target.save();
+
+  await logActivity({
+    actor,
+    action: "user.status_changed",
+    targetType: "User",
+    targetId: target.id,
+    description: `حساب کاربر ${target.phoneNumber} ${isActive ? "فعال" : "غیرفعال"} شد`,
+  });
 
   return apiSuccess(
     { id: target.id, isActive: target.isActive },

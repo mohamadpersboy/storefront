@@ -6,6 +6,7 @@ import { PERMISSIONS } from "@/lib/constants/rbac";
 import { requireApiUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { createCouponSchema, couponsListQuerySchema } from "@/lib/validations/coupons";
+import { logActivity } from "@/lib/audit/log-activity";
 
 type LeanCoupon = ICoupon & { _id: Types.ObjectId };
 
@@ -81,6 +82,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   const guard = await requireApiUser(PERMISSIONS.COUPONS_MANAGE);
   if (guard.response) return guard.response;
+  const { user: actor } = guard;
 
   const json = await request.json().catch(() => null);
   const parsed = createCouponSchema.safeParse(json);
@@ -110,6 +112,14 @@ export async function POST(request: Request) {
     usageLimit: parsed.data.usageLimit ?? null,
     perUserLimit: parsed.data.perUserLimit ?? null,
     allowedUsers: parsed.data.type === "private" ? parsed.data.allowedUserIds : [],
+  });
+
+  await logActivity({
+    actor,
+    action: "coupon.created",
+    targetType: "Coupon",
+    targetId: coupon.id,
+    description: `کد تخفیف «${coupon.code}» ایجاد شد (${coupon.discountPercentage}٪)`,
   });
 
   return apiSuccess({ id: coupon.id }, { message: "کد تخفیف ایجاد شد", status: 201 });

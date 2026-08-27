@@ -4,6 +4,7 @@ import { PERMISSIONS } from "@/lib/constants/rbac";
 import { requireApiUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { updateCouponSchema } from "@/lib/validations/coupons";
+import { logActivity } from "@/lib/audit/log-activity";
 
 export async function GET(
   _request: Request,
@@ -52,6 +53,7 @@ export async function PATCH(
 ) {
   const guard = await requireApiUser(PERMISSIONS.COUPONS_MANAGE);
   if (guard.response) return guard.response;
+  const { user: actor } = guard;
 
   const { id } = await params;
   const json = await request.json().catch(() => null);
@@ -102,6 +104,13 @@ export async function PATCH(
   }
 
   await coupon.save();
+  await logActivity({
+    actor,
+    action: "coupon.updated",
+    targetType: "Coupon",
+    targetId: coupon.id,
+    description: `کد تخفیف «${coupon.code}» ویرایش شد`,
+  });
   return apiSuccess({ id: coupon.id }, { message: "کد تخفیف ویرایش شد" });
 }
 
@@ -111,6 +120,7 @@ export async function DELETE(
 ) {
   const guard = await requireApiUser(PERMISSIONS.COUPONS_MANAGE);
   if (guard.response) return guard.response;
+  const { user: actor } = guard;
 
   const { id } = await params;
   await connectToDatabase();
@@ -121,5 +131,12 @@ export async function DELETE(
   }
 
   await coupon.deleteOne();
+  await logActivity({
+    actor,
+    action: "coupon.deleted",
+    targetType: "Coupon",
+    targetId: id,
+    description: `کد تخفیف «${coupon.code}» حذف شد`,
+  });
   return apiSuccess({ id }, { message: "کد تخفیف حذف شد" });
 }

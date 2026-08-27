@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Palette, BadgePercent, ChevronLeft } from "lucide-react";
+import { Palette, BadgePercent, History, ChevronLeft } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 const settingsSections = [
@@ -14,6 +14,12 @@ const settingsSections = [
     icon: BadgePercent,
     title: "تخفیف خودکار پرداخت",
     description: "پاداش پرداخت کامل اینترنتی و پرداخت ترکیبی",
+  },
+  {
+    href: "/dashboard/settings/activity-log",
+    icon: History,
+    title: "تاریخچه فعالیت‌ها",
+    description: "چه کسی، چه تغییر حساسی را کِی انجام داده",
   },
 ];
 

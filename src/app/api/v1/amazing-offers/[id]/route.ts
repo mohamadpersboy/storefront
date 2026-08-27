@@ -8,6 +8,7 @@ import { requireApiUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { updateAmazingOfferSchema } from "@/lib/validations/amazing-offers";
 import { computeAmazingOfferPrice, getAmazingOfferStatus } from "@/lib/utils/amazing-offer";
+import { logActivity } from "@/lib/audit/log-activity";
 
 type LeanOffer = IAmazingOffer & {
   _id: Types.ObjectId;
@@ -66,6 +67,7 @@ export async function PATCH(
 ) {
   const guard = await requireApiUser(PERMISSIONS.DISCOUNTS_MANAGE);
   if (guard.response) return guard.response;
+  const { user: actor } = guard;
 
   const { id } = await params;
   const json = await request.json().catch(() => null);
@@ -96,6 +98,14 @@ export async function PATCH(
   Object.assign(offer, parsed.data);
   await offer.save();
 
+  await logActivity({
+    actor,
+    action: "amazing_offer.updated",
+    targetType: "AmazingOffer",
+    targetId: offer.id,
+    description: "تخفیف شگفت‌انگیز ویرایش شد",
+  });
+
   return apiSuccess({ id: offer.id }, { message: "تخفیف شگفت‌انگیز ویرایش شد" });
 }
 
@@ -105,6 +115,7 @@ export async function DELETE(
 ) {
   const guard = await requireApiUser(PERMISSIONS.DISCOUNTS_MANAGE);
   if (guard.response) return guard.response;
+  const { user: actor } = guard;
 
   const { id } = await params;
   await connectToDatabase();
@@ -115,5 +126,14 @@ export async function DELETE(
   }
 
   await offer.deleteOne();
+
+  await logActivity({
+    actor,
+    action: "amazing_offer.deleted",
+    targetType: "AmazingOffer",
+    targetId: id,
+    description: "تخفیف شگفت‌انگیز حذف شد",
+  });
+
   return apiSuccess({ id }, { message: "تخفیف شگفت‌انگیز حذف شد" });
 }

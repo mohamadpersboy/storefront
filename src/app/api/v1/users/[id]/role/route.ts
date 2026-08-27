@@ -4,6 +4,7 @@ import { PERMISSIONS, ROLES, canAssignRole } from "@/lib/constants/rbac";
 import { requireApiUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { updateUserRoleSchema } from "@/lib/validations/users";
+import { logActivity } from "@/lib/audit/log-activity";
 
 export async function PATCH(
   request: Request,
@@ -71,8 +72,17 @@ export async function PATCH(
     }
   }
 
+  const previousRole = target.role;
   target.role = newRole;
   await target.save();
+
+  await logActivity({
+    actor,
+    action: "user.role_changed",
+    targetType: "User",
+    targetId: target.id,
+    description: `نقش کاربر ${target.phoneNumber} از «${previousRole}» به «${newRole}» تغییر یافت`,
+  });
 
   return apiSuccess(
     { id: target.id, role: target.role },

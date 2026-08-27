@@ -26,11 +26,12 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار:** تاریخ/ساعت تخفیف شگفت‌انگیز (Amazing Offer) هم به
-تقویم شمسی منتقل شد — `JalaliDateTimePicker` جدید (روز/ماه/سال +
-ساعت/دقیقه، لنگر Local Time نه UTC چون این فیلدها لحظه واقعی
-شروع/پایان Countdown را مشخص می‌کنند)؛ با این تغییر، دیگر هیچ ورودی
-تاریخ Gregorian در کل Dashboard باقی نمانده
+**آخرین کار:** تکمیل Feature «Audit / Activity Log» (Master Prompt
+بند ۵۳ — آخرین آیتم باز در فهرست Planned که نیاز به تأیید معماری
+نداشت). ثبت Minimal و Append-only برای تغییرات حساس: نقش/وضعیت کاربر،
+وضعیت سفارش، ساخت/ویرایش/حذف Coupon، ویرایش تنظیمات پاداش پرداخت،
+ساخت/ویرایش/حذف Amazing Offer — با صفحه نمایش در
+`/dashboard/settings/activity-log`
 **Branch فعلی:** `main`
 **Feature بعدی:** طبق بند ۶۷ Master Prompt، Dashboard اولویت اول
 پروژه است تا زمانی که «به سطح قابل قبول» برسد؛ فعلاً همه بخش‌های اصلی
@@ -131,6 +132,16 @@ Discounts, Amazing Offers, Customers, Payment, Coupons) ساخته
   را تعیین می‌کنند، نه فقط یک روز تقویمی؛ `isoToJalaliDateTime()` /
   `jalaliDateTimeToIso()` در `src/lib/utils/jalali.ts` این تفاوت را
   از توابع Date-Only مجزا نگه می‌دارند تا با هم اشتباه گرفته نشوند
+- ✅ Audit / Activity Log (بند ۵۳): مدل `ActivityLog` Append-only
+  (بدون API ویرایش/حذف — یک Audit Trail واقعی باید غیرقابل‌دستکاری
+  بماند)؛ `actorName` به‌صورت Snapshot ذخیره می‌شود نه Populate زنده،
+  تا اگر بعداً نام کاربر عوض شد یا حذف شد، متن لاگ خوانا بماند؛ ثبت
+  Best-effort دقیقاً با همان الگوی پیامک سفارش (شکست لاگ هرگز عملیات
+  اصلی را متوقف نمی‌کند)؛ فعلاً روی رویدادهای زیر Wire شده: تغییر
+  نقش/وضعیت کاربر، تغییر وضعیت سفارش، ساخت/ویرایش/حذف Coupon، ویرایش
+  تنظیمات پاداش پرداخت، ساخت/ویرایش/حذف Amazing Offer؛ صفحه نمایش در
+  `/dashboard/settings/activity-log` (فقط خواندنی، Permission
+  اختصاصی `ACTIVITY_LOG_READ`، Admin+)
 
 ## 4. In Progress
 
@@ -144,8 +155,9 @@ Discounts, Amazing Offers, Customers, Payment, Coupons) ساخته
    موجود `Order` (`src/app/api/v1/orders/route.ts`) و `Payment`
    (`src/lib/payment/zarinpal.ts`) وصل شود، نه بازنویسی؛ شروعش منوط
    به تأیید صریح کاربر است (بند ۶۷: Dashboard First)
-2. Audit / Activity Log برای عملیات حساس Dashboard (بند ۵۳ — می‌تواند
-   در نسخه اول Minimal باشد)
+
+هیچ آیتم دیگری بدون تأیید معماری کاربر باقی نمانده — همه Featureهای
+اصلی Dashboard (طبق فهرست بند ۱ Master Prompt) ساخته شده‌اند.
 
 ## 6. Architecture
 
@@ -219,7 +231,7 @@ src/
       users/  page.tsx + [id]/page.tsx
       categories/  page.tsx + new/ + [id]/edit/
       products/  page.tsx + new/ + [id]/edit/ + loading.tsx + error.tsx
-      settings/  page.tsx + colors/page.tsx + discounts/page.tsx
+      settings/  page.tsx + colors/page.tsx + discounts/page.tsx + activity-log/page.tsx
       orders/  page.tsx + new/ + [id]/page.tsx + loading.tsx + error.tsx
       discounts/  page.tsx
       amazing-offers/  page.tsx + new/ + [id]/edit/
@@ -237,6 +249,7 @@ src/
       amazing-offers/  route.ts + [id]/route.ts
       coupons/  route.ts + [id]/route.ts + validate/route.ts + check-code/route.ts
       discount-settings/  route.ts
+      activity-log/  route.ts (فقط خواندنی)
       customers/  route.ts + [id]/route.ts + find-or-create/route.ts
       payments/  initiate/route.ts + callback/route.ts (Public)
       uploads/sign/route.ts
@@ -252,7 +265,8 @@ src/
     products/   - ProductForm, ProductImageUploader, ImageCropModal,
                   VariantEditor, TechnicalSpecsEditor, ProductStatusBadge,
                   products-page-client
-    settings/   - ColorsManager, ColorFormModal, DiscountSettingsForm
+    settings/   - ColorsManager, ColorFormModal, DiscountSettingsForm,
+                  ActivityLogPageClient
     orders/     - OrderForm, OrderItemsPicker, OrderDetailCard,
                   OrderStatusBadge, PaymentPanel, PaymentStatusBadge,
                   orders-page-client
@@ -272,6 +286,7 @@ src/
     constants/  rbac.ts, dashboard-nav.ts
     sms/        send-otp-sms.ts, send-order-status-sms.ts
     payment/    zarinpal.ts (server-only — merchant secret never in client)
+    audit/      log-activity.ts (Best-effort — مثل الگوی پیامک سفارش)
     discounts/  engine.ts, validate-coupon.ts, redeem-coupon.ts,
                 generate-coupon-code.ts
     utils/      api-response.ts, cn.ts, format.ts, slugify.ts,
@@ -282,7 +297,8 @@ src/
     mock/       dashboard.ts (فقط همین باقی مانده Mock)
   models/       User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts,
                 Color.ts, Order.ts, Counter.ts, AmazingOffer.ts, Payment.ts,
-                Coupon.ts, CouponRedemption.ts, DiscountSettings.ts
+                Coupon.ts, CouponRedemption.ts, DiscountSettings.ts,
+                ActivityLog.ts
   proxy.ts
 public/fonts/  - IRANYekanX woff2 (۴ وزن)
 scripts/vercel-env-sync.sh
@@ -413,6 +429,18 @@ Verify همیشه از رکورد ذخیره‌شده `Payment.amount` خوان�
 از Query String که قابل‌دستکاری توسط کاربر است. موفقیت پرداخت وضعیت
 `Order.status` را خودکار تغییر نمی‌دهد؛ آن State Machine یک تصمیم
 آگاهانه ادمین در Dashboard می‌ماند.
+
+### ActivityLog
+Append-only (بند ۵۳). `actor` (ref User)، `actorName` (Snapshot —
+عمداً Populate زنده نیست، تا اگر کاربر بعداً نامش را عوض کرد یا حذف
+شد، متن لاگ همچنان خوانا بماند)، `action` (رشته آزاد مثل
+`"user.role_changed"`)، `targetType`، `targetId`، `description` (جمله
+آماده فارسی برای نمایش)، `createdAt`. بدون فیلد `updatedAt` و بدون
+API ویرایش/حذف — یک Audit Trail واقعی باید غیرقابل‌دستکاری بماند.
+ثبت آن (`src/lib/audit/log-activity.ts`) کاملاً Best-effort است،
+دقیقاً با همان الگوی پیامک وضعیت سفارش: اگر نوشتن لاگ شکست بخورد،
+عملیات حساس اصلی (که لاگ قرار بود آن را ثبت کند) هرگز متوقف یا
+Rollback نمی‌شود.
 
 **Planned models:** Address (فعلاً به‌صورت Embedded داخل Order است؛
 Address Book مستقل مشتری بخشی از Storefront/Account است).
@@ -575,6 +603,9 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Coupon UI | تبدیل شمسی↔میلادی با `jalaali-js` (بدون UI/React) به‌جای یک پکیج Date-Picker همه‌کاره | جداسازی منطق تبدیل (تست‌پذیر، بدون DOM) از UI انتخاب تاریخ؛ سازگار با اصل «هر تکنولوژی باید دلیل داشته باشد» در بند ۷۹ |
 | Coupon Code Generator | کد پیشنهادی همیشه از طریق `/api/v1/coupons/check-code` بررسی در‌دسترس بودن می‌شود، حتی برای پیشنهاد خودکار اول | جلوگیری از برخورد کد تکراری در همان لحظه پیشنهاد؛ اگر بررسی شبکه شکست بخورد، همچنان یک پیشنهاد برمی‌گرداند و اعتبارسنجی نهایی حین ثبت (۴۰۹) تضمین صحت می‌کند |
 | Jalali Dates | دو Helper مجزا برای تبدیل شمسی: یکی لنگر UTC نیمه‌شب (Coupon — فقط «روز» مهم است)، یکی لنگر Local Time (Amazing Offer — لحظه دقیق Countdown مهم است) | اگر این دو در یک تابع ادغام می‌شدند، یکی از دو Use Case حتماً با Off-by-one-day یا جابه‌جایی ساعت اشتباه محاسبه می‌شد؛ نگه‌داشتن جدا آن‌ها خواناتر و مطمئن‌تر است |
+| Activity Log | بدون API ویرایش یا حذف — فقط `POST` داخلی از طریق `logActivity()` و یک `GET` فقط‌خواندنی برای Dashboard | یک Audit Trail که قابل ویرایش باشد اصلاً Audit Trail نیست؛ نبود مسیر Update/Delete یک تصمیم امنیتی است نه صرفاً کمبود Feature |
+| Activity Log | `actorName` در لحظه ثبت Snapshot می‌شود، نه با `populate` از User در لحظه نمایش خوانده می‌شود | یک لاگ باید همیشه بازتاب همان لحظه‌ای باشد که رویداد رخ داد؛ اگر کاربر بعداً تغییر نام داد یا حذف شد، لاگ‌های قدیمی نباید عقب‌گرد کنند یا خالی نمایش داده شوند |
+| Activity Log | فقط رویدادهای صریحاً «حساس» طبق مثال‌های بند ۵۳ (نقش/وضعیت کاربر، وضعیت سفارش) به‌علاوه رویدادهای معادل در Featureهای بعدی (Coupon، Discount Settings، Amazing Offer) ثبت می‌شوند — نه هر Read/Write ساده مثل ساخت محصول یا رنگ | بند ۵۳ صراحتاً اجازه نسخه Minimal می‌دهد؛ ثبت همه‌چیز حجم لاگ را بی‌فایده زیاد می‌کرد بدون افزایش واقعی در قابلیت Audit برای عملیات واقعاً حساس |
 
 ## 14. Known Issues
 
@@ -641,6 +672,9 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 - [ ] تست واقعی `JalaliDateTimePicker` روی Amazing Offer روی Vercel
   (ساخت Offer با ساعت/دقیقه شمسی، بررسی صحت لحظه Countdown نسبت به
   زمان واقعی سرور)
+- [ ] تست واقعی Activity Log روی Vercel (تغییر نقش/وضعیت کاربر، تغییر
+  وضعیت سفارش، عملیات Coupon/Amazing Offer/Discount Settings — هرکدام
+  باید بلافاصله در `/dashboard/settings/activity-log` ظاهر شوند)
 - [ ] تصمیم درباره شروع Storefront (منتظر تأیید صریح کاربر — بند ۶۷)
 
 ## 16. Do Not Change (بدون دلیل قوی)

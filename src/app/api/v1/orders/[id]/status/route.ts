@@ -8,6 +8,7 @@ import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { updateOrderStatusSchema } from "@/lib/validations/orders";
 import { canTransitionOrderStatus, type OrderStatus } from "@/lib/constants/order-status";
 import { sendOrderStatusSms } from "@/lib/sms/send-order-status-sms";
+import { logActivity } from "@/lib/audit/log-activity";
 
 export async function PATCH(
   request: Request,
@@ -55,6 +56,7 @@ export async function PATCH(
     }
   }
 
+  const previousStatus = order.status;
   order.status = nextStatus;
   order.statusHistory.push({
     status: nextStatus,
@@ -63,6 +65,14 @@ export async function PATCH(
     note,
   });
   await order.save();
+
+  await logActivity({
+    actor,
+    action: "order.status_changed",
+    targetType: "Order",
+    targetId: order.id,
+    description: `وضعیت سفارش #${order.orderNumber} از «${previousStatus}» به «${nextStatus}» تغییر یافت`,
+  });
 
   // Best-effort customer notification — a failed SMS must never fail
   // (or roll back) the status change itself.

@@ -50,6 +50,8 @@ export const PERMISSIONS = {
   COLORS_MANAGE: "colors.manage",
 
   SETTINGS_MANAGE: "settings.manage",
+
+  ACTIVITY_LOG_READ: "activity_log.read",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -82,6 +84,7 @@ const ADMIN_PERMISSIONS: Permission[] = [
   PERMISSIONS.COUPONS_READ,
   PERMISSIONS.COUPONS_MANAGE,
   PERMISSIONS.SETTINGS_MANAGE,
+  PERMISSIONS.ACTIVITY_LOG_READ,
   PERMISSIONS.USERS_READ,
   PERMISSIONS.USERS_UPDATE,
 ];

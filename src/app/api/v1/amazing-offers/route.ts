@@ -8,6 +8,7 @@ import { requireApiUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { createAmazingOfferSchema } from "@/lib/validations/amazing-offers";
 import { computeAmazingOfferPrice, getAmazingOfferStatus } from "@/lib/utils/amazing-offer";
+import { logActivity } from "@/lib/audit/log-activity";
 
 type LeanOffer = IAmazingOffer & {
   _id: Types.ObjectId;
@@ -103,6 +104,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   const guard = await requireApiUser(PERMISSIONS.DISCOUNTS_MANAGE);
   if (guard.response) return guard.response;
+  const { user: actor } = guard;
 
   const json = await request.json().catch(() => null);
   const parsed = createAmazingOfferSchema.safeParse(json);
@@ -146,6 +148,16 @@ export async function POST(request: Request) {
     discountValue,
     startAt,
     endAt,
+  });
+
+  await logActivity({
+    actor,
+    action: "amazing_offer.created",
+    targetType: "AmazingOffer",
+    targetId: offer.id,
+    description: `تخفیف شگفت‌انگیز جدید ثبت شد (${
+      discountType === "percent" ? `${discountValue}٪` : `${discountValue} تومان`
+    })`,
   });
 
   return apiSuccess({ id: offer.id }, { message: "تخفیف شگفت‌انگیز ثبت شد", status: 201 });
