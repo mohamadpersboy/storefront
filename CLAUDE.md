@@ -26,15 +26,19 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار:** شروع Storefront — تصمیم صریح کاربر داده شد (بند ۶۷ Master
-Prompt: Dashboard اکنون در سطح قابل قبول است). Phase 1 پیاده‌سازی شد:
-Layout عمومی + صفحه اصلی + لیست محصولات + جزئیات محصول + دسته‌بندی +
-تخفیف‌های شگفت‌انگیز — همگی با داده **واقعی** از دیتابیس (نه Mock)
+**آخرین کار:** تکمیل Feature «Audit / Activity Log» (Master Prompt
+بند ۵۳ — آخرین آیتم باز در فهرست Planned که نیاز به تأیید معماری
+نداشت). ثبت Minimal و Append-only برای تغییرات حساس: نقش/وضعیت کاربر،
+وضعیت سفارش، ساخت/ویرایش/حذف Coupon، ویرایش تنظیمات پاداش پرداخت،
+ساخت/ویرایش/حذف Amazing Offer — با صفحه نمایش در
+`/dashboard/settings/activity-log`
 **Branch فعلی:** `main`
-**Feature بعدی:** Cart + Checkout واقعی Storefront (باید به مدل‌های
-موجود `Order`/`Payment` وصل شود، نه بازنویسی) و سپس Login/OTP سمت
-مشتری برای Storefront (جدا از OTP Login فعلی Dashboard که فقط کارمند/
-ادمین را وارد می‌کند)
+**Feature بعدی:** طبق بند ۶۷ Master Prompt، Dashboard اولویت اول
+پروژه است تا زمانی که «به سطح قابل قبول» برسد؛ فعلاً همه بخش‌های اصلی
+(Auth, Dashboard, Users, Categories, Products, Colors, Orders,
+Discounts, Amazing Offers, Customers, Payment, Coupons) ساخته
+شده‌اند. شروع Storefront یک تصمیم معماری بزرگ است — منتظر تأیید صریح
+کاربر
 
 ## 3. Completed Features
 
@@ -138,43 +142,22 @@ Layout عمومی + صفحه اصلی + لیست محصولات + جزئیات �
   تنظیمات پاداش پرداخت، ساخت/ویرایش/حذف Amazing Offer؛ صفحه نمایش در
   `/dashboard/settings/activity-log` (فقط خواندنی، Permission
   اختصاصی `ACTIVITY_LOG_READ`، Admin+)
-- ✅ **Storefront — Phase 1 (Browsing، بدون Cart/Checkout):** Route
-  Group عمومی `(storefront)` با Layout مستقل (Header با ناوبری
-  دسته‌بندی + فرم جستجوی GET ساده، Footer، Bottom Tab Bar موبایل)؛
-  صفحه اصلی (Hero، Grid دسته‌بندی، نوار تخفیف‌های شگفت‌انگیز،
-  محصولات جدید)؛ صفحه لیست محصولات با فیلتر دسته‌بندی/جستجو/Pagination
-  واقعی سمت Server؛ صفحه جزئیات محصول (Gallery تصاویر با نسبت ۳:۴،
-  انتخابگر Variant که قیمت/موجودی را زنده نشان می‌دهد، مشخصات فنی)؛
-  صفحه دسته‌بندی؛ صفحه تخفیف‌های شگفت‌انگیز با Countdown (بند ۲۶).
-  همه صفحات مستقیماً از طریق `src/lib/storefront/*.ts` با Mongoose
-  داده واقعی می‌خوانند — **نه** از طریق `/api/v1/products` که عمداً
-  Dashboard-Only و پشت Auth است (جزئیات تصمیم در بخش ۱۳). محصولات
-  ناموجود Grayscale + برچسب «ناموجود» می‌شوند (بند ۱۷). Cart/Account/
-  دکمه «افزودن به سبد خرید» عمداً Disabled با برچسب «به‌زودی» هستند
-  (بند ۵۴ — بدون Fake Functionality)
 
 ## 4. In Progress
 
-Storefront Phase 2 — Cart + Checkout واقعی (اتصال به `Order`/`Payment`
-موجود) و Login/OTP سمت مشتری.
+هیچ‌کدام — منتظر تصمیم درباره شروع Storefront.
 
 ## 5. Planned (به ترتیب)
 
-1. **Storefront Phase 2 — Cart:** State سبد خرید (احتمالاً Cookie/
-   Session-based چون مشتری قبل از Checkout لزوماً Login نکرده)، صفحه
-   Cart با تغییر تعداد/حذف/مشاهده تخفیف طبق بند ۷۱
-2. **Storefront Phase 2 — Customer OTP Login:** جدا از OTP فعلی
-   Dashboard (که فقط کارمند/ادمین وارد می‌شود)؛ باید همان `User` model
-   و همان Flow OTP (`sms.ir` Pattern/Verify) را استفاده کند، نه یک
-   سیستم Auth دوم
-3. **Storefront Phase 2 — Checkout:** باید به مدل‌های موجود `Order`
-   (`src/app/api/v1/orders/route.ts`) و `Payment`
-   (`src/lib/payment/zarinpal.ts`) وصل شود، نه بازنویسی؛ شامل Address
-   Management (بند ۷۳) و اعمال Coupon
-4. **Storefront Phase 2 — Account:** مشاهده سفارش‌های خودِ مشتری،
-   جزئیات سفارش، مدیریت آدرس‌ها
+1. **Storefront** (Home, Products, Category, Product Detail, Search,
+   Amazing Offers, Cart, Checkout, Login/OTP, Account, Orders, Address
+   — بند ۶۹ Master Prompt) — Checkout واقعی باید به همین مدل‌های
+   موجود `Order` (`src/app/api/v1/orders/route.ts`) و `Payment`
+   (`src/lib/payment/zarinpal.ts`) وصل شود، نه بازنویسی؛ شروعش منوط
+   به تأیید صریح کاربر است (بند ۶۷: Dashboard First)
 
-هیچ آیتم دیگری بدون تأیید معماری کاربر باقی نمانده.
+هیچ آیتم دیگری بدون تأیید معماری کاربر باقی نمانده — همه Featureهای
+اصلی Dashboard (طبق فهرست بند ۱ Master Prompt) ساخته شده‌اند.
 
 ## 6. Architecture
 
@@ -254,12 +237,7 @@ src/
       amazing-offers/  page.tsx + new/ + [id]/edit/
       coupons/  page.tsx + new/ + [id]/edit/
       customers/  page.tsx + [id]/page.tsx
-    (storefront)/
-      layout.tsx                 - Header/Footer/MobileTabBar عمومی
-      page.tsx                   - صفحه اصلی (Hero، دسته‌بندی، Offers، محصولات جدید)
-      products/  page.tsx + [slug]/page.tsx
-      category/[slug]/page.tsx
-      amazing-offers/page.tsx
+    (storefront)/              - هنوز خالی
     payment/result/page.tsx    - نتیجه پرداخت، Public (بدون Layout Dashboard)
     api/v1/
       auth/  otp/{request,verify}/route.ts, logout/route.ts
@@ -276,8 +254,7 @@ src/
       payments/  initiate/route.ts + callback/route.ts (Public)
       uploads/sign/route.ts
     login/page.tsx
-    layout.tsx, globals.css
-    (ریشه `page.tsx` دیگر مستقل نیست — به `(storefront)/page.tsx` منتقل شد)
+    layout.tsx, page.tsx, globals.css
   components/
     ui/         - Button, Card, Badge, Input, Textarea, Combobox, Table,
                   Pagination, Skeleton, EmptyState, ErrorState, ConfirmDialog,
@@ -300,10 +277,6 @@ src/
                   coupons-page-client
     customers/  - customers-page-client, CustomerDetailCard
     auth/       - OtpLoginForm
-    storefront/ - SiteHeader, SiteFooter, MobileTabBar, ProductCard,
-                  ProductGrid, ProductsPagination, CategoryTile,
-                  ProductGallery, ProductVariantSelector,
-                  AmazingOfferStrip, OfferCountdown
   config/env.ts
   fonts/index.ts
   lib/
@@ -318,9 +291,6 @@ src/
                 generate-coupon-code.ts
     utils/      api-response.ts, cn.ts, format.ts, slugify.ts,
                 pricing.ts, image-crop.ts, amazing-offer.ts, jalali.ts
-    storefront/ products.ts, categories.ts, amazing-offers.ts
-                (Read-only Mongoose queries مستقیم — بدون Auth، فقط
-                داده Public/Published؛ نه Wrapper روی api/v1)
     validations/ auth.ts, users.ts, categories.ts, category-depth.ts, products.ts,
                 amazing-offers.ts, customers.ts, payments.ts, coupons.ts,
                 discount-settings.ts
@@ -634,10 +604,6 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Coupon Code Generator | کد پیشنهادی همیشه از طریق `/api/v1/coupons/check-code` بررسی در‌دسترس بودن می‌شود، حتی برای پیشنهاد خودکار اول | جلوگیری از برخورد کد تکراری در همان لحظه پیشنهاد؛ اگر بررسی شبکه شکست بخورد، همچنان یک پیشنهاد برمی‌گرداند و اعتبارسنجی نهایی حین ثبت (۴۰۹) تضمین صحت می‌کند |
 | Jalali Dates | دو Helper مجزا برای تبدیل شمسی: یکی لنگر UTC نیمه‌شب (Coupon — فقط «روز» مهم است)، یکی لنگر Local Time (Amazing Offer — لحظه دقیق Countdown مهم است) | اگر این دو در یک تابع ادغام می‌شدند، یکی از دو Use Case حتماً با Off-by-one-day یا جابه‌جایی ساعت اشتباه محاسبه می‌شد؛ نگه‌داشتن جدا آن‌ها خواناتر و مطمئن‌تر است |
 | Activity Log | بدون API ویرایش یا حذف — فقط `POST` داخلی از طریق `logActivity()` و یک `GET` فقط‌خواندنی برای Dashboard | یک Audit Trail که قابل ویرایش باشد اصلاً Audit Trail نیست؛ نبود مسیر Update/Delete یک تصمیم امنیتی است نه صرفاً کمبود Feature |
-| Storefront | صفحات عمومی مستقیماً با Mongoose در Server Component می‌خوانند (`src/lib/storefront/*.ts`)، نه با `fetch` به `/api/v1/products` | مسیرهای `api/v1/*` عمداً `requireApiUser` (Dashboard-Only) دارند؛ ساختنِ یک نسخه Public از همان مسیر یا برداشتن Auth از آن، سطح دسترسی کارمند/ادمین را با بازدیدکننده ناشناس قاطی می‌کرد. خواندن مستقیم هم امن‌تر است (فیلتر `status:"published"` همیشه اعمال می‌شود، غیرقابل‌Bypass) هم سریع‌تر (بدون یک HTTP Round-trip اضافه به خودِ همان سرور) |
-| Storefront | تمام صفحات Storefront با `export const dynamic = "force-dynamic"` صریحاً از Prerender استاتیک خارج شدند | قیمت/موجودی/تخفیف باید همیشه لحظه درخواست را نشان دهند، نه یک Snapshot زمان Build؛ همچنین از نیاز به اتصال واقعی MongoDB حین خودِ `next build` جلوگیری می‌کند |
-| Storefront | آیکون سبد خرید/حساب کاربری در Header فعلاً Disabled با `title="به‌زودی"` هستند، نه لینک به چیزی | بند ۵۴: بخش‌های نساخته‌شده می‌توانند Placeholder/Disabled باشند ولی نباید Fake Functionality نشان دهند؛ Cart/Account هنوز واقعاً ساخته نشده‌اند |
-| Storefront | صفحه محصول یک Client Component کوچک برای انتخاب Variant دارد (`ProductVariantSelector`) ولی خودِ صفحه Server Component باقی می‌ماند | فقط بخش تعاملی (تغییر قیمت/موجودی نمایشی با کلیک) نیاز به Client دارد؛ واکشی داده و SEO Metadata در Server می‌ماند (بند ۵۸: از Client Component غیرضروری خودداری کن) |
 | Activity Log | `actorName` در لحظه ثبت Snapshot می‌شود، نه با `populate` از User در لحظه نمایش خوانده می‌شود | یک لاگ باید همیشه بازتاب همان لحظه‌ای باشد که رویداد رخ داد؛ اگر کاربر بعداً تغییر نام داد یا حذف شد، لاگ‌های قدیمی نباید عقب‌گرد کنند یا خالی نمایش داده شوند |
 | Activity Log | فقط رویدادهای صریحاً «حساس» طبق مثال‌های بند ۵۳ (نقش/وضعیت کاربر، وضعیت سفارش) به‌علاوه رویدادهای معادل در Featureهای بعدی (Coupon، Discount Settings، Amazing Offer) ثبت می‌شوند — نه هر Read/Write ساده مثل ساخت محصول یا رنگ | بند ۵۳ صراحتاً اجازه نسخه Minimal می‌دهد؛ ثبت همه‌چیز حجم لاگ را بی‌فایده زیاد می‌کرد بدون افزایش واقعی در قابلیت Audit برای عملیات واقعاً حساس |
 
@@ -709,17 +675,7 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 - [ ] تست واقعی Activity Log روی Vercel (تغییر نقش/وضعیت کاربر، تغییر
   وضعیت سفارش، عملیات Coupon/Amazing Offer/Discount Settings — هرکدام
   باید بلافاصله در `/dashboard/settings/activity-log` ظاهر شوند)
-- [ ] تست واقعی Storefront Phase 1 روی Vercel (صفحه اصلی، لیست
-  محصولات با فیلتر/جستجو/Pagination، جزئیات محصول با انتخاب Variant،
-  صفحه دسته‌بندی، صفحه تخفیف‌های شگفت‌انگیز با Countdown واقعی، حالت
-  محصول/Variant ناموجود با Grayscale)
-- [ ] Storefront Phase 2: طراحی و پیاده‌سازی Cart (State سبد خرید)
-- [ ] Storefront Phase 2: Customer OTP Login جدا از Login فعلی
-  Dashboard
-- [ ] Storefront Phase 2: Checkout واقعی متصل به `Order`/`Payment`
-  موجود + Address Management (بند ۷۳)
 - [ ] تصمیم درباره شروع Storefront (منتظر تأیید صریح کاربر — بند ۶۷)
-  — ✅ انجام شد، این آیتم فقط برای تاریخچه نگه داشته شده
 
 ## 16. Do Not Change (بدون دلیل قوی)
 
