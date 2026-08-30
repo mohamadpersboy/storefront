@@ -52,6 +52,9 @@ export const PERMISSIONS = {
   SETTINGS_MANAGE: "settings.manage",
 
   ACTIVITY_LOG_READ: "activity_log.read",
+
+  LOCATIONS_READ: "locations.read",
+  LOCATIONS_MANAGE: "locations.manage",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -69,6 +72,7 @@ const STAFF_PERMISSIONS: Permission[] = [
   PERMISSIONS.PAYMENTS_MANAGE,
   PERMISSIONS.CUSTOMERS_READ,
   PERMISSIONS.DASHBOARD_READ,
+  PERMISSIONS.LOCATIONS_READ,
 ];
 
 const ADMIN_PERMISSIONS: Permission[] = [
@@ -87,6 +91,7 @@ const ADMIN_PERMISSIONS: Permission[] = [
   PERMISSIONS.ACTIVITY_LOG_READ,
   PERMISSIONS.USERS_READ,
   PERMISSIONS.USERS_UPDATE,
+  PERMISSIONS.LOCATIONS_MANAGE,
 ];
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {

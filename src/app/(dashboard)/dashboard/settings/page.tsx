@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Palette, BadgePercent, History, Share2, ChevronLeft } from "lucide-react";
+import { Palette, BadgePercent, History, Share2, MapPin, ChevronLeft } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 const settingsSections = [
@@ -14,6 +14,12 @@ const settingsSections = [
     icon: Share2,
     title: "شبکه‌های اجتماعی",
     description: "لینک اینستاگرام، تلگرام، واتساپ، روبیکا و ایتا برای فوتر فروشگاه",
+  },
+  {
+    href: "/dashboard/settings/provinces-cities",
+    icon: MapPin,
+    title: "استان‌ها و شهرها",
+    description: "Import از Excel — منبع Dropdown آدرس در فرم‌های مختلف",
   },
   {
     href: "/dashboard/settings/discounts",

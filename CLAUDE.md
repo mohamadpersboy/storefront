@@ -136,6 +136,33 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
   Route عمومی پروژه) چون هم Dashboard هم Storefront آینده به آن نیاز
   دارند و داده حساس نیست؛ `PATCH` با `SETTINGS_MANAGE` محافظت می‌شود.
   UI: `/dashboard/settings/social-links`.
+- ✅ Province/City (بند ۳ سند Audit): مدل‌های `Province`
+  (`name`+`code` یکتا) و `City` (`name`+`code` یکتا+`province` Ref،
+  Index روی `{province, name}`). Import از Excel با معماری دو-لایه‌ی
+  عمداً جدا:
+  - `validate-province-city-rows.ts` — تابع **خالص** (بدون DB/فایل)
+    که ستون‌های `Province`/`Province Code`/`City`/`City Code` را
+    Validate می‌کند، تشخیص Duplicate کد می‌دهد و شماره سطر واقعی Excel
+    را گزارش می‌کند؛ کاملاً قابل Unit Test (۶ تست).
+  - `parse-excel.ts` — فقط I/O (خواندن Buffer با کتابخانه `xlsx`).
+  - `import-provinces-cities.ts` — Upsert در Mongo؛ ابتدا با
+    `session.withTransaction` تلاش می‌کند (روی Atlas/Replica Set کار
+    می‌کند)، و اگر Deployment از Transaction پشتیبانی نکند (مثلاً
+    Mongo Standalone محلی)، به‌صورت Best-effort غیر-Transactional
+    Fallback می‌کند و این را در پاسخ API (`transactional: false`)
+    گزارش می‌دهد.
+  - `POST /api/v1/provinces/import` (`LOCATIONS_MANAGE`, multipart
+    file)، `GET /api/v1/provinces` و `GET /api/v1/cities?province=`
+    هر دو **بدون Auth** (عمومی، مثل social-links) چون فرم‌های Address
+    آینده در Storefront هم به آن‌ها نیاز دارند.
+  - RBAC: پرمیشن‌های جدید `LOCATIONS_READ` (Staff+) و
+    `LOCATIONS_MANAGE` (Admin+) اضافه شدند.
+  - UI: `/dashboard/settings/provinces-cities` (آپلود Excel + فهرست
+    استان‌ها).
+  - ⚠️ TODO یادداشت‌شده: فرم آدرس فعلی `Order.shippingAddress`
+    همچنان `province`/`city` را به‌صورت Free-text ذخیره می‌کند (تغییر
+    ندادم چون خارج از Scope این Phase بود). قبل/حین Phase 5 (Address +
+    Map) باید این فرم به Dropdown مبتنی بر این API‌ها مهاجرت کند.
 - ✅ Audit / Activity Log (بند ۵۳): مدل `ActivityLog` Append-only
   (بدون API ویرایش/حذف — یک Audit Trail واقعی باید غیرقابل‌دستکاری
   بماند)؛ `actorName` به‌صورت Snapshot ذخیره می‌شود نه Populate زنده،
@@ -150,9 +177,9 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
 ## 4. In Progress
 
 **Audit پیش از Storefront (سند «بررسی تکمیل Backend/Dashboard»)** —
-Phase 1 (Audit) انجام شد. Phase 2 (Social Links) کامل شد. در حال ادامه
-به Phase 3 (Province/City) طبق تأیید کاربر برای اجرای متوالی Phase ۲
-تا ۷.
+Phase 1 (Audit) و Phase 2 (Social Links) و Phase 3 (Province/City +
+Excel Import) کامل شدند. در حال ادامه به Phase 4 (Address + Neshan
+Map) طبق تأیید کاربر برای اجرای متوالی Phase ۲ تا ۷.
 
 ## 5. Planned (به ترتیب)
 
@@ -318,7 +345,7 @@ src/
                 amazing-offers.ts, customers.ts, payments.ts, coupons.ts,
                 discount-settings.ts
     mock/       dashboard.ts (فقط همین باقی مانده Mock)
-  models/       SocialLinks.ts, User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts,
+  models/       SocialLinks.ts, Province.ts, City.ts, User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts,
                 Color.ts, Order.ts, Counter.ts, AmazingOffer.ts, Payment.ts,
                 Coupon.ts, CouponRedemption.ts, DiscountSettings.ts,
                 ActivityLog.ts
@@ -597,6 +624,9 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 |---|---|---|
 | Social Links | `GET /api/v1/social-links` بدون `requireApiUser` (اولین Route عمومی پروژه) | Storefront آینده (فوتر) و Dashboard هر دو باید بتوانند بدون Session این را بخوانند؛ داده حساسیتی ندارد که نیاز به Auth داشته باشد |
 | Social Links | ثابت `SOCIAL_PLATFORMS` به‌جای فیلد جدا برای هر شبکه در Schema | افزودن شبکه اجتماعی جدید (بند صریح سند Audit) باید فقط یک خط باشد، نه تغییر Schema/Route/UI هر بار |
+| Province/City Import | Validation در تابع خالص جدا از Upsert در Mongo | امکان Unit Test کامل منطق تشخیص خطا/Duplicate بدون نیاز به DB واقعی یا فایل Excel واقعی |
+| Province/City Import | تلاش برای Transaction با Fallback خودکار به غیر-Transactional | طبق سند («در صورت امکان») — روی Atlas (Replica Set) واقعی Transactional اجرا می‌شود؛ در محیط توسعه محلی (Standalone) کار متوقف نمی‌شود |
+| Province/City API | `GET /api/v1/provinces` و `GET /api/v1/cities` بدون Auth | هم Dashboard هم Storefront آینده باید بتوانند این Dropdownها را بدون Session بخوانند |
 
 
 | مرحله | تصمیم | دلیل |
@@ -666,6 +696,12 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Activity Log | فقط رویدادهای صریحاً «حساس» طبق مثال‌های بند ۵۳ (نقش/وضعیت کاربر، وضعیت سفارش) به‌علاوه رویدادهای معادل در Featureهای بعدی (Coupon، Discount Settings، Amazing Offer) ثبت می‌شوند — نه هر Read/Write ساده مثل ساخت محصول یا رنگ | بند ۵۳ صراحتاً اجازه نسخه Minimal می‌دهد؛ ثبت همه‌چیز حجم لاگ را بی‌فایده زیاد می‌کرد بدون افزایش واقعی در قابلیت Audit برای عملیات واقعاً حساس |
 
 ## 14. Known Issues
+
+- **مهم — فرم `Order.shippingAddress` هنوز Free-text است:** با اینکه
+  APIهای `Province`/`City` اکنون آماده‌اند، فرم فعلی سفارش در Dashboard
+  همچنان `province`/`city` را به‌صورت رشته آزاد می‌گیرد (تغییر داده
+  نشد چون خارج از Scope Phase 3 بود). باید قبل/حین Phase 5 (Address +
+  Neshan Map) به Dropdown دو-مرحله‌ای مبتنی بر این APIها مهاجرت کند.
 
 - **مهم — محدودیت هر کاربر (`perUserLimit`) Coupon داخل یک
   Transaction نیست:** فقط یک‌بار قبل از رزرو ظرفیت بررسی می‌شود. در
