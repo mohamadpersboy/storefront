@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Palette, BadgePercent, History, ChevronLeft } from "lucide-react";
+import { Palette, BadgePercent, History, Share2, ChevronLeft } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 const settingsSections = [
@@ -8,6 +8,12 @@ const settingsSections = [
     icon: Palette,
     title: "رنگ‌ها",
     description: "مدیریت رنگ‌های قابل انتخاب برای Variant محصولات",
+  },
+  {
+    href: "/dashboard/settings/social-links",
+    icon: Share2,
+    title: "شبکه‌های اجتماعی",
+    description: "لینک اینستاگرام، تلگرام، واتساپ، روبیکا و ایتا برای فوتر فروشگاه",
   },
   {
     href: "/dashboard/settings/discounts",

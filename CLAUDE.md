@@ -125,6 +125,17 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
   را تعیین می‌کنند، نه فقط یک روز تقویمی؛ `isoToJalaliDateTime()` /
   `jalaliDateTimeToIso()` در `src/lib/utils/jalali.ts` این تفاوت را
   از توابع Date-Only مجزا نگه می‌دارند تا با هم اشتباه گرفته نشوند
+- ✅ Social Links (Settings): مدل Singleton `SocialLinks` با آرایه
+  `links` (`platform`/`url`/`isActive`) — پلتفرم‌ها در ثابت
+  `SOCIAL_PLATFORMS` (`src/models/SocialLinks.ts`) تعریف شده‌اند تا
+  افزودن شبکه اجتماعی جدید در آینده فقط یک خط باشد، بدون تغییر
+  Model/Route/UI. `getSocialLinks()` سند را Atomic می‌سازد (الگوی
+  `getDiscountSettings`) و اگر پلتفرم جدیدی بعداً به لیست اضافه شود،
+  خودکار با مقدار پیش‌فرض به سندهای قدیمی اضافه می‌کند (بدون Migration
+  دستی). `GET /api/v1/social-links` عمداً **بدون Auth** است (اولین
+  Route عمومی پروژه) چون هم Dashboard هم Storefront آینده به آن نیاز
+  دارند و داده حساس نیست؛ `PATCH` با `SETTINGS_MANAGE` محافظت می‌شود.
+  UI: `/dashboard/settings/social-links`.
 - ✅ Audit / Activity Log (بند ۵۳): مدل `ActivityLog` Append-only
   (بدون API ویرایش/حذف — یک Audit Trail واقعی باید غیرقابل‌دستکاری
   بماند)؛ `actorName` به‌صورت Snapshot ذخیره می‌شود نه Populate زنده،
@@ -138,7 +149,10 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
 
 ## 4. In Progress
 
-هیچ‌کدام — منتظر تصمیم درباره شروع Storefront.
+**Audit پیش از Storefront (سند «بررسی تکمیل Backend/Dashboard»)** —
+Phase 1 (Audit) انجام شد. Phase 2 (Social Links) کامل شد. در حال ادامه
+به Phase 3 (Province/City) طبق تأیید کاربر برای اجرای متوالی Phase ۲
+تا ۷.
 
 ## 5. Planned (به ترتیب)
 
@@ -304,7 +318,7 @@ src/
                 amazing-offers.ts, customers.ts, payments.ts, coupons.ts,
                 discount-settings.ts
     mock/       dashboard.ts (فقط همین باقی مانده Mock)
-  models/       User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts,
+  models/       SocialLinks.ts, User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts,
                 Color.ts, Order.ts, Counter.ts, AmazingOffer.ts, Payment.ts,
                 Coupon.ts, CouponRedemption.ts, DiscountSettings.ts,
                 ActivityLog.ts
@@ -578,6 +592,12 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 بخش ۱۱، توسعه مستقیماً روی `main` ثبت می‌شود.
 
 ## 13. Important Decisions Log
+
+| مرحله | تصمیم | دلیل |
+|---|---|---|
+| Social Links | `GET /api/v1/social-links` بدون `requireApiUser` (اولین Route عمومی پروژه) | Storefront آینده (فوتر) و Dashboard هر دو باید بتوانند بدون Session این را بخوانند؛ داده حساسیتی ندارد که نیاز به Auth داشته باشد |
+| Social Links | ثابت `SOCIAL_PLATFORMS` به‌جای فیلد جدا برای هر شبکه در Schema | افزودن شبکه اجتماعی جدید (بند صریح سند Audit) باید فقط یک خط باشد، نه تغییر Schema/Route/UI هر بار |
+
 
 | مرحله | تصمیم | دلیل |
 |---|---|---|
