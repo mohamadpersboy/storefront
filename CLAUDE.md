@@ -26,19 +26,12 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار:** تکمیل Feature «Audit / Activity Log» (Master Prompt
-بند ۵۳ — آخرین آیتم باز در فهرست Planned که نیاز به تأیید معماری
-نداشت). ثبت Minimal و Append-only برای تغییرات حساس: نقش/وضعیت کاربر،
-وضعیت سفارش، ساخت/ویرایش/حذف Coupon، ویرایش تنظیمات پاداش پرداخت،
-ساخت/ویرایش/حذف Amazing Offer — با صفحه نمایش در
-`/dashboard/settings/activity-log`
+**آخرین کار:** شروع Storefront — کاربر صریحاً تأیید کرد (بعد از تأیید
+پالت رنگی و ترتیب مراحل). **مرحله ۱ از Sequential Workflow انجام شد:**
+Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، طبق بند
+۴۹ Master Prompt — یک مرحله در هر تأیید).
 **Branch فعلی:** `main`
-**Feature بعدی:** طبق بند ۶۷ Master Prompt، Dashboard اولویت اول
-پروژه است تا زمانی که «به سطح قابل قبول» برسد؛ فعلاً همه بخش‌های اصلی
-(Auth, Dashboard, Users, Categories, Products, Colors, Orders,
-Discounts, Amazing Offers, Customers, Payment, Coupons) ساخته
-شده‌اند. شروع Storefront یک تصمیم معماری بزرگ است — منتظر تأیید صریح
-کاربر
+**Feature بعدی:** مرحله ۲ (HeroSlider) — منتظر تأیید کاربر برای ادامه
 
 ## 3. Completed Features
 
@@ -149,15 +142,28 @@ Discounts, Amazing Offers, Customers, Payment, Coupons) ساخته
 
 ## 5. Planned (به ترتیب)
 
-1. **Storefront** (Home, Products, Category, Product Detail, Search,
-   Amazing Offers, Cart, Checkout, Login/OTP, Account, Orders, Address
-   — بند ۶۹ Master Prompt) — Checkout واقعی باید به همین مدل‌های
-   موجود `Order` (`src/app/api/v1/orders/route.ts`) و `Payment`
-   (`src/lib/payment/zarinpal.ts`) وصل شود، نه بازنویسی؛ شروعش منوط
-   به تأیید صریح کاربر است (بند ۶۷: Dashboard First)
+**Storefront — در حال ساخت (Sequential Workflow، یک مرحله در هر تأیید):**
 
-هیچ آیتم دیگری بدون تأیید معماری کاربر باقی نمانده — همه Featureهای
-اصلی Dashboard (طبق فهرست بند ۱ Master Prompt) ساخته شده‌اند.
+- [x] مرحله ۱: Layout + Header + SearchBar
+- [ ] مرحله ۲: HeroSlider (نیاز به مدل Banner — هنوز وجود ندارد)
+- [ ] مرحله ۳: PromoSlider + CategorySection
+- [ ] مرحله ۴: ProductCard مشترک
+- [ ] مرحله ۵: Product Carousels (شگفت‌انگیز/جدیدترین/پرفروش/پرتخفیف)
+- [ ] مرحله ۶: About Us + Trust Section
+- [ ] مرحله ۷: Footer + شبکه‌های اجتماعی (فعلاً Placeholder — کاربر
+  گفته لینک‌ها بعداً از طریق پنل Dashboard مدیریت می‌شوند؛ یک بخش
+  Settings جدید برای این باید ساخته شود، هنوز نساخته‌ایم)
+- [ ] مرحله ۸: Fixed Bottom Navigation
+- [ ] بعد از صفحه اصلی: Products/Category/Product Detail/Search/Cart/
+  Checkout/Login-OTP/Account/Orders/Address (بند ۶۹) — Checkout باید
+  به مدل‌های موجود `Order`/`Payment` وصل شود، نه بازنویسی
+
+**نکته معماری مهم کشف‌شده حین بررسی:** مدل‌های `Cart` و
+`Favorite/Wishlist` هنوز در Backend وجود ندارند. طبق بند ۵۱ Master
+Prompt این‌جا ثبت می‌شود: این دو باید به‌عنوان بخشی از خودِ کار
+Storefront ساخته شوند (نه پیش‌نیاز مسدودکننده)، چون در فهرست بند ۶۹
+جزو صفحات Storefront‌اند نه Dashboard. Header فعلی بج سبد را با عدد
+واقعی صفر (نه ساختگی) نشان می‌دهد تا مدل Cart ساخته شود.
 
 ## 6. Architecture
 
@@ -237,7 +243,9 @@ src/
       amazing-offers/  page.tsx + new/ + [id]/edit/
       coupons/  page.tsx + new/ + [id]/edit/
       customers/  page.tsx + [id]/page.tsx
-    (storefront)/              - هنوز خالی
+    (storefront)/
+      layout.tsx                - Scope کلاس `.storefront` (Token های navy/blue)
+      page.tsx                  - صفحه اصلی؛ فعلاً فقط Header + SearchBar (مرحله ۱)
     payment/result/page.tsx    - نتیجه پرداخت، Public (بدون Layout Dashboard)
     api/v1/
       auth/  otp/{request,verify}/route.ts, logout/route.ts
@@ -277,6 +285,7 @@ src/
                   coupons-page-client
     customers/  - customers-page-client, CustomerDetailCard
     auth/       - OtpLoginForm
+    storefront/ - StorefrontHeader, StorefrontSearchBar
   config/env.ts
   fonts/index.ts
   lib/
@@ -519,6 +528,32 @@ find-then-create، تا دو درخواست همزمان اول هرگز دو س
 (Grid، Hierarchy، Thumb Zone) استفاده شد؛ پیش‌فرض‌های ظاهری متضاد با
 Master Prompt (Radius بزرگ، Glassmorphism) نادیده گرفته شدند.
 
+### Storefront Design Tokens (جدا از Dashboard)
+
+Storefront یک ست Token کاملاً مستقل دارد (`--sf-*` در
+`src/app/globals.css`, داخل کلاس `.storefront` که در
+`(storefront)/layout.tsx` اعمال می‌شود) — Token های Dashboard
+(`--color-primary` ایندیگو و بقیه) دست‌نخورده باقی می‌مانند (بخش
+«Do Not Change» زیر).
+
+پالت (بر اساس رفرنس رنگی کاربر، navy/blue):
+- `--sf-accent: #499bed` — دکمه اصلی/بج/حالت فعال
+- `--sf-accent-hover: #3a86d6`
+- `--sf-accent-soft: #daeaff` — پس‌زمینه ملایم/Hover
+- `--sf-accent-light: #a1c6f6`
+- `--sf-ink: #031725` — متن/عناصر خیلی پررنگ
+- `--sf-ink-soft: #022e5b` — کارت «درباره ما» و مشابه
+
+Component های Storefront باید از این Variableها با کلاس‌های
+Arbitrary-value Tailwind استفاده کنند (مثل `bg-[var(--sf-accent)]`)،
+هرگز از `bg-primary` که مخصوص Dashboard است.
+
+اسکرین‌شات‌های رفرنس بصری (persboy.ir — یک فروشگاه میوه/سبزیجات) فقط
+برای **ساختار Layout** استفاده شدند (چیدمان Header، جای جستجو، نحوه
+اسلایدر/کارت‌ها) نه سبک بصری — طبق تأکید صریح بند ۳۶ Master Prompt
+("Do NOT make it look like a fruit/vegetable store")، رنگ سبز آن‌ها
+عمداً با پالت navy/blue بالا جایگزین شد.
+
 ## 11. Git Workflow
 
 **⚠️ سیاست فعلی (تصمیم صریح کاربر، جایگزین سیاست اولیه Master Prompt):**
@@ -598,6 +633,9 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Coupon | Coupon Entity کاملاً مستقل با Model و API خودش، نه فیلد داخل Product/Order | تأکید صریح بند ۲۵؛ همچنین امکان گزارش‌گیری/مدیریت مستقل کدهای تخفیف بدون وابستگی به یک سفارش یا محصول خاص |
 | Coupon | رزرو ظرفیت Coupon (`usedCount`) قبل از کسر موجودی Variant انجام می‌شود، نه بعد | اگر ظرفیت Coupon تمام شده باشد، سفارش اصلاً نباید موجودی را دست بزند؛ رد سریع بدون هیچ Side Effect بهتر از رد دیرهنگام بعد از یک تغییر قابل Rollback است |
 | Coupon | حذف یک Coupon، سفارش‌های قبلی را دست‌نخورده می‌گذارد (Snapshot در `Order.discount`) ولی رکوردهای `CouponRedemption` را حذف نمی‌کند | تاریخچه مصرف (چه کسی، کِی) حتی بعد از حذف تعریف Coupon ارزش Audit دارد؛ فقط رفرنس `coupon` در آن رکوردها ممکن است در آینده Dangling شود که هرگز بدون بررسی وجود Dereference نمی‌شود |
+| Storefront مرحله ۱ | Token های رنگی Storefront (`--sf-*`) کاملاً جدا از Dashboard، Scope‌شده با کلاس `.storefront` | Dashboard Token های Indigo را طبق «Do Not Change» دست‌نخورده نگه می‌دارد؛ دو Surface مشتری/ادمین هویت بصری متفاوت دارند |
+| Storefront مرحله ۱ | `src/app/page.tsx` قدیمی (صفحه Placeholder «در حال ساخت») حذف و با `(storefront)/page.tsx` جایگزین شد | Route Group `(storefront)` هم به مسیر `/` نگاشت می‌شود؛ Next.js اجازه دو `page.tsx` هم‌مسیر را نمی‌دهد |
+| Storefront مرحله ۱ | بج سبد خرید در Header فقط وقتی تعداد بزرگ‌تر از صفر باشد نمایش داده می‌شود؛ فعلاً همیشه ۰ (Cart هنوز نساخته شده) | بند ۵۲: هرگز عدد ساختگی سبد نشان داده نشود؛ صفر یک عدد واقعی و صادقانه است، نه Placeholder |
 | Discount Settings | یک Singleton با `_id` ثابت به‌جای یک Collection عمومی Key-Value | فقط یک تنظیم با ۴ فیلد مرتبط هست؛ یک Document اختصاصی و Type-safe از یک الگوی Generic-تر برای این مورد ساده‌تر و امن‌تر است |
 | Coupon UI | تاریخ شروع/انقضای Coupon با `JalaliDatePicker` سفارشی (سه Combobox روز/ماه/سال) پیاده‌سازی شد، نه یک Library آماده مثل `react-multi-date-picker` | نیاز فقط به انتخاب روز/ماه/سال بدون زمان بود؛ یک Component کوچک و کاملاً هم‌سو با Design Token های پروژه از اضافه‌کردن یک Dependency سنگین‌تر با ظاهر پیش‌فرض خودش ساده‌تر و سازگارتر بود |
 | Coupon UI | تبدیل شمسی↔میلادی با `jalaali-js` (بدون UI/React) به‌جای یک پکیج Date-Picker همه‌کاره | جداسازی منطق تبدیل (تست‌پذیر، بدون DOM) از UI انتخاب تاریخ؛ سازگار با اصل «هر تکنولوژی باید دلیل داشته باشد» در بند ۷۹ |
@@ -675,7 +713,18 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 - [ ] تست واقعی Activity Log روی Vercel (تغییر نقش/وضعیت کاربر، تغییر
   وضعیت سفارش، عملیات Coupon/Amazing Offer/Discount Settings — هرکدام
   باید بلافاصله در `/dashboard/settings/activity-log` ظاهر شوند)
-- [ ] تصمیم درباره شروع Storefront (منتظر تأیید صریح کاربر — بند ۶۷)
+- [x] تصمیم درباره شروع Storefront — تأیید شد، در حال ساخت
+- [ ] مرحله ۲ Storefront: HeroSlider — نیاز به مدل `Banner` جدید
+  (تصویر، لینک، ترتیب، فعال/غیرفعال) که هنوز وجود ندارد؛ باید قبل از
+  این مرحله ساخته شود
+- [ ] یک بخش تنظیمات جدید در Dashboard برای مدیریت لینک‌های شبکه‌های
+  اجتماعی (واتساپ بیزینس/تلگرام/اینستاگرام/روبیکا/ایتا) — کاربر گفته
+  این‌ها باید از پنل مدیریت شوند، نه Environment Variable؛ فعلاً در
+  Footer (مرحله ۷ Storefront) Placeholder گذاشته خواهد شد تا این
+  بخش Settings ساخته شود
+- [ ] مدل `Cart` (مهمان + کاربر لاگین‌شده) و `Favorite`/Wishlist —
+  پیش‌نیاز مراحل بعدی Storefront (بج‌های واقعی Header، افزودن به
+  سبد، علاقه‌مندی)
 
 ## 16. Do Not Change (بدون دلیل قوی)
 

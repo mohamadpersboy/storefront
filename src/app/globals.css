@@ -58,6 +58,27 @@
   --font-sans: var(--font-iran-yekan-x);
 }
 
+/*
+ * Storefront-scoped design tokens.
+ *
+ * Deliberately separate from the Dashboard tokens above (`--color-primary`
+ * etc. stay Indigo and untouched — see CLAUDE.md §16 "Do Not Change").
+ * The Storefront is a distinct customer-facing surface with its own brand
+ * accent (a refined navy/blue palette, per user-provided reference), so it
+ * gets its own variable namespace (`--sf-*`) applied only inside the
+ * `.storefront` scope wrapper in `(storefront)/layout.tsx`. Components
+ * reference these via arbitrary-value Tailwind classes, e.g.
+ * `bg-[var(--sf-accent)]`, never the Dashboard's `bg-primary` utility.
+ */
+.storefront {
+  --sf-accent: #499bed;
+  --sf-accent-hover: #3a86d6;
+  --sf-accent-soft: #daeaff;
+  --sf-accent-light: #a1c6f6;
+  --sf-ink: #031725;
+  --sf-ink-soft: #022e5b;
+}
+
 html {
   direction: rtl;
 }
