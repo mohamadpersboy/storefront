@@ -50,6 +50,23 @@ const envSchema = z.object({
   //    deployment (including each Preview build, which gets its own
   //    unique URL), so Preview builds work without any manual value.
   // 3. http://localhost:3000 — local dev fallback.
+  // Neshan Maps (نقشه، انتخاب موقعیت آدرس، Reverse Geocoding)
+  //
+  // عمداً NEXT_PUBLIC (نه یک متغیر Server-only مثل NESHAN_API_KEY):
+  // ویجت نقشه Neshan (بر پایه Leaflet/MapLibre) برای گرفتن Tile ذاتاً
+  // در مرورگر اجرا می‌شود و باید مستقیماً به این Key دسترسی داشته
+  // باشد؛ Proxy کردن هر درخواست Tile از سرور (مثل الگوی امضای
+  // Cloudinary) عملاً غیرقابل قبول است چون هر Pan/Zoom چند ده درخواست
+  // موازی می‌سازد و از سرورلس Vercel عبور دادنشان تأخیر و هزینه
+  // غیرضروری اضافه می‌کند. مدل امنیتی Neshan برای همین دقیقاً طراحی
+  // شده: Key توسط Referrer/Domain در پنل Neshan محدود می‌شود، نه با
+  // مخفی نگه‌داشتن آن. همین Key برای Reverse Geocoding (گرفتن آدرس از
+  // Lat/Lng) هم مستقیماً از Client فراخوانی می‌شود؛ الگوی رسمی خود
+  // Neshan هم همین است. **قبل از استفاده در Production، در پنل Neshan
+  // باید Domain واقعی سایت (و دامنه Preview های Vercel در صورت نیاز)
+  // به‌عنوان Referrer مجاز ثبت شود.**
+  NEXT_PUBLIC_NESHAN_API_KEY: z.string().min(1, "NEXT_PUBLIC_NESHAN_API_KEY is required"),
+
   NEXT_PUBLIC_APP_URL: z.preprocess((value) => {
     const raw =
       typeof value === "string" && value.trim() !== ""

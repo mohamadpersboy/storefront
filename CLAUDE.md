@@ -163,6 +163,14 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
     همچنان `province`/`city` را به‌صورت Free-text ذخیره می‌کند (تغییر
     ندادم چون خارج از Scope این Phase بود). قبل/حین Phase 5 (Address +
     Map) باید این فرم به Dropdown مبتنی بر این API‌ها مهاجرت کند.
+- ✅ Neshan Map — تصمیم معماری (بند ۴ سند Audit): `NEXT_PUBLIC_NESHAN_API_KEY`
+  انتخاب شد (نه `NESHAN_API_KEY`) چون ویجت نقشه در مرورگر اجرا می‌شود؛
+  دلیل کامل در `src/config/env.ts`. اضافه شد به Schema اعتبارسنجی Env
+  (اجباری) و `.env.example`. یک لایه پیکربندی مشترک در
+  `src/lib/neshan/config.ts` ساخته شد که Phase 5 (Map Picker واقعی) از
+  آن استفاده می‌کند. **کاربر باید مقدار واقعی Key را خودش در Vercel
+  Environment Variables اضافه کند** — تا آن زمان Build/Deploy با خطای
+  Env ناقص متوقف می‌شود (رفتار یکسان با بقیه Secret های پروژه).
 - ✅ Audit / Activity Log (بند ۵۳): مدل `ActivityLog` Append-only
   (بدون API ویرایش/حذف — یک Audit Trail واقعی باید غیرقابل‌دستکاری
   بماند)؛ `actorName` به‌صورت Snapshot ذخیره می‌شود نه Populate زنده،
@@ -177,9 +185,10 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
 ## 4. In Progress
 
 **Audit پیش از Storefront (سند «بررسی تکمیل Backend/Dashboard»)** —
-Phase 1 (Audit) و Phase 2 (Social Links) و Phase 3 (Province/City +
-Excel Import) کامل شدند. در حال ادامه به Phase 4 (Address + Neshan
-Map) طبق تأیید کاربر برای اجرای متوالی Phase ۲ تا ۷.
+Phase 1، 2، 3 و 4 (Neshan Env Var) کامل شدند. **در انتظار افزودن مقدار
+واقعی `NEXT_PUBLIC_NESHAN_API_KEY` توسط کاربر در Vercel** (تا آن زمان
+Build شکست می‌خورد). در حال ادامه به Phase 5 (Address + Map Picker
+واقعی) طبق تأیید کاربر برای اجرای متوالی Phase ۲ تا ۷.
 
 ## 5. Planned (به ترتیب)
 
@@ -627,6 +636,7 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Province/City Import | Validation در تابع خالص جدا از Upsert در Mongo | امکان Unit Test کامل منطق تشخیص خطا/Duplicate بدون نیاز به DB واقعی یا فایل Excel واقعی |
 | Province/City Import | تلاش برای Transaction با Fallback خودکار به غیر-Transactional | طبق سند («در صورت امکان») — روی Atlas (Replica Set) واقعی Transactional اجرا می‌شود؛ در محیط توسعه محلی (Standalone) کار متوقف نمی‌شود |
 | Province/City API | `GET /api/v1/provinces` و `GET /api/v1/cities` بدون Auth | هم Dashboard هم Storefront آینده باید بتوانند این Dropdownها را بدون Session بخوانند |
+| Neshan API Key | `NEXT_PUBLIC_NESHAN_API_KEY` (Client-side)، نه یک متغیر Server-only | ویجت نقشه ذاتاً در مرورگر Tile می‌گیرد؛ Proxy کردن هر Tile از سرور غیرعملی است (تأخیر/هزینه). مدل امنیتی Neshan دقیقاً برای همین با محدودیت Domain/Referrer در پنل طراحی شده، نه مخفی نگه‌داشتن Key |
 
 
 | مرحله | تصمیم | دلیل |
