@@ -325,6 +325,41 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
   به‌عنوان یک عدد واحد نهایی) هیچ مانعی برای Payment Split در آینده
   ایجاد نمی‌کند — یعنی معماری فعلی خودش را قفل نکرده — اما ساخت خود
   Wallet باید یک تصمیم/Task جداگانه با تأیید صریح شما باشد.
+- ✅ Phase 8 (بخش Amazing Offer در Cart) — تصمیم شما: «بیشترین
+  تخفیف بین این دو انتخاب شود». `recomputeCartItem` حالا یک پارامتر
+  چهارم اختیاری `amazingOffer` می‌گیرد؛ اگر شگفت‌انگیز *زنده*ای
+  (isActive + داخل بازه startAt/endAt) روی همان Variant باشد، قیمت
+  نهایی هر دو منبع (تخفیف عادی Variant، تخفیف شگفت‌انگیز) محاسبه و
+  کمترین آن‌ها (= بیشترین تخفیف) انتخاب می‌شود — هرگز هر دو با هم
+  جمع نمی‌شوند (بند ۸: «مراقب باش Discount چند بار اعمال نشود»).
+  `recalculateCart` یک Query اضافه برای شگفت‌انگیزهای زنده مربوط به
+  محصولات داخل Cart می‌زند (نه N+1). ۴ تست جدید اضافه شد (۱۵ تست کل
+  در `recompute-cart-item.test.ts`).
+- ✅ Phase 8 (بخش Wallet) — نسخه ساده طبق تصمیم صریح شما: **بدون
+  درگاه پرداخت، فقط موجودی + تعدیل دستی توسط ادمین**:
+  - `Wallet` (`user` یکتا، `balance >= 0`) + `WalletTransaction`
+    (Append-only، شبیه الگوی `ActivityLog`: هر تغییر با نوع، مبلغ،
+    موجودی بعد از تراکنش، دلیل، و کدام ادمین انجام داده ثبت می‌شود).
+  - `adjustWalletBalance` — تعدیل با `findOneAndUpdate` + `$inc`
+    **Atomic** روی خود Mongo؛ برای کاهش موجودی، شرط
+    `balance >= amount` داخل همان Query است (نه یک چک جدا قبل از
+    نوشتن) — یعنی حتی دو تعدیل هم‌زمان هرگز موجودی را منفی نمی‌کنند؛
+    Race Condition این‌جا از نظر ساختاری غیرممکن است.
+  - `checkWalletAdjustment` — تابع خالص برای پیام خطای فوری/تست
+    (۶ تست).
+  - RBAC: `WALLET_READ` (Staff+)، `WALLET_MANAGE` (Admin+، فقط
+    ادمین می‌تواند موجودی را تغییر دهد).
+  - APIها: `GET /api/v1/wallet` (خود کاربر، `requireAuthenticatedUser`
+    — آماده برای استفاده آینده Storefront)، `GET
+    /api/v1/wallets/:userId` (Staff، مشاهده کیف پول یک مشتری خاص)،
+    `POST /api/v1/wallets/:userId/adjust` (Admin، افزایش/کاهش دستی).
+  - UI: بخش «کیف پول» به صفحه جزئیات مشتری
+    (`/dashboard/customers/[id]`) اضافه شد — نمایش موجودی، فرم تعدیل،
+    تاریخچه تراکنش‌ها.
+  - **Cart هنوز مستقیماً به Wallet وصل نشده** (طبق تصمیم قبلی، چون
+    Checkout واقعی هنوز وجود ندارد)؛ این زیرساخت پایه است که وقتی
+    Checkout ساخته شود (خارج از Scope فعلی)، «پرداخت با کیف پول» یا
+    «پرداخت ترکیبی» رویش سوار می‌شود.
 - ✅ Audit / Activity Log (بند ۵۳): مدل `ActivityLog` Append-only
   (بدون API ویرایش/حذف — یک Audit Trail واقعی باید غیرقابل‌دستکاری
   بماند)؛ `actorName` به‌صورت Snapshot ذخیره می‌شود نه Populate زنده،
@@ -339,13 +374,15 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
 ## 4. In Progress
 
 **Audit پیش از Storefront (سند «بررسی تکمیل Backend/Dashboard»)** —
-Phase 1 تا 7 کامل شدند. از Phase 8، فقط بخش **Discount** (هماهنگی
-Cart با Coupon) پیاده‌سازی شد. بخش **Wallet** پیاده‌سازی نشد چون
-Wallet اصلاً به‌عنوان یک زیرسیستم وجود ندارد و نیازمند یک تصمیم/Task
-مجزا با تأیید صریح کاربر است (نگاه کنید Known Issues). **Amazing
-Offer هم هنوز به Cart وصل نشده** چون نحوه تعامل آن با تخفیف
-Variant/Coupon هنوز تصمیم‌گیری نشده. Phase 9 (Testing کامل‌تر) و
-Phase 10 (Documentation نهایی) هنوز شروع نشده‌اند.
+Phase 1 تا 7 کامل شدند. از Phase 8: بخش **Discount** (Coupon روی
+Cart)، بخش **Amazing Offer** (بیشترین تخفیف بین Variant/شگفت‌انگیز،
+طبق تصمیم صریح کاربر)، و بخش **Wallet** (نسخه ساده — فقط تعدیل دستی
+ادمین، طبق تصمیم صریح کاربر) همگی پیاده‌سازی شدند. آنچه از Phase 8
+باقی مانده: اتصال مستقیم Cart↔Wallet (نمایش/پرداخت با موجودی) و
+اتصال Cart به فرآیند واقعی Checkout/Order Creation (و مدیریت Race
+Condition آن لحظه) — چون Checkout واقعی هنوز اصلاً وجود ندارد. Phase
+9 (Testing کامل‌تر) و Phase 10 (Documentation نهایی) هنوز شروع
+نشده‌اند.
 
 ## 5. Planned (به ترتیب)
 
@@ -492,7 +529,7 @@ src/
     discounts/  - discounts-page-client (فقط خواندنی)
     coupons/    - CouponForm, CouponStatusBadge, CouponCodeGenerator,
                   coupons-page-client
-    customers/  - customers-page-client, CustomerDetailCard
+    customers/  - customers-page-client, CustomerDetailCard, WalletManager
     auth/       - OtpLoginForm
     storefront/ - StorefrontHeader, StorefrontSearchBar
   config/env.ts
@@ -507,13 +544,23 @@ src/
     audit/      log-activity.ts (Best-effort — مثل الگوی پیامک سفارش)
     discounts/  engine.ts, validate-coupon.ts, redeem-coupon.ts,
                 generate-coupon-code.ts
+    cart/       recompute-cart-item.ts (تابع خالص قیمت‌گذاری/در‌دسترس‌بودن),
+                cart-service.ts (recalculateCart, applyCouponToCart, serializeCart)
+    wallet/     check-wallet-adjustment.ts (تابع خالص), wallet-service.ts
+                (adjustWalletBalance — Atomic با findOneAndUpdate+$inc)
+    storefront/ product-summary.ts (buildPublicProductSummary — خروجی مشترک ۴ API عمومی محصول)
+    import/     parse-excel.ts, validate-province-city-rows.ts (تابع خالص),
+                import-provinces-cities.ts
+    neshan/     config.ts (NEXT_PUBLIC_NESHAN_API_KEY + آدرس‌های پایه API)
     utils/      api-response.ts, cn.ts, format.ts, slugify.ts,
                 pricing.ts, image-crop.ts, amazing-offer.ts, jalali.ts
     validations/ auth.ts, users.ts, categories.ts, category-depth.ts, products.ts,
                 amazing-offers.ts, customers.ts, payments.ts, coupons.ts,
-                discount-settings.ts
+                discount-settings.ts, social-links.ts, cart.ts, wallet.ts,
+                storefront-products.ts
     mock/       dashboard.ts (فقط همین باقی مانده Mock)
-  models/       SocialLinks.ts, Province.ts, City.ts, User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts,
+  models/       SocialLinks.ts, Province.ts, City.ts, Cart.ts, Wallet.ts,
+                WalletTransaction.ts, User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts,
                 Color.ts, Order.ts, Counter.ts, AmazingOffer.ts, Payment.ts,
                 Coupon.ts, CouponRedemption.ts, DiscountSettings.ts,
                 ActivityLog.ts
@@ -806,6 +853,8 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Cart Coupon | فقط ارجاع (`coupon`, `code`) Persist می‌شود، نه مبلغ تخفیف | مبلغ تخفیف باید هر بار از cartTotal تازه محاسبه شود، دقیقاً مثل قیمت هر Item |
 | Cart Coupon | اعمال کد تخفیف روی Cart هرگز `usedCount`/`CouponRedemption` را تغییر نمی‌دهد | «استفاده واقعی» فقط لحظه ثبت سفارش واقعی است؛ وگرنه سبدهای رهاشده ظرفیت کد را هدر می‌دادند |
 | Amazing Offer در Cart | فعلاً اعمال نشد | نحوه تعامل آن با تخفیف Variant/Coupon (اولویت/Exclusive) هنوز تصمیم‌گیری نشده؛ نیازمند تأیید جداگانه |
+| Wallet | نسخه ساده (فقط تعدیل دستی ادمین، بدون درگاه پرداخت) | تصمیم صریح کارفرما — ساخت درگاه/Top-up خودکار توسط مشتری یک تصمیم/Task کاملاً جداست |
+| Wallet Adjustment | Atomic با `findOneAndUpdate`+`$inc` (شرط موجودی کافی داخل خود Query) | تنها راه تضمینی جلوگیری از Race Condition بین دو تعدیل هم‌زمان روی یک کیف پول؛ چک جدا قبل از نوشتن هرگز کافی نیست |
 | Wallet در Cart | ساخته نشد | Wallet به‌عنوان یک زیرسیستم کامل اصلاً وجود ندارد (طبق خود Phase 1 Audit)؛ ساختار عددی فعلی Cart مانع Payment Split آینده نیست، اما ساخت خود Wallet نیازمند تصمیم/تأیید جداگانه است |
 
 
@@ -882,19 +931,18 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
   ذخیره‌شده به ازای هر مشتری (برای انتخاب سریع در Checkout آینده
   Storefront) هنوز یک Model/UI مستقل ندارد؛ باید هم‌زمان با Cart/Checkout
   طراحی شود.
-- **Wallet اصلاً وجود ندارد:** نه Model، نه Balance، نه Transaction
-  Log. «هماهنگی Cart با Wallet» (بخشی از Phase 8 سند) عمداً انجام
-  نشد — چون این یک زیرسیستم مالی کامل جدید است (قوانین Top-up، Refund،
-  تنظیم توسط ادمین، و...) که نیازمند یک تصمیم/Task جداگانه با تأیید
-  صریح کاربر است، نه یک افزونه کوچک به Cart موجود.
-- **Amazing Offer هنوز به Cart وصل نشده:** `recomputeCartItem` فقط
-  تخفیف عادی Variant (`discountPercent`/`discountAmount`) را اعمال
-  می‌کند. Amazing Offer یک رکورد جدا با بازه زمانی است که فعلاً حتی
-  در Order Creation واقعی هم استفاده نمی‌شود؛ قبل از اتصالش به Cart
-  باید مشخص شود اولویت/تعامل آن با تخفیف Variant و Coupon چگونه است.
+- **Wallet هنوز درگاه پرداخت/Top-up خودکار ندارد:** فقط تعدیل دستی
+  توسط ادمین (طبق تصمیم صریح کارفرما — نسخه ساده). اگر در آینده
+  مشتری بخواهد خودش کیف پول را شارژ کند، آن یک تصمیم/Task کاملاً جدا
+  (اتصال درگاه پرداخت واقعی) است.
+- **Cart هنوز مستقیماً به Wallet وصل نیست:** موجودی کیف پول در پاسخ
+  `GET /api/v1/cart` نمایش داده نمی‌شود و «پرداخت با کیف پول» جایی
+  اعمال نمی‌شود، چون Checkout واقعی هنوز وجود ندارد. ساختار عددی
+  فعلی Cart (`grandTotal`) هیچ مانعی برای این اتصال در آینده ایجاد
+  نکرده است.
 - **Cart هنوز به فرآیند واقعی Checkout/Order Creation وصل نیست** و
-  Race Condition لحظه Checkout هنوز مدیریت نشده — این دقیقاً بخشی از
-  Phase 8 است که باقی مانده.
+  Race Condition لحظه Checkout هنوز مدیریت نشده — این آخرین بخش باقی‌
+  مانده از Phase 8 است.
 
 - **مهم — محدودیت هر کاربر (`perUserLimit`) Coupon داخل یک
   Transaction نیست:** فقط یک‌بار قبل از رزرو ظرفیت بررسی می‌شود. در

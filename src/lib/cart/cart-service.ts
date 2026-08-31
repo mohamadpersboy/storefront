@@ -3,6 +3,7 @@ import { Cart, type CartDocument } from "@/models/Cart";
 import { Product } from "@/models/Product";
 import { Coupon } from "@/models/Coupon";
 import { CouponRedemption } from "@/models/CouponRedemption";
+import { AmazingOffer } from "@/models/AmazingOffer";
 import { recomputeCartItem } from "@/lib/cart/recompute-cart-item";
 import { validateCouponEligibility } from "@/lib/discounts/validate-coupon";
 import { computeCouponDiscount } from "@/lib/discounts/engine";
@@ -125,12 +126,33 @@ export async function recalculateCart(
 
   const productMap = new Map(products.map((p) => [String(p._id), p]));
 
+  // بند ۸ سند Audit (Phase 8): اگر یک شگفت‌انگیز *زنده* روی همان
+  // Variant وجود داشته باشد، طبق تصمیم کارفرما «بیشترین تخفیف بین
+  // شگفت‌انگیز و تخفیف عادی Variant اعمال شود» — نه هر دو با هم. یک
+  // Query برای همه محصولات Cart (نه یکی به ازای هر Item).
+  const now = new Date();
+  const amazingOffers = await AmazingOffer.find({
+    productId: { $in: productIds },
+    isActive: true,
+    startAt: { $lte: now },
+    endAt: { $gte: now },
+  })
+    .select("productId variantId discountType discountValue")
+    .lean();
+  const amazingOfferMap = new Map(
+    amazingOffers.map((o) => [
+      `${String(o.productId)}:${String(o.variantId)}`,
+      { discountType: o.discountType, discountValue: o.discountValue },
+    ]),
+  );
+
   let cartTotal = 0;
 
   for (const item of cart.items) {
     const product = productMap.get(String(item.product));
     const variant = product?.variants.find((v) => String(v._id) === String(item.variantId));
     const productIsAvailable = product ? product.status === "published" && !product.deletedAt : false;
+    const amazingOffer = amazingOfferMap.get(`${String(item.product)}:${String(item.variantId)}`) ?? null;
 
     const recomputed = recomputeCartItem(
       item.quantity,
@@ -145,6 +167,7 @@ export async function recalculateCart(
           }
         : null,
       productIsAvailable,
+      amazingOffer,
     );
 
     item.unit = recomputed.unit;

@@ -83,4 +83,45 @@ describe("recomputeCartItem", () => {
     expect(result.finalUnitPrice).toBe(0);
     expect(result.itemTotal).toBe(0);
   });
+
+  it("uses the Amazing Offer when it gives a bigger discount than the variant's own discount", () => {
+    const result = recomputeCartItem(
+      1,
+      variant({ discountPercent: 10 }), // 1,000,000 -> 900,000
+      true,
+      { discountType: "percent", discountValue: 30 }, // 1,000,000 -> 700,000
+    );
+    expect(result.finalUnitPrice).toBe(700_000);
+    expect(result.discountPercent).toBe(30);
+    expect(result.discountAmount).toBe(0);
+  });
+
+  it("keeps the variant's own discount when it is bigger than the Amazing Offer", () => {
+    const result = recomputeCartItem(
+      1,
+      variant({ discountPercent: 40 }), // 1,000,000 -> 600,000
+      true,
+      { discountType: "percent", discountValue: 10 }, // 1,000,000 -> 900,000
+    );
+    expect(result.finalUnitPrice).toBe(600_000);
+    expect(result.discountPercent).toBe(40);
+  });
+
+  it("applies a fixed-amount Amazing Offer when it wins", () => {
+    const result = recomputeCartItem(
+      2,
+      variant(), // no variant discount
+      true,
+      { discountType: "fixed", discountValue: 200_000 },
+    );
+    expect(result.finalUnitPrice).toBe(800_000);
+    expect(result.itemTotal).toBe(1_600_000);
+    expect(result.discountAmount).toBe(200_000);
+    expect(result.discountPercent).toBe(0);
+  });
+
+  it("ignores a null Amazing Offer and falls back to the variant discount", () => {
+    const result = recomputeCartItem(1, variant({ discountPercent: 15 }), true, null);
+    expect(result.finalUnitPrice).toBe(850_000);
+  });
 });

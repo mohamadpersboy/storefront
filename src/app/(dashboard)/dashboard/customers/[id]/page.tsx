@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { User } from "@/models/User";
 import { Order } from "@/models/Order";
 import { CustomerDetailCard } from "@/components/customers/customer-detail-card";
+import { WalletManager } from "@/components/customers/wallet-manager";
 
 const RECENT_ORDERS_LIMIT = 20;
 
@@ -63,6 +64,7 @@ export default async function CustomerDetailPage({
           })),
         }}
       />
+      <WalletManager userId={id} />
     </div>
   );
 }

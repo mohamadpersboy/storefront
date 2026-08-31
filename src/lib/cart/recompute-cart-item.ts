@@ -1,4 +1,6 @@
 import { computeFinalPrice } from "@/lib/utils/pricing";
+import { computeAmazingOfferPrice } from "@/lib/utils/amazing-offer";
+import type { AmazingOfferDiscountType } from "@/models/AmazingOffer";
 
 export interface CartVariantSnapshot {
   price: number;
@@ -7,6 +9,12 @@ export interface CartVariantSnapshot {
   stock: number;
   isActive: boolean;
   unit: string;
+}
+
+/** یک شگفت‌انگیز *زنده* (بازه زمانی معتبر + isActive) روی همین Variant، اگر باشد. */
+export interface CartAmazingOfferSnapshot {
+  discountType: AmazingOfferDiscountType;
+  discountValue: number;
 }
 
 export interface RecomputedCartItem {
@@ -36,11 +44,17 @@ export interface RecomputedCartItem {
  *   اصلاً پیدا نشد (حذف کامل شده — بند ۱۵)
  * @param productIsAvailable آیا Product خودش هنوز `published` و
  *   حذف‌نشده است (بند ۱۵-۱۶)
+ * @param amazingOffer اگر یک شگفت‌انگیز *زنده* روی همین Variant وجود
+ *   داشته باشد. طبق تصمیم صریح کارفرما (Phase 8): بین تخفیف عادی
+ *   Variant و شگفت‌انگیز، هرکدام تخفیف بیشتری بدهد اعمال می‌شود —
+ *   نه هر دو با هم (که باعث اعمال دوباره تخفیف می‌شد، برخلاف بند ۸
+ *   سند Audit).
  */
 export function recomputeCartItem(
   quantity: number,
   variant: CartVariantSnapshot | null,
   productIsAvailable: boolean,
+  amazingOffer?: CartAmazingOfferSnapshot | null,
 ): RecomputedCartItem {
   const empty = {
     unit: variant?.unit ?? "",
@@ -74,17 +88,37 @@ export function recomputeCartItem(
     };
   }
 
-  const finalUnitPrice = computeFinalPrice(
+  const variantFinalPrice = computeFinalPrice(
     variant.price,
     variant.discountPercent,
     variant.discountAmount,
   );
 
+  // پیش‌فرض: تخفیف عادی خود Variant
+  let finalUnitPrice = variantFinalPrice;
+  let discountPercent = variant.discountPercent;
+  let discountAmount = variant.discountAmount;
+
+  if (amazingOffer) {
+    const offerFinalPrice = computeAmazingOfferPrice(
+      variant.price,
+      amazingOffer.discountType,
+      amazingOffer.discountValue,
+    );
+    // فقط اگر شگفت‌انگیز واقعاً تخفیف بیشتری بدهد جایگزین می‌شود —
+    // یعنی حداقل قیمت نهایی بین دو منبع تخفیف انتخاب می‌شود.
+    if (offerFinalPrice < finalUnitPrice) {
+      finalUnitPrice = offerFinalPrice;
+      discountPercent = amazingOffer.discountType === "percent" ? amazingOffer.discountValue : 0;
+      discountAmount = amazingOffer.discountType === "fixed" ? amazingOffer.discountValue : 0;
+    }
+  }
+
   return {
     unit: variant.unit,
     unitPrice: variant.price,
-    discountPercent: variant.discountPercent,
-    discountAmount: variant.discountAmount,
+    discountPercent,
+    discountAmount,
     finalUnitPrice,
     itemTotal: finalUnitPrice * quantity,
     isAvailable: true,

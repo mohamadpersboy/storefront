@@ -55,6 +55,9 @@ export const PERMISSIONS = {
 
   LOCATIONS_READ: "locations.read",
   LOCATIONS_MANAGE: "locations.manage",
+
+  WALLET_READ: "wallet.read",
+  WALLET_MANAGE: "wallet.manage",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -73,6 +76,7 @@ const STAFF_PERMISSIONS: Permission[] = [
   PERMISSIONS.CUSTOMERS_READ,
   PERMISSIONS.DASHBOARD_READ,
   PERMISSIONS.LOCATIONS_READ,
+  PERMISSIONS.WALLET_READ,
 ];
 
 const ADMIN_PERMISSIONS: Permission[] = [
@@ -92,6 +96,7 @@ const ADMIN_PERMISSIONS: Permission[] = [
   PERMISSIONS.USERS_READ,
   PERMISSIONS.USERS_UPDATE,
   PERMISSIONS.LOCATIONS_MANAGE,
+  PERMISSIONS.WALLET_MANAGE,
 ];
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
