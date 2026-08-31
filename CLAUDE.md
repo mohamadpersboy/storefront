@@ -207,6 +207,35 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
     (`ProvinceCitySelect`/`NeshanMapPicker`) مستقیماً در آن فرم هم
     قابل استفاده مجدد است؛ فقط یک Model `Address` جدا با `customer`
     Ref لازم می‌شود.
+- ✅ Storefront Product APIs (بند ۶ سند Audit) — چهار Route عمومی
+  (بدون Auth، اولین‌بار در Phase 2 با social-links شروع شد) که همگی
+  فقط محصولات `published`/حذف‌نشده را برمی‌گردانند:
+  - `GET /api/v1/products/latest` — ساده، `Product.paginate` با
+    `sort: createdAt desc`.
+  - `GET /api/v1/products/best-discounts` — چون تخفیف می‌تواند
+    Percent یا Amount ثابت باشد، «درصد مؤثر» فقط بعد از محاسبه با
+    قیمت واقعی هر Variant مشخص می‌شود (نه با یک Query ساده روی
+    Mongo)؛ کاندیدها (محصولات با حداقل یک Variant تخفیف‌دار) با Query
+    محدود می‌شوند، محاسبه/مرتب‌سازی/Pagination در لایه Application.
+    ⚠️ TODO بهینه‌سازی آینده در صورت رشد کاتالوگ: یک فیلد
+    denormalized مثل `maxDiscountPercent` روی خود سند Product نگه
+    داشته و Index شود.
+  - `GET /api/v1/products/best-selling` — Aggregation واقعی روی
+    `Order` (نه Mock): مجموع `quantity` هر محصول در سفارش‌های غیر
+    `cancelled`/`returned`. معیار در ثابت `EXCLUDED_STATUSES` نگه
+    داشته می‌شود تا تغییرش در آینده ساده باشد (طبق درخواست صریح سند
+    «باید مشخص و قابل توسعه باشد»).
+  - `GET /api/v1/products/amazing-offers` — همان تعریف
+    `getAmazingOfferStatus === "active"` (که Dashboard هم استفاده
+    می‌کند) به‌عنوان شرط Query تکرار شده (`isActive` + بازه
+    `startAt`/`endAt`) تا فیلتر در سطح DB انجام شود، نه بعد از
+    بارگذاری کامل. جدا از `GET /api/v1/amazing-offers` داخل Dashboard
+    (که Auth دارد و همه رکوردها را برای مدیریت نشان می‌دهد).
+  - تابع مشترک خالص `buildPublicProductSummary`
+    (`src/lib/storefront/product-summary.ts`) شکل خروجی هر ۴ API را
+    یکسان می‌کند؛ ۷ تست Unit دارد.
+  - همه ۴ API: Pagination، Zod Validation روی Query، بدون N+1 (یک
+    Aggregation/Query در هر درخواست، نه یک Query به ازای هر محصول).
 - ✅ Audit / Activity Log (بند ۵۳): مدل `ActivityLog` Append-only
   (بدون API ویرایش/حذف — یک Audit Trail واقعی باید غیرقابل‌دستکاری
   بماند)؛ `actorName` به‌صورت Snapshot ذخیره می‌شود نه Populate زنده،
@@ -221,9 +250,9 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
 ## 4. In Progress
 
 **Audit پیش از Storefront (سند «بررسی تکمیل Backend/Dashboard»)** —
-Phase 1، 2، 3، 4 و 5 (Address + Neshan Map Picker) کامل شدند. در حال
-ادامه به Phase 6 (Storefront Product APIs) طبق تأیید کاربر برای اجرای
-متوالی Phase ۲ تا ۷.
+Phase 1 تا 6 (Storefront Product APIs) کامل شدند. در حال ادامه به
+Phase 7 (طراحی و پیاده‌سازی Cart) طبق تأیید کاربر برای اجرای متوالی
+Phase ۲ تا ۷ — آخرین Phase از این سند.
 
 ## 5. Planned (به ترتیب)
 
@@ -676,6 +705,8 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Neshan API Key | `NEXT_PUBLIC_NESHAN_API_KEY` (Client-side)، نه یک متغیر Server-only | ویجت نقشه ذاتاً در مرورگر Tile می‌گیرد؛ Proxy کردن هر Tile از سرور غیرعملی است (تأخیر/هزینه). مدل امنیتی Neshan دقیقاً برای همین با محدودیت Domain/Referrer در پنل طراحی شده، نه مخفی نگه‌داشتن Key |
 | Address | یک Model `Address` مستقل ساخته نشد؛ فقط `Order.shippingAddress` با دو فیلد اختیاری Lat/Lng گسترش یافت | چون هنوز هیچ Address Book مستقلی (چند آدرس ذخیره‌شده per مشتری) در Scope نبود؛ ساخت یک Model زودتر از نیاز واقعی‌اش فقط پیچیدگی بی‌فایده اضافه می‌کرد — طبق قانون «از ایجاد Duplicate/Premature Abstraction خودداری کن» |
 | Reverse Geocoding | مستقیماً از Client به `api.neshan.org` (نه از طریق Backend Proxy) | همان Key عمومی (Client-side) از قبل در دسترس مرورگر است؛ یک Proxy اضافه فقط یک Round-trip بی‌فایده به سرور خودمان اضافه می‌کرد بدون افزایش امنیت واقعی |
+| Best-Discounts API | محاسبه درصد تخفیف مؤثر در Application، نه در Mongo Aggregation | تخفیف می‌تواند Percent یا Amount ثابت باشد؛ محاسبه دقیق «درصد مؤثر» به فرمول `computeFinalPrice` نیاز دارد که تکرارش در Aggregation Pipeline باعث Duplicate منطق و شکنندگی می‌شود |
+| Best-Selling API | معیار در ثابت `EXCLUDED_STATUSES` (فقط `cancelled`/`returned` مستثنی) | سند صراحتاً خواسته «معیار باید مشخص و قابل توسعه باشد» — تغییر معیار در آینده (مثلاً بازه زمانی) فقط یک تغییر کوچک است |
 
 
 | مرحله | تصمیم | دلیل |
