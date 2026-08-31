@@ -34,3 +34,23 @@ export async function requireApiUser(
 
   return { user, response: null };
 }
+
+/**
+ * برای Routeهایی که نیازی به یک Permission خاص از RBAC ندارند و فقط
+ * کافی است کاربر Login کرده باشد — مثل Cart، که هم Staff و هم
+ * Customer (نقش `customer` که هیچ Permission ای در RBAC ندارد،
+ * چون RBAC مخصوص دسترسی Dashboard است) باید بتوانند از آن استفاده
+ * کنند. `requireApiUser` اینجا مناسب نیست چون همیشه یک Permission
+ * می‌خواهد و Customer هرگز هیچ Permission ای ندارد.
+ */
+export async function requireAuthenticatedUser(): Promise<
+  { user: UserDocument; response: null } | { user: null; response: Response }
+> {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return { user: null, response: apiError("ابتدا وارد شوید", { status: 401 }) };
+  }
+
+  return { user, response: null };
+}

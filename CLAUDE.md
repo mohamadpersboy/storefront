@@ -236,6 +236,54 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
     یکسان می‌کند؛ ۷ تست Unit دارد.
   - همه ۴ API: Pagination، Zod Validation روی Query، بدون N+1 (یک
     Aggregation/Query در هر درخواست، نه یک Query به ازای هر محصول).
+- ✅ Cart (بند ۷ سند Audit) — طراحی و پیاده‌سازی کامل:
+  - **تصمیم معماری — فقط Authenticated Cart، بدون Guest Cart فعلاً:**
+    سیستم OTP فعلی (`/api/v1/auth/otp/verify`) از قبل برای *هر* شماره
+    موبایل کار می‌کند و اگر کاربر جدید باشد با نقش `customer` ساخته
+    می‌شود — یعنی زیرساخت Login عمومی مشتری از قبل وجود دارد، فقط UI
+    عمومی (Storefront) هنوز نیست. پس تصمیم گرفتم Cart فقط برای
+    `user` احراز‌هویت‌شده باشد (`Cart.user` یکتا و اجباری). طبق
+    درخواست صریح سند، این تصمیم این‌جا مستند است و مسیر افزودن Guest
+    Cart در آینده مشخص شده: کافی است `user` اختیاری شود + یک
+    `guestToken` اضافه شود + یک مرحله Merge روی Login — هیچ‌کدام از
+    `items[]`/موتور قیمت‌گذاری تغییر نمی‌کند چون کاملاً از هویت مالک
+    مستقل‌اند.
+  - `Cart` Model: `user` (یکتا) + `items[]` (هر Item: `product`,
+    `variantId`, `quantity`, و فیلدهای قیمتی که **هرگز از Client
+    نمی‌آیند**) + `cartTotal`.
+  - `recomputeCartItem` (`src/lib/cart/recompute-cart-item.ts`) —
+    تابع **خالص** که قلب منطق قیمت‌گذاری/در‌دسترس‌بودن یک Item است؛
+    فقط از روی وضعیت *زنده* Variant تصمیم می‌گیرد (بند ۹-۱۳: «Cart
+    نباید به قیمت‌های قدیمی Client اعتماد کند»). ۱۱ تست Unit — دقیقاً
+    سناریوهای خواسته‌شده در بند تست سند (Product/Variant حذف‌شده،
+    غیرفعال، موجودی ناکافی، تغییر قیمت، صفر بودن موجودی، و...).
+  - `recalculateCart` (`src/lib/cart/cart-service.ts`) — با **یک**
+    Query تمام محصولات داخل Cart را می‌گیرد (نه N+1)، `recomputeCartItem`
+    را برای هر Item صدا می‌زند، و `cartTotal` را از نو می‌سازد. در هر
+    عملیات (GET/POST/PATCH/DELETE Item/`validate`) صدا زده می‌شود —
+    یعنی قیمت/موجودی همیشه Real-time است، دقیقاً طبق بند ۱۴.
+  - APIها (همه با `requireAuthenticatedUser` — نه `requireApiUser`،
+    چون نقش `customer` هیچ Permission ای در RBAC ندارد و RBAC فقط
+    برای دسترسی Dashboard طراحی شده بود):
+    - `GET /api/v1/cart`
+    - `POST /api/v1/cart/items` — قبل از افزودن، وجود/فعال‌بودن
+      Product/Variant و کفایت موجودی صریحاً چک می‌شود (نه فقط بعداً
+      در Recalculate)؛ اگر همان Variant از قبل در Cart باشد، تعداد
+      Merge می‌شود نه یک ردیف تکراری.
+    - `PATCH /api/v1/cart/items/:itemId`
+    - `DELETE /api/v1/cart/items/:itemId`
+    - `DELETE /api/v1/cart`
+    - `POST /api/v1/cart/validate` — دقیقاً همان `recalculateCart`،
+      برای فراخوانی صریح پیش از Checkout.
+  - **Cart در حال حاضر هیچ موجودی را Reserve نمی‌کند** — موجودی فقط
+    در لحظه Add/Update چک می‌شود، طبق دستور صریح سند («صرفاً موجودی را
+    رزرو نکن مگر معماری صراحتاً Reservation داشته باشد»).
+  - ⚠️ **خارج از Scope این Phase (طبق تأیید صریح کاربر، فقط Phase ۲
+    تا ۷):** ادغام Cart با Coupon/Category Discount/Amazing
+    Offer/Wallet، اتصال Cart به فرآیند Order Creation واقعی
+    (Checkout)، و مدیریت Race Condition در لحظه Checkout — این‌ها
+    دقیقاً Phase 8 خود سند («Integration بین Cart، Discount،
+    Inventory و Wallet») هستند و باید جداگانه تأیید شوند.
 - ✅ Audit / Activity Log (بند ۵۳): مدل `ActivityLog` Append-only
   (بدون API ویرایش/حذف — یک Audit Trail واقعی باید غیرقابل‌دستکاری
   بماند)؛ `actorName` به‌صورت Snapshot ذخیره می‌شود نه Populate زنده،
@@ -250,9 +298,12 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
 ## 4. In Progress
 
 **Audit پیش از Storefront (سند «بررسی تکمیل Backend/Dashboard»)** —
-Phase 1 تا 6 (Storefront Product APIs) کامل شدند. در حال ادامه به
-Phase 7 (طراحی و پیاده‌سازی Cart) طبق تأیید کاربر برای اجرای متوالی
-Phase ۲ تا ۷ — آخرین Phase از این سند.
+Phase 1 تا 7 (کل بازه تأییدشده توسط کاربر) کامل شدند. Cart طراحی و
+پیاده‌سازی شد اما **هنوز به Discount/Wallet/Inventory Reservation یا
+فرآیند واقعی Checkout وصل نیست** — این دقیقاً Phase 8 خود سند
+(«Integration») است و در انتظار تأیید جداگانه کاربر است، همراه با
+Phase 9 (Testing کامل‌تر) و Phase 10 (Documentation نهایی) که در سند
+اصلی بعد از Phase 8 می‌آیند.
 
 ## 5. Planned (به ترتیب)
 
@@ -707,6 +758,9 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Reverse Geocoding | مستقیماً از Client به `api.neshan.org` (نه از طریق Backend Proxy) | همان Key عمومی (Client-side) از قبل در دسترس مرورگر است؛ یک Proxy اضافه فقط یک Round-trip بی‌فایده به سرور خودمان اضافه می‌کرد بدون افزایش امنیت واقعی |
 | Best-Discounts API | محاسبه درصد تخفیف مؤثر در Application، نه در Mongo Aggregation | تخفیف می‌تواند Percent یا Amount ثابت باشد؛ محاسبه دقیق «درصد مؤثر» به فرمول `computeFinalPrice` نیاز دارد که تکرارش در Aggregation Pipeline باعث Duplicate منطق و شکنندگی می‌شود |
 | Best-Selling API | معیار در ثابت `EXCLUDED_STATUSES` (فقط `cancelled`/`returned` مستثنی) | سند صراحتاً خواسته «معیار باید مشخص و قابل توسعه باشد» — تغییر معیار در آینده (مثلاً بازه زمانی) فقط یک تغییر کوچک است |
+| Cart | فقط Authenticated (بدون Guest Cart) | سیستم OTP از قبل برای هر شماره موبایل کار می‌کند (نقش پیش‌فرض `customer`)؛ توضیح کامل مسیر افزودن Guest در آینده در بخش Completed Features |
+| Cart | `requireAuthenticatedUser` جدید به‌جای `requireApiUser` | نقش `customer` هیچ Permission ای در RBAC ندارد (RBAC فقط برای Dashboard طراحی شده بود)؛ Cart نیاز به «فقط Login باشد» دارد نه یک Permission خاص |
+| Cart | بدون Inventory Reservation | دستور صریح سند: «صرفاً موجودی را رزرو نکن مگر معماری صراحتاً Reservation داشته باشد» — موجودی فقط لحظه Add/Update چک می‌شود |
 
 
 | مرحله | تصمیم | دلیل |
