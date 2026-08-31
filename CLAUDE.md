@@ -360,6 +360,44 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
     Checkout واقعی هنوز وجود ندارد)؛ این زیرساخت پایه است که وقتی
     Checkout ساخته شود (خارج از Scope فعلی)، «پرداخت با کیف پول» یا
     «پرداخت ترکیبی» رویش سوار می‌شود.
+- ✅ Phase 9 — Testing: پوشش تست برای همه چیزهایی که در این
+  Task (Phase 2 تا 8) ساخته شد کامل شد — با یک محدودیت مهم که باید
+  شفاف باشد:
+  - **نوع تست‌های این پروژه از قبل (Phase 7 به قبل) Unit Test روی
+    توابع خالص + Zod Schema است** — هیچ زیرساخت Integration/API Test
+    واقعی (مثل `mongodb-memory-server` برای اجرای واقعی Route‌ها با
+    یک DB واقعی در CI) در پروژه وجود ندارد؛ `vitest.config.ts` با
+    `environment: "node"` فقط منطق خالص را اجرا می‌کند. بنابراین
+    «Integration Test»/«API Test» به شکلی که سند خواسته (تست کامل یک
+    Request واقعی HTTP از ابتدا تا انتها با DB واقعی) در این Phase
+    ساخته **نشد** — این یک Task جداگانه (راه‌اندازی زیرساخت تست) است
+    که باید صریحاً تأیید شود، نه چیزی که بشود ضمنی اضافه کرد.
+  - **آنچه واقعاً اضافه شد:** تست‌های Unit برای تمام Zod Schema های
+    جدیدی که در این جلسه ساخته شدند و قبلاً تست نداشتند:
+    `src/lib/validations/cart.test.ts` (۱۰ تست — Quantity نامعتبر،
+    ObjectId نامعتبر، فیلد گمشده)، `wallet.test.ts` (۸ تست —
+    مبلغ صفر/منفی/اعشاری، دلیل کوتاه)، `storefront-products.test.ts`
+    (۵ تست — Pagination نامعتبر)، `orders.test.ts` (۷ تست — دقیقاً
+    سناریوی «Lat/Lng خارج از بازه مجاز» از بند تست سند، روی
+    `shippingAddressSchema` که اکنون Export شده).
+  - جمع کل تست‌ها از ۱۴۰ به **۱۷۰** رسید.
+  - سناریوهای Cart خواسته‌شده در سند (Add/Increase/Decrease/Remove،
+    Empty Cart، Product/Variant Unavailable، Insufficient Inventory،
+    Price Changed، Discount Changed، Deactivated) همگی از قبل در
+    `recompute-cart-item.test.ts` (Phase 7-8) پوشش داده شده بودند —
+    چون این تابع خالص دقیقاً همان منطقی است که همه این سناریوها را
+    تصمیم می‌گیرد؛ سناریوی «Concurrent Checkout» قابل تست نیست چون
+    Checkout واقعی هنوز وجود ندارد.
+  - سناریوهای Address/Map سند: «انتخاب استان/شهر» و «شهر نامرتبط با
+    استان» در سطح UI (`ProvinceCitySelect`) با انتخاب از Dropdown
+    اجرایی است، نه ورودی آزاد — این پروژه از قبل کامپوننت React را
+    Unit Test نمی‌کند (بدون `jsdom`/Testing Library)، پس تستی برای
+    خود کامپوننت اضافه نشد. **⚠️ یافته مهم این Phase:** چون
+    `Order.shippingAddress` نام‌ها را ذخیره می‌کند (نه ID)، هیچ
+    اعتبارسنجی سمت سرور وجود ندارد که «شهر واقعاً متعلق به همان استان
+    است» — این کنترل فقط در UI (Dropdown وابسته) تضمین می‌شود، نه در
+    API. تصمیم گرفتم این را نسازم چون به Query کردن نام (نه ID) نیاز
+    دارد که شکننده است (تفاوت فاصله/نویسه)؛ به‌جایش این‌جا مستند شد.
 - ✅ Audit / Activity Log (بند ۵۳): مدل `ActivityLog` Append-only
   (بدون API ویرایش/حذف — یک Audit Trail واقعی باید غیرقابل‌دستکاری
   بماند)؛ `actorName` به‌صورت Snapshot ذخیره می‌شود نه Populate زنده،
@@ -943,6 +981,15 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 - **Cart هنوز به فرآیند واقعی Checkout/Order Creation وصل نیست** و
   Race Condition لحظه Checkout هنوز مدیریت نشده — این آخرین بخش باقی‌
   مانده از Phase 8 است.
+- **بدون Integration/API Test واقعی:** تست‌های پروژه (از ابتدا) فقط
+  Unit Test روی توابع خالص/Zod Schema هستند. اگر در آینده تست خودکار
+  Route‌های واقعی با یک DB واقعی لازم شد، باید زیرساخت جداگانه‌ای
+  (مثلاً `mongodb-memory-server`) به‌عنوان یک Task مجزا راه‌اندازی
+  شود.
+- **بدون اعتبارسنجی سمت سرور «شهر متعلق به استان است»:** چون
+  `Order.shippingAddress` نام ذخیره می‌کند نه ID، این کنترل فقط در
+  UI (Dropdown وابسته `ProvinceCitySelect`) تضمین می‌شود؛ یک Client
+  دستکاری‌شده می‌تواند تئوریاً ترکیب نامعتبر بفرستد.
 
 - **مهم — محدودیت هر کاربر (`perUserLimit`) Coupon داخل یک
   Transaction نیست:** فقط یک‌بار قبل از رزرو ظرفیت بررسی می‌شود. در

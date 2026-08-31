@@ -15,7 +15,7 @@ const orderItemInputSchema = z.object({
   quantity: z.number().int().min(1, "تعداد باید حداقل ۱ باشد"),
 });
 
-const shippingAddressSchema = z.object({
+export const shippingAddressSchema = z.object({
   recipientName: z.string().trim().min(2, "نام گیرنده الزامی است"),
   phoneNumber: z.string().trim().regex(phoneNumberRegex, "شماره موبایل معتبر نیست"),
   province: z.string().trim().min(2, "استان الزامی است"),
