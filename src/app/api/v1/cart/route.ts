@@ -14,10 +14,10 @@ export async function GET() {
 
   await connectToDatabase();
   const cart = await getOrCreateCart(guard.user.id);
-  const productMap = await recalculateCart(cart);
+  const { productMap, discount } = await recalculateCart(cart);
   await cart.save();
 
-  return apiSuccess(serializeCart(cart, productMap));
+  return apiSuccess(serializeCart(cart, productMap, discount));
 }
 
 /** حذف کامل سبد خرید (بند ۷ سند Audit). */
@@ -29,9 +29,21 @@ export async function DELETE() {
   const cart = await getOrCreateCart(guard.user.id);
   cart.items = [];
   cart.cartTotal = 0;
+  // با خالی‌شدن سبد، هر کد تخفیفی که روی آن بود دیگر معنا ندارد
+  // (حداقل مبلغ سفارش با ۰ تومان قابل رعایت نیست).
+  cart.appliedCoupon = null;
   await cart.save();
 
-  return apiSuccess({ id: String(cart._id), items: [], cartTotal: 0, itemCount: 0 }, {
-    message: "سبد خرید خالی شد",
-  });
+  return apiSuccess(
+    {
+      id: String(cart._id),
+      items: [],
+      cartTotal: 0,
+      appliedCoupon: null,
+      discountAmount: 0,
+      grandTotal: 0,
+      itemCount: 0,
+    },
+    { message: "سبد خرید خالی شد" },
+  );
 }

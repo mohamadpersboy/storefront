@@ -25,6 +25,12 @@ export interface ICart {
   user: Types.ObjectId;
   items: ICartItem[];
   cartTotal: number; // مجموع itemTotal فقط برای Itemهای isAvailable
+  // فقط یک ارجاع سبک به کد تخفیف اعمال‌شده ذخیره می‌شود (بند ۸ سند
+  // Audit، Phase 8: هماهنگی Cart با Discount). مبلغ واقعی تخفیف هرگز
+  // این‌جا Persist نمی‌شود — چون باید هر بار از نو (با آخرین
+  // cartTotal و آخرین وضعیت خود کد تخفیف) محاسبه شود، دقیقاً به همان
+  // دلیلی که قیمت هر Item هم Persist نمی‌شود (بند ۹-۱۳).
+  appliedCoupon: { coupon: Types.ObjectId; code: string } | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -50,6 +56,16 @@ const CartSchema = new Schema<ICart>(
     user: { type: Schema.Types.ObjectId, ref: "User", required: true, unique: true },
     items: { type: [CartItemSchema], default: [] },
     cartTotal: { type: Number, default: 0, min: 0 },
+    appliedCoupon: {
+      type: new Schema(
+        {
+          coupon: { type: Schema.Types.ObjectId, ref: "Coupon", required: true },
+          code: { type: String, required: true },
+        },
+        { _id: false },
+      ),
+      default: null,
+    },
   },
   { timestamps: true },
 );

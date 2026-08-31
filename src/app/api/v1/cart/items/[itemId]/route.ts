@@ -36,10 +36,10 @@ export async function PATCH(
   // جدید از موجودی بیشتر باشد، isAvailable=false + پیام مناسب
   // برمی‌گرداند (نه یک خطای HTTP سخت) — چون این خیلی رایج‌تر از حالت
   // Add است و کاربر باید بتواند همچنان Item را ببیند/کم کند.
-  const productMap = await recalculateCart(cart);
+  const { productMap, discount } = await recalculateCart(cart);
   await cart.save();
 
-  return apiSuccess(serializeCart(cart, productMap));
+  return apiSuccess(serializeCart(cart, productMap, discount));
 }
 
 export async function DELETE(
@@ -61,8 +61,8 @@ export async function DELETE(
     return apiError("این قلم در سبد خرید یافت نشد", { status: 404 });
   }
 
-  const productMap = await recalculateCart(cart);
+  const { productMap, discount } = await recalculateCart(cart);
   await cart.save();
 
-  return apiSuccess(serializeCart(cart, productMap), { message: "از سبد خرید حذف شد" });
+  return apiSuccess(serializeCart(cart, productMap, discount), { message: "از سبد خرید حذف شد" });
 }

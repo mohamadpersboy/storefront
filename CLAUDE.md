@@ -284,6 +284,47 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
     (Checkout)، و مدیریت Race Condition در لحظه Checkout — این‌ها
     دقیقاً Phase 8 خود سند («Integration بین Cart، Discount،
     Inventory و Wallet») هستند و باید جداگانه تأیید شوند.
+- ✅ Phase 8 (بخش Discount) — هماهنگی Cart با Coupon:
+  - `Cart.appliedCoupon` — فقط یک ارجاع سبک (`{coupon, code}`)؛ مبلغ
+    واقعی تخفیف **هرگز Persist نمی‌شود** و هر بار در `recalculateCart`
+    از نو محاسبه می‌شود، دقیقاً به همان دلیل قیمت هر Item (بند ۹-۱۳).
+  - از همان توابع خالص موجود Order (`validateCouponEligibility` و
+    `computeCouponDiscount` در `src/lib/discounts/`) استفاده شد — نه
+    منطق موازی جدید. `eligibleAmount` همان `cart.cartTotal` است که
+    دقیقاً معادل `subtotal` سفارش واقعی است (بعد از تخفیف Variant، قبل
+    از تخفیف Coupon) — یعنی عددی که در Cart دیده می‌شود، در Checkout
+    واقعی هم تکرار خواهد شد.
+  - `POST /api/v1/cart/coupon` (اعمال) و `DELETE /api/v1/cart/coupon`
+    (حذف). عمداً **هیچ‌چیز روی `Coupon.usedCount`/`CouponRedemption`
+    ثبت نمی‌شود** — «استفاده واقعی» فقط لحظه ثبت سفارش واقعی اتفاق
+    می‌افتد (دقیقاً مثل قبل)، وگرنه سبدهایی که هرگز خرید نمی‌شوند
+    ظرفیت کد تخفیف را هدر می‌دادند.
+  - هر بار `recalculateCart` صدا زده می‌شود، کد تخفیف اعمال‌شده
+    (اگر باشد) هم دوباره اعتبارسنجی می‌شود؛ اگر Itemها عوض شده باشند
+    و دیگر حداقل مبلغ رعایت نشود، یا کد منقضی/غیرفعال شده باشد، خودش
+    را از Cart پاک می‌کند. همین‌جا اعمال چندباره تخفیف (بند ۸) هم غیر
+    ممکن است، چون همیشه حداکثر یک کد فعال روی Cart وجود دارد.
+  - `serializeCart` حالا `appliedCoupon`, `discountAmount`, و
+    `grandTotal` (= `cartTotal - discountAmount`) هم برمی‌گرداند.
+  - ⚠️ **Amazing Offer روی Cart اعمال نشد** (فقط Coupon): چون
+    Amazing Offer در حال حاضر یک تخفیف روی خود Variant نیست، بلکه یک
+    رکورد جدا با بازه زمانی است (`src/models/AmazingOffer.ts`) که در
+    Order Creation فعلی هم اصلاً استفاده نمی‌شود (`amazing-offers`
+    API که در Phase 6 ساختیم فقط برای *نمایش* در Storefront است). قبل
+    از اتصال آن به Cart باید مشخص شود Amazing Offer دقیقاً چطور باید
+    با تخفیف عادی Variant و Coupon تعامل کند (اولویت؟ Exclusive؟) —
+    این یک تصمیم معماری با اثر گسترده است که باید جداگانه تأیید شود،
+    نه چیزی که بشود بدون هماهنگی حدس زد.
+- ⚠️ **Phase 8 (بخش Wallet) — انجام نشد، نیازمند تصمیم شما:**
+  طبق Audit خود Phase 1، سیستم Wallet **اصلاً وجود ندارد** (نه Model،
+  نه Balance، نه Transaction). «هماهنگی Cart با Wallet» در سند به
+  این معناست که در Checkout بشود بخشی/کل مبلغ را از Wallet پرداخت
+  کرد — این نیازمند طراحی یک زیرسیستم مالی کامل (Model Wallet،
+  Transaction Log، قوانین Top-up/Refund/تنظیم توسط ادمین) است، نه
+  یک تغییر کوچک روی Cart. ساختار فعلی Cart (`cartTotal`/`grandTotal`
+  به‌عنوان یک عدد واحد نهایی) هیچ مانعی برای Payment Split در آینده
+  ایجاد نمی‌کند — یعنی معماری فعلی خودش را قفل نکرده — اما ساخت خود
+  Wallet باید یک تصمیم/Task جداگانه با تأیید صریح شما باشد.
 - ✅ Audit / Activity Log (بند ۵۳): مدل `ActivityLog` Append-only
   (بدون API ویرایش/حذف — یک Audit Trail واقعی باید غیرقابل‌دستکاری
   بماند)؛ `actorName` به‌صورت Snapshot ذخیره می‌شود نه Populate زنده،
@@ -298,12 +339,13 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
 ## 4. In Progress
 
 **Audit پیش از Storefront (سند «بررسی تکمیل Backend/Dashboard»)** —
-Phase 1 تا 7 (کل بازه تأییدشده توسط کاربر) کامل شدند. Cart طراحی و
-پیاده‌سازی شد اما **هنوز به Discount/Wallet/Inventory Reservation یا
-فرآیند واقعی Checkout وصل نیست** — این دقیقاً Phase 8 خود سند
-(«Integration») است و در انتظار تأیید جداگانه کاربر است، همراه با
-Phase 9 (Testing کامل‌تر) و Phase 10 (Documentation نهایی) که در سند
-اصلی بعد از Phase 8 می‌آیند.
+Phase 1 تا 7 کامل شدند. از Phase 8، فقط بخش **Discount** (هماهنگی
+Cart با Coupon) پیاده‌سازی شد. بخش **Wallet** پیاده‌سازی نشد چون
+Wallet اصلاً به‌عنوان یک زیرسیستم وجود ندارد و نیازمند یک تصمیم/Task
+مجزا با تأیید صریح کاربر است (نگاه کنید Known Issues). **Amazing
+Offer هم هنوز به Cart وصل نشده** چون نحوه تعامل آن با تخفیف
+Variant/Coupon هنوز تصمیم‌گیری نشده. Phase 9 (Testing کامل‌تر) و
+Phase 10 (Documentation نهایی) هنوز شروع نشده‌اند.
 
 ## 5. Planned (به ترتیب)
 
@@ -761,6 +803,10 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Cart | فقط Authenticated (بدون Guest Cart) | سیستم OTP از قبل برای هر شماره موبایل کار می‌کند (نقش پیش‌فرض `customer`)؛ توضیح کامل مسیر افزودن Guest در آینده در بخش Completed Features |
 | Cart | `requireAuthenticatedUser` جدید به‌جای `requireApiUser` | نقش `customer` هیچ Permission ای در RBAC ندارد (RBAC فقط برای Dashboard طراحی شده بود)؛ Cart نیاز به «فقط Login باشد» دارد نه یک Permission خاص |
 | Cart | بدون Inventory Reservation | دستور صریح سند: «صرفاً موجودی را رزرو نکن مگر معماری صراحتاً Reservation داشته باشد» — موجودی فقط لحظه Add/Update چک می‌شود |
+| Cart Coupon | فقط ارجاع (`coupon`, `code`) Persist می‌شود، نه مبلغ تخفیف | مبلغ تخفیف باید هر بار از cartTotal تازه محاسبه شود، دقیقاً مثل قیمت هر Item |
+| Cart Coupon | اعمال کد تخفیف روی Cart هرگز `usedCount`/`CouponRedemption` را تغییر نمی‌دهد | «استفاده واقعی» فقط لحظه ثبت سفارش واقعی است؛ وگرنه سبدهای رهاشده ظرفیت کد را هدر می‌دادند |
+| Amazing Offer در Cart | فعلاً اعمال نشد | نحوه تعامل آن با تخفیف Variant/Coupon (اولویت/Exclusive) هنوز تصمیم‌گیری نشده؛ نیازمند تأیید جداگانه |
+| Wallet در Cart | ساخته نشد | Wallet به‌عنوان یک زیرسیستم کامل اصلاً وجود ندارد (طبق خود Phase 1 Audit)؛ ساختار عددی فعلی Cart مانع Payment Split آینده نیست، اما ساخت خود Wallet نیازمند تصمیم/تأیید جداگانه است |
 
 
 | مرحله | تصمیم | دلیل |
@@ -836,6 +882,19 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
   ذخیره‌شده به ازای هر مشتری (برای انتخاب سریع در Checkout آینده
   Storefront) هنوز یک Model/UI مستقل ندارد؛ باید هم‌زمان با Cart/Checkout
   طراحی شود.
+- **Wallet اصلاً وجود ندارد:** نه Model، نه Balance، نه Transaction
+  Log. «هماهنگی Cart با Wallet» (بخشی از Phase 8 سند) عمداً انجام
+  نشد — چون این یک زیرسیستم مالی کامل جدید است (قوانین Top-up، Refund،
+  تنظیم توسط ادمین، و...) که نیازمند یک تصمیم/Task جداگانه با تأیید
+  صریح کاربر است، نه یک افزونه کوچک به Cart موجود.
+- **Amazing Offer هنوز به Cart وصل نشده:** `recomputeCartItem` فقط
+  تخفیف عادی Variant (`discountPercent`/`discountAmount`) را اعمال
+  می‌کند. Amazing Offer یک رکورد جدا با بازه زمانی است که فعلاً حتی
+  در Order Creation واقعی هم استفاده نمی‌شود؛ قبل از اتصالش به Cart
+  باید مشخص شود اولویت/تعامل آن با تخفیف Variant و Coupon چگونه است.
+- **Cart هنوز به فرآیند واقعی Checkout/Order Creation وصل نیست** و
+  Race Condition لحظه Checkout هنوز مدیریت نشده — این دقیقاً بخشی از
+  Phase 8 است که باقی مانده.
 
 - **مهم — محدودیت هر کاربر (`perUserLimit`) Coupon داخل یک
   Transaction نیست:** فقط یک‌بار قبل از رزرو ظرفیت بررسی می‌شود. در

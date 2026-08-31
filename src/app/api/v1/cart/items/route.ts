@@ -79,8 +79,8 @@ export async function POST(request: Request) {
     } as unknown as ICartItem);
   }
 
-  const productMap = await recalculateCart(cart);
+  const { productMap, discount } = await recalculateCart(cart);
   await cart.save();
 
-  return apiSuccess(serializeCart(cart, productMap), { message: "به سبد خرید اضافه شد" });
+  return apiSuccess(serializeCart(cart, productMap, discount), { message: "به سبد خرید اضافه شد" });
 }

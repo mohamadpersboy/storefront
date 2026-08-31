@@ -18,10 +18,10 @@ export async function POST() {
 
   await connectToDatabase();
   const cart = await getOrCreateCart(guard.user.id);
-  const productMap = await recalculateCart(cart);
+  const { productMap, discount } = await recalculateCart(cart);
   await cart.save();
 
   const isValid = cart.items.length > 0 && cart.items.every((item) => item.isAvailable);
 
-  return apiSuccess({ isValid, cart: serializeCart(cart, productMap) });
+  return apiSuccess({ isValid, cart: serializeCart(cart, productMap, discount) });
 }

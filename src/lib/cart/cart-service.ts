@@ -1,7 +1,11 @@
 import type { Types } from "mongoose";
 import { Cart, type CartDocument } from "@/models/Cart";
 import { Product } from "@/models/Product";
+import { Coupon } from "@/models/Coupon";
+import { CouponRedemption } from "@/models/CouponRedemption";
 import { recomputeCartItem } from "@/lib/cart/recompute-cart-item";
+import { validateCouponEligibility } from "@/lib/discounts/validate-coupon";
+import { computeCouponDiscount } from "@/lib/discounts/engine";
 
 interface ProductForCart {
   _id: Types.ObjectId;
@@ -25,9 +29,77 @@ interface ProductForCart {
 export async function getOrCreateCart(userId: string): Promise<CartDocument> {
   let cart = await Cart.findOne({ user: userId });
   if (!cart) {
-    cart = await Cart.create({ user: userId, items: [], cartTotal: 0 });
+    cart = await Cart.create({ user: userId, items: [], cartTotal: 0, appliedCoupon: null });
   }
   return cart;
+}
+
+/**
+ * وضعیت فعلی کد تخفیف اعمال‌شده روی Cart را (اگر وجود داشته باشد)
+ * دوباره اعتبارسنجی می‌کند و مبلغ تخفیف را برمی‌گرداند. از همان توابع
+ * خالص Order (بند ۲۷/۴۲ — `validateCouponEligibility` و
+ * `computeCouponDiscount`) استفاده می‌کند، نه یک منطق موازی جدید،
+ * چون `eligibleAmount` این‌جا (`cart.cartTotal`، یعنی جمع
+ * `finalUnitPrice * quantity` بعد از تخفیف Variant) دقیقاً همان
+ * `subtotal` است که هنگام ثبت سفارش واقعی محاسبه می‌شود — یعنی همان
+ * عددی که کاربر در Cart می‌بیند، در Checkout هم تکرار خواهد شد.
+ *
+ * اگر کد تخفیف دیگر معتبر نباشد (مثلاً چون Itemها عوض شدند و به
+ * حداقل مبلغ نمی‌رسد، یا منقضی/غیرفعال شده)، خودش را از Cart پاک
+ * می‌کند — همین‌جا «Discount چند بار روی قیمت اعمال نشود» (بند ۸) هم
+ * تضمین می‌شود، چون همیشه حداکثر یک کد فعال روی Cart است.
+ */
+async function refreshCartCoupon(
+  cart: CartDocument,
+): Promise<{ amount: number; code: string; discountPercentage: number } | null> {
+  if (!cart.appliedCoupon) return null;
+
+  const couponDoc = await Coupon.findById(cart.appliedCoupon.coupon);
+  if (!couponDoc) {
+    cart.appliedCoupon = null;
+    return null;
+  }
+
+  const usedByUserCount = await CouponRedemption.countDocuments({
+    coupon: couponDoc._id,
+    user: cart.user,
+  });
+
+  const eligibility = validateCouponEligibility({
+    coupon: {
+      code: couponDoc.code,
+      status: couponDoc.status,
+      type: couponDoc.type,
+      minOrderAmount: couponDoc.minOrderAmount,
+      startsAt: couponDoc.startsAt,
+      expiresAt: couponDoc.expiresAt,
+      usageLimit: couponDoc.usageLimit,
+      usedCount: couponDoc.usedCount,
+      perUserLimit: couponDoc.perUserLimit,
+      allowedUserIds: couponDoc.allowedUsers.map(String),
+    },
+    userId: String(cart.user),
+    eligibleAmount: cart.cartTotal,
+    usedByUserCount,
+  });
+
+  if (!eligibility.valid) {
+    cart.appliedCoupon = null;
+    return null;
+  }
+
+  const amount = computeCouponDiscount(
+    cart.cartTotal,
+    couponDoc.discountPercentage,
+    couponDoc.maxDiscountAmount,
+  );
+
+  return { amount, code: couponDoc.code, discountPercentage: couponDoc.discountPercentage };
+}
+
+export interface CartTotals {
+  productMap: Map<string, ProductForCart>;
+  discount: { amount: number; code: string; discountPercentage: number } | null;
 }
 
 /**
@@ -44,7 +116,7 @@ export async function getOrCreateCart(userId: string): Promise<CartDocument> {
  */
 export async function recalculateCart(
   cart: CartDocument,
-): Promise<Map<string, ProductForCart>> {
+): Promise<CartTotals> {
   const productIds = [...new Set(cart.items.map((item) => String(item.product)))];
 
   const products = (await Product.find({ _id: { $in: productIds } })
@@ -89,10 +161,71 @@ export async function recalculateCart(
 
   cart.cartTotal = cartTotal;
 
-  return productMap;
+  // کد تخفیف باید *بعد* از نهایی‌شدن cartTotal دوباره اعتبارسنجی شود
+  // (اگر Itemها تغییر کرده باشند، حداقل مبلغ ممکن است دیگر برقرار
+  // نباشد).
+  const discount = await refreshCartCoupon(cart);
+
+  return { productMap, discount };
 }
 
-export function serializeCart(cart: CartDocument, productMap: Map<string, ProductForCart>) {
+export interface ApplyCouponResult {
+  success: boolean;
+  reason?: string;
+}
+
+/**
+ * اعمال یک کد تخفیف جدید روی Cart. قبل از Persist کردن، همان
+ * `validateCouponEligibility` را روی `cart.cartTotal` فعلی اجرا
+ * می‌کند — پس صدا زدن این تابع باید همیشه *بعد* از یک `recalculateCart`
+ * تازه باشد تا `cartTotal` به‌روز باشد (در Route رعایت شده است).
+ */
+export async function applyCouponToCart(
+  cart: CartDocument,
+  code: string,
+): Promise<ApplyCouponResult> {
+  const couponDoc = await Coupon.findOne({ code: code.trim().toUpperCase() });
+  if (!couponDoc) {
+    return { success: false, reason: "کد تخفیف یافت نشد" };
+  }
+
+  const usedByUserCount = await CouponRedemption.countDocuments({
+    coupon: couponDoc._id,
+    user: cart.user,
+  });
+
+  const eligibility = validateCouponEligibility({
+    coupon: {
+      code: couponDoc.code,
+      status: couponDoc.status,
+      type: couponDoc.type,
+      minOrderAmount: couponDoc.minOrderAmount,
+      startsAt: couponDoc.startsAt,
+      expiresAt: couponDoc.expiresAt,
+      usageLimit: couponDoc.usageLimit,
+      usedCount: couponDoc.usedCount,
+      perUserLimit: couponDoc.perUserLimit,
+      allowedUserIds: couponDoc.allowedUsers.map(String),
+    },
+    userId: String(cart.user),
+    eligibleAmount: cart.cartTotal,
+    usedByUserCount,
+  });
+
+  if (!eligibility.valid) {
+    return { success: false, reason: eligibility.reason };
+  }
+
+  cart.appliedCoupon = { coupon: couponDoc._id, code: couponDoc.code };
+  return { success: true };
+}
+
+export function serializeCart(
+  cart: CartDocument,
+  productMap: Map<string, ProductForCart>,
+  discount: { amount: number; code: string; discountPercentage: number } | null,
+) {
+  const discountAmount = discount?.amount ?? 0;
   return {
     id: String(cart._id),
     items: cart.items.map((item) => {
@@ -120,6 +253,9 @@ export function serializeCart(cart: CartDocument, productMap: Map<string, Produc
       };
     }),
     cartTotal: cart.cartTotal,
+    appliedCoupon: discount ? { code: discount.code, discountPercentage: discount.discountPercentage } : null,
+    discountAmount,
+    grandTotal: Math.max(0, cart.cartTotal - discountAmount),
     itemCount: cart.items.reduce((sum, item) => sum + item.quantity, 0),
     updatedAt: cart.updatedAt,
   };
