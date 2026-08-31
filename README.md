@@ -3,14 +3,21 @@
 فروشگاه اینترنتی تخصصی محصولات فرش (فرش ماشینی، موکت، تابلو فرش، پادری،
 قالیچه و ...) برای بازار ایران. RTL و کاملا فارسی.
 
-> **وضعیت فعلی:** پروژه تازه Bootstrap شده است. هنوز هیچ Feature UI/Backend
-> واقعی (Dashboard، Auth، محصولات و ...) پیاده‌سازی نشده. جزئیات کامل وضعیت
-> در [`CLAUDE.md`](./CLAUDE.md) نگه‌داری می‌شود.
+> **وضعیت فعلی:** Dashboard (پنل مدیریت) عملاً کامل است — Auth، RBAC،
+> محصولات/Variant، سفارش‌ها، تخفیف/کوپن/شگفت‌انگیز، شبکه‌های اجتماعی،
+> استان/شهر، آدرس+نقشه نشان، Cart، و Wallet (نسخه ساده) پیاده‌سازی
+> شده‌اند. Storefront (فروشگاه عمومی) هنوز در مراحل اولیه است — فقط
+> ۴ API عمومی محصول ساخته شده، هنوز صفحه‌ای برای نمایش آن‌ها نیست.
+> جزئیات کامل وضعیت در [`CLAUDE.md`](./CLAUDE.md) و مستندات API در
+> [`docs/API.md`](./docs/API.md) نگه‌داری می‌شود.
 
 ## Features
 
-فعلا فقط اسکلت پروژه آماده است. لیست کامل Featureهای برنامه‌ریزی‌شده در
-`CLAUDE.md` بخش «Planned» موجود است.
+فهرست کامل در `CLAUDE.md` بخش «Completed Features» است. خلاصه:
+Dashboard کامل (Auth با OTP، RBAC، Users، Categories، Products+Variants،
+Orders، Discounts/Coupons/Amazing Offers، Social Links، Provinces/Cities،
+Neshan Maps، Cart، Wallet ساده)، به‌علاوه ۴ API عمومی Storefront برای
+محصولات (`latest`, `best-selling`, `best-discounts`, `amazing-offers`).
 
 ## Tech Stack
 
@@ -18,8 +25,10 @@
 - **Styling:** Tailwind CSS v4
 - **Database:** MongoDB + Mongoose + mongoose-paginate-v2
 - **Auth:** Mobile Number + OTP (Session سفارشی با `jose`)
-- **Image Management:** Cloudinary (نصب شده، هنوز Wire نشده)
-- **SMS:** sms.ir (نصب شده، هنوز Wire نشده)
+- **Image Management:** Cloudinary
+- **SMS:** sms.ir
+- **Maps:** Neshan (`@neshan-maps-platform/leaflet`) — نقشه + Reverse Geocoding
+- **Excel Import:** `xlsx` (استان/شهر)
 - **Font:** IRANYekanX Pro
 
 جزئیات کامل نسخه‌ها در `CLAUDE.md` بخش «Tech Stack».
@@ -45,6 +54,7 @@ cp .env.example .env.local
 | `OTP_HASH_SECRET` | رشته تصادفی جدا برای Hash کردن کدهای OTP |
 | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | اطلاعات Cloudinary |
 | `SMS_IR_API_KEY` / `SMS_IR_LINE_NUMBER` / `SMS_IR_OTP_TEMPLATE_ID` | اطلاعات sms.ir برای ارسال OTP |
+| `NEXT_PUBLIC_NESHAN_API_KEY` | Key نقشه نشان — Client-side، امنیت با محدودیت Domain در پنل Neshan |
 | `NEXT_PUBLIC_APP_URL` | آدرس عمومی اپلیکیشن (اختیاری — به‌طور خودکار از `VERCEL_URL` ساخته می‌شود) |
 
 ### تنظیم یکجای همه‌ی Environment Variableها روی Vercel
@@ -83,8 +93,20 @@ npm run start
 
 ## Testing
 
-هنوز Test نوشته نشده — طبق Workflow پروژه، تست‌ها همراه هر Feature
-اضافه می‌شوند (به `CLAUDE.md` مراجعه کنید).
+```bash
+npx vitest run
+```
+
+تست‌ها Unit Test روی توابع خالص (قیمت‌گذاری، Cart، Discount، Wallet،
+Validation) و Zod Schema ها هستند — بدون زیرساخت Integration/API Test
+واقعی (بدون DB واقعی در تست). قبل از هر Commit باید Typecheck، ESLint،
+تست کامل، و Build همگی موفق باشند (بدون استثنا).
+
+## API Documentation
+
+مستندات کامل APIهای Social Links، Province/City، Neshan، Cart، و
+Wallet در [`docs/API.md`](./docs/API.md). برای APIهای قدیمی‌تر
+(Auth، Products، Orders، ...) به کد منبع مراجعه کنید.
 
 ## Project Structure
 
@@ -92,22 +114,28 @@ npm run start
 
 ## Database
 
-MongoDB با Mongoose. مدل‌های فعلی: `User`، `Otp`. مدل‌های برنامه‌ریزی‌شده
-(Category، Product، Variant، Order، Payment و ...) در `CLAUDE.md`
-بخش «Database Models» فهرست شده‌اند.
+MongoDB با Mongoose. مدل‌های فعلی در `CLAUDE.md` بخش «Database Models»
+فهرست شده‌اند (User، Product، Order، Cart، Wallet، Province/City،
+SocialLinks، و ...).
 
 ## Authentication
 
-ورود با شماره موبایل + کد یک‌بارمصرف (OTP) از طریق sms.ir. جزئیات کامل
-Flow در `CLAUDE.md` بخش «Architecture».
+ورود با شماره موبایل + کد یک‌بارمصرف (OTP) از طریق sms.ir. همین Flow
+برای هم Staff (Dashboard) و هم Customer استفاده می‌شود — کاربر جدید با
+نقش `customer` ساخته می‌شود مگر اولین کاربر سیستم باشد (که
+`super_admin` می‌شود). جزئیات کامل در `CLAUDE.md` بخش «Architecture».
 
 ## Git Workflow
 
-هر Feature ابتدا در دو Branch جدا (`feature/ui` و `feature/backend`)
-توسعه داده می‌شود و فقط پس از تأیید صریح کاربر به `main` Merge می‌شود.
-جزئیات کامل در `CLAUDE.md` بخش «Git Workflow».
+طبق تصمیم صریح کارفرما، همه تغییرات مستقیماً روی `main` Commit/Push
+می‌شوند (بدون Feature Branch جدا). قبل از هر Push: Typecheck، ESLint،
+تست، و Build باید همه موفق باشند. جزئیات کامل در `CLAUDE.md` بخش
+«Git Workflow».
 
 ## Current Status
 
-Initial Project Setup — تکمیل شده. برای وضعیت دقیق و به‌روز همیشه به
-[`CLAUDE.md`](./CLAUDE.md) مراجعه کنید.
+Dashboard کامل + زیرساخت پیش‌نیاز Storefront (Social Links،
+Province/City، Neshan Maps، Cart، Wallet ساده، ۴ API عمومی محصول)
+تکمیل شده. مرحله بعدی: توسعه واقعی صفحات Storefront. برای وضعیت دقیق و
+به‌روز همیشه به [`CLAUDE.md`](./CLAUDE.md) مراجعه کنید.
+

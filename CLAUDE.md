@@ -398,6 +398,20 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
     است» — این کنترل فقط در UI (Dropdown وابسته) تضمین می‌شود، نه در
     API. تصمیم گرفتم این را نسازم چون به Query کردن نام (نه ID) نیاز
     دارد که شکننده است (تفاوت فاصله/نویسه)؛ به‌جایش این‌جا مستند شد.
+- ✅ Phase 10 — Documentation نهایی:
+  - `docs/API.md` — مستندات کامل تمام APIهای جدید Phase 2 تا 8
+    (Social Links، Province/City+Import، Neshan، Address، ۴ API
+    عمومی محصول Storefront، Cart+Coupon، Wallet)؛ شامل Method، Path،
+    سطح دسترسی، شکل Request/Response، و قوانین کلیدی هر بخش.
+  - `README.md` — کاملاً به‌روزرسانی شد (نسخه قبلی از زمان
+    Bootstrap اولیه پروژه مانده بود و می‌گفت «هنوز هیچ Feature
+    پیاده‌سازی نشده» و «هنوز Test نوشته نشده» — که دیگر درست نبود).
+    اکنون Tech Stack، Environment Variables (شامل
+    `NEXT_PUBLIC_NESHAN_API_KEY`)، Git Workflow (اصلاح شد به
+    «مستقیم روی main»، نسخه قبلی همچنان می‌گفت «دو Branch جدا»)،
+    و وضعیت واقعی فعلی پروژه را نشان می‌دهد.
+  - `.env.example` از Phase 4 به بعد به‌روز نگه داشته شده (بدون
+    نیاز به تغییر بیشتر در این Phase).
 - ✅ Audit / Activity Log (بند ۵۳): مدل `ActivityLog` Append-only
   (بدون API ویرایش/حذف — یک Audit Trail واقعی باید غیرقابل‌دستکاری
   بماند)؛ `actorName` به‌صورت Snapshot ذخیره می‌شود نه Populate زنده،
@@ -411,16 +425,12 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
 
 ## 4. In Progress
 
-**Audit پیش از Storefront (سند «بررسی تکمیل Backend/Dashboard»)** —
-Phase 1 تا 7 کامل شدند. از Phase 8: بخش **Discount** (Coupon روی
-Cart)، بخش **Amazing Offer** (بیشترین تخفیف بین Variant/شگفت‌انگیز،
-طبق تصمیم صریح کاربر)، و بخش **Wallet** (نسخه ساده — فقط تعدیل دستی
-ادمین، طبق تصمیم صریح کاربر) همگی پیاده‌سازی شدند. آنچه از Phase 8
-باقی مانده: اتصال مستقیم Cart↔Wallet (نمایش/پرداخت با موجودی) و
-اتصال Cart به فرآیند واقعی Checkout/Order Creation (و مدیریت Race
-Condition آن لحظه) — چون Checkout واقعی هنوز اصلاً وجود ندارد. Phase
-9 (Testing کامل‌تر) و Phase 10 (Documentation نهایی) هنوز شروع
-نشده‌اند.
+سند «بررسی تکمیل Backend/Dashboard و آماده‌سازی برای توسعه
+Storefront» — **هر ۱۰ Phase آن کامل شد** (تا جایی که بدون یک
+Checkout واقعی امکان‌پذیر بود؛ نگاه کنید Known Issues برای موارد
+باقی‌مانده که به وجود یک Checkout واقعی وابسته‌اند). مرحله بعدی
+طبیعی: شروع واقعی توسعه صفحات Storefront (که این کل سند صرفاً
+پیش‌نیاز آن بود).
 
 ## 5. Planned (به ترتیب)
 
