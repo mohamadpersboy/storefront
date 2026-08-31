@@ -12,6 +12,8 @@ import {
   OrderItemsPicker,
   type OrderLineItem,
 } from "@/components/orders/order-items-picker";
+import { ProvinceCitySelect } from "@/components/addresses/province-city-select";
+import { NeshanMapPicker } from "@/components/maps/neshan-map-picker";
 import { formatToman } from "@/lib/utils/format";
 import { computePrepayment, type PaymentMethod } from "@/lib/utils/pricing";
 
@@ -49,6 +51,9 @@ export function OrderForm() {
   const [city, setCity] = useState("");
   const [addressLine, setAddressLine] = useState("");
   const [postalCode, setPostalCode] = useState("");
+  const [latitude, setLatitude] = useState<number | undefined>(undefined);
+  const [longitude, setLongitude] = useState<number | undefined>(undefined);
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
   const [shippingCost, setShippingCost] = useState("0");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
@@ -177,6 +182,9 @@ export function OrderForm() {
             city,
             addressLine,
             postalCode,
+            ...(latitude !== undefined && longitude !== undefined
+              ? { latitude, longitude }
+              : {}),
           },
           shippingCost: Number(shippingCost) || 0,
           paymentMethod,
@@ -267,56 +275,80 @@ export function OrderForm() {
       </Card>
 
       <Card>
-        <CardHeader title="آدرس ارسال" />
-        <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-foreground/80">
-              نام گیرنده
-            </label>
-            <Input value={recipientName} onChange={(e) => setRecipientName(e.target.value)} />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-foreground/80">
-              شماره موبایل گیرنده
-            </label>
-            <Input
-              dir="ltr"
-              value={addressPhone}
-              onChange={(e) => setAddressPhone(e.target.value.replace(/[^\d]/g, ""))}
-              maxLength={11}
+        <CardHeader
+          title="آدرس ارسال"
+          action={
+            <button
+              type="button"
+              onClick={() => setShowMapPicker((v) => !v)}
+              className="text-xs text-primary underline"
+            >
+              {showMapPicker ? "بستن نقشه" : "انتخاب روی نقشه"}
+            </button>
+          }
+        />
+        <CardContent className="flex flex-col gap-4">
+          {showMapPicker ? (
+            <NeshanMapPicker
+              initialLatitude={latitude}
+              initialLongitude={longitude}
+              onConfirm={(result) => {
+                setLatitude(result.latitude);
+                setLongitude(result.longitude);
+                if (result.province) setProvince(result.province);
+                if (result.city) setCity(result.city);
+                if (result.addressLine) setAddressLine(result.addressLine);
+                setShowMapPicker(false);
+              }}
             />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-foreground/80">
-              استان
-            </label>
-            <Input value={province} onChange={(e) => setProvince(e.target.value)} />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-foreground/80">
-              شهر
-            </label>
-            <Input value={city} onChange={(e) => setCity(e.target.value)} />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="mb-1.5 block text-xs font-medium text-foreground/80">
-              آدرس کامل
-            </label>
-            <Textarea
-              rows={2}
-              value={addressLine}
-              onChange={(e) => setAddressLine(e.target.value)}
+          ) : null}
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-foreground/80">
+                نام گیرنده
+              </label>
+              <Input value={recipientName} onChange={(e) => setRecipientName(e.target.value)} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-foreground/80">
+                شماره موبایل گیرنده
+              </label>
+              <Input
+                dir="ltr"
+                value={addressPhone}
+                onChange={(e) => setAddressPhone(e.target.value.replace(/[^\d]/g, ""))}
+                maxLength={11}
+              />
+            </div>
+            <ProvinceCitySelect
+              provinceName={province}
+              cityName={city}
+              onChange={({ provinceName, cityName }) => {
+                setProvince(provinceName);
+                setCity(cityName);
+              }}
             />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-foreground/80">
-              کد پستی
-            </label>
-            <Input
-              dir="ltr"
-              value={postalCode}
-              onChange={(e) => setPostalCode(e.target.value.replace(/[^\d]/g, ""))}
-            />
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-xs font-medium text-foreground/80">
+                آدرس کامل
+              </label>
+              <Textarea
+                rows={2}
+                value={addressLine}
+                onChange={(e) => setAddressLine(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-foreground/80">
+                کد پستی
+              </label>
+              <Input
+                dir="ltr"
+                value={postalCode}
+                onChange={(e) => setPostalCode(e.target.value.replace(/[^\d]/g, ""))}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

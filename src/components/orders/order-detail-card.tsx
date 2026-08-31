@@ -50,6 +50,8 @@ export interface OrderDetailData {
     city: string;
     addressLine: string;
     postalCode: string;
+    latitude?: number;
+    longitude?: number;
   };
   subtotal: number;
   shippingCost: number;
@@ -234,6 +236,17 @@ export function OrderDetailCard({ order }: { order: OrderDetailData }) {
                 {toPersianDigits(order.shippingAddress.postalCode)}
               </span>
             </p>
+            {order.shippingAddress.latitude !== undefined &&
+            order.shippingAddress.longitude !== undefined ? (
+              <a
+                href={`https://neshan.org/maps?latitude=${order.shippingAddress.latitude}&longitude=${order.shippingAddress.longitude}&zoom=15`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-primary underline"
+              >
+                نمایش موقعیت روی نقشه نشان
+              </a>
+            ) : null}
           </CardContent>
         </Card>
 

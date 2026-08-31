@@ -28,6 +28,10 @@ export interface IShippingAddress {
   city: string;
   addressLine: string;
   postalCode: string;
+  // اختیاری — اگر ادمین موقعیت را روی نقشه نشان انتخاب کند پر می‌شود
+  // (بند ۵ سند Audit). سفارش‌های قدیمی این دو فیلد را ندارند.
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface IOrderStatusHistoryEntry {
@@ -101,6 +105,8 @@ const ShippingAddressSchema = new Schema<IShippingAddress>(
     city: { type: String, required: true, trim: true },
     addressLine: { type: String, required: true, trim: true },
     postalCode: { type: String, required: true, trim: true },
+    latitude: { type: Number, required: false },
+    longitude: { type: Number, required: false },
   },
   { _id: false },
 );

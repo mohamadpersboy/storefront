@@ -171,6 +171,42 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
   آن استفاده می‌کند. **کاربر باید مقدار واقعی Key را خودش در Vercel
   Environment Variables اضافه کند** — تا آن زمان Build/Deploy با خطای
   Env ناقص متوقف می‌شود (رفتار یکسان با بقیه Secret های پروژه).
+- ✅ Address + Map Picker (بند ۵ سند Audit): به‌جای ساخت یک Model
+  Address کاملاً مستقل (که چون هیچ Address Book مستقلی برای مشتری در
+  Scope فعلی پروژه نبود، فقط پیچیدگی بدون فایده اضافه می‌کرد)، زیرساخت
+  روی همان `Order.shippingAddress` موجود ساخته شد — که تنها محل واقعی
+  دریافت آدرس در پروژه است:
+  - دو فیلد اختیاری `latitude`/`longitude` به `IShippingAddress` (هم
+    Model هم Validation Zod) اضافه شد — Additive و Backward-compatible،
+    سفارش‌های قدیمی این دو فیلد را ندارند و مشکلی ایجاد نمی‌کند.
+  - `ProvinceCitySelect` (`src/components/addresses/`) — کامپوننت
+    مشترک دو Dropdown استان→شهر (شهر فقط بعد از انتخاب استان فعال
+    می‌شود)، مصرف‌کننده APIهای Phase 3. جایگزین دو `Input` آزاد قبلی
+    در فرم سفارش شد؛ اکنون هیچ Input متنی برای استان/شهر باقی نمانده
+    (رفع دقیق TODO یادداشت‌شده در Phase 3).
+  - `NeshanMapPicker` (`src/components/maps/`) — نقشه Leaflet نشان
+    (پکیج رسمی `@neshan-maps-platform/leaflet`) با Marker
+    قابل‌جابه‌جایی/کلیک‌پذیر؛ روی «تأیید موقعیت» با
+    `GET https://api.neshan.org/v5/reverse` (مستقیم از Client، هدر
+    `Api-Key`) استان/شهر/آدرس را تلاش می‌کند خودکار پر کند. اگر
+    Reverse Geocoding شکست بخورد یا فیلدی نداشته باشد، فقط Lat/Lng را
+    برمی‌گرداند و بقیه فیلدها دستی می‌مانند — دقیقاً طبق نکته صریح سند.
+    بارگذاری SDK با `import()` پویا داخل `useEffect` است (نه Import
+    ایستا) چون کتابخانه به `window` نیاز دارد و باید کاملاً از SSR
+    Next.js کنار گذاشته شود.
+  - فرم سفارش (`order-form.tsx`) و نمایش جزئیات سفارش
+    (`order-detail-card.tsx`) هر دو به‌روزرسانی شدند: دیگر Input آزاد
+    برای استان/شهر ندارند، و اگر Lat/Lng ثبت شده باشد لینک «نمایش روی
+    نقشه نشان» نمایش داده می‌شود.
+  - Type Shim در `src/types/neshan-maps-platform-leaflet.d.ts` چون
+    پکیج رسمی نشان فایل `.d.ts` عرضه نمی‌کند.
+  - ⚠️ **Address Book مستقل مشتری** (چند آدرس ذخیره‌شده به ازای هر
+    مشتری، انتخاب از میان آن‌ها در Checkout) هنوز طراحی نشده — این در
+    Scope فعلی نبود چون Checkout عمومی هنوز وجود ندارد (Storefront).
+    وقتی Storefront/Cart (Phase 6-7) ساخته شود، این زیرساخت
+    (`ProvinceCitySelect`/`NeshanMapPicker`) مستقیماً در آن فرم هم
+    قابل استفاده مجدد است؛ فقط یک Model `Address` جدا با `customer`
+    Ref لازم می‌شود.
 - ✅ Audit / Activity Log (بند ۵۳): مدل `ActivityLog` Append-only
   (بدون API ویرایش/حذف — یک Audit Trail واقعی باید غیرقابل‌دستکاری
   بماند)؛ `actorName` به‌صورت Snapshot ذخیره می‌شود نه Populate زنده،
@@ -185,10 +221,9 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
 ## 4. In Progress
 
 **Audit پیش از Storefront (سند «بررسی تکمیل Backend/Dashboard»)** —
-Phase 1، 2، 3 و 4 (Neshan Env Var) کامل شدند. **در انتظار افزودن مقدار
-واقعی `NEXT_PUBLIC_NESHAN_API_KEY` توسط کاربر در Vercel** (تا آن زمان
-Build شکست می‌خورد). در حال ادامه به Phase 5 (Address + Map Picker
-واقعی) طبق تأیید کاربر برای اجرای متوالی Phase ۲ تا ۷.
+Phase 1، 2، 3، 4 و 5 (Address + Neshan Map Picker) کامل شدند. در حال
+ادامه به Phase 6 (Storefront Product APIs) طبق تأیید کاربر برای اجرای
+متوالی Phase ۲ تا ۷.
 
 ## 5. Planned (به ترتیب)
 
@@ -324,10 +359,12 @@ src/
                   VariantEditor, TechnicalSpecsEditor, ProductStatusBadge,
                   products-page-client
     settings/   - ColorsManager, ColorFormModal, DiscountSettingsForm,
-                  ActivityLogPageClient
+                  ActivityLogPageClient, SocialLinksForm, ProvincesCitiesManager
     orders/     - OrderForm, OrderItemsPicker, OrderDetailCard,
                   OrderStatusBadge, PaymentPanel, PaymentStatusBadge,
                   orders-page-client
+    addresses/  - ProvinceCitySelect
+    maps/       - NeshanMapPicker
     amazing-offers/ - AmazingOfferForm, AmazingOfferStatusBadge,
                   AmazingOfferCountdown, amazing-offers-page-client
     discounts/  - discounts-page-client (فقط خواندنی)
@@ -637,6 +674,8 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 | Province/City Import | تلاش برای Transaction با Fallback خودکار به غیر-Transactional | طبق سند («در صورت امکان») — روی Atlas (Replica Set) واقعی Transactional اجرا می‌شود؛ در محیط توسعه محلی (Standalone) کار متوقف نمی‌شود |
 | Province/City API | `GET /api/v1/provinces` و `GET /api/v1/cities` بدون Auth | هم Dashboard هم Storefront آینده باید بتوانند این Dropdownها را بدون Session بخوانند |
 | Neshan API Key | `NEXT_PUBLIC_NESHAN_API_KEY` (Client-side)، نه یک متغیر Server-only | ویجت نقشه ذاتاً در مرورگر Tile می‌گیرد؛ Proxy کردن هر Tile از سرور غیرعملی است (تأخیر/هزینه). مدل امنیتی Neshan دقیقاً برای همین با محدودیت Domain/Referrer در پنل طراحی شده، نه مخفی نگه‌داشتن Key |
+| Address | یک Model `Address` مستقل ساخته نشد؛ فقط `Order.shippingAddress` با دو فیلد اختیاری Lat/Lng گسترش یافت | چون هنوز هیچ Address Book مستقلی (چند آدرس ذخیره‌شده per مشتری) در Scope نبود؛ ساخت یک Model زودتر از نیاز واقعی‌اش فقط پیچیدگی بی‌فایده اضافه می‌کرد — طبق قانون «از ایجاد Duplicate/Premature Abstraction خودداری کن» |
+| Reverse Geocoding | مستقیماً از Client به `api.neshan.org` (نه از طریق Backend Proxy) | همان Key عمومی (Client-side) از قبل در دسترس مرورگر است؛ یک Proxy اضافه فقط یک Round-trip بی‌فایده به سرور خودمان اضافه می‌کرد بدون افزایش امنیت واقعی |
 
 
 | مرحله | تصمیم | دلیل |
@@ -707,11 +746,11 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 
 ## 14. Known Issues
 
-- **مهم — فرم `Order.shippingAddress` هنوز Free-text است:** با اینکه
-  APIهای `Province`/`City` اکنون آماده‌اند، فرم فعلی سفارش در Dashboard
-  همچنان `province`/`city` را به‌صورت رشته آزاد می‌گیرد (تغییر داده
-  نشد چون خارج از Scope Phase 3 بود). باید قبل/حین Phase 5 (Address +
-  Neshan Map) به Dropdown دو-مرحله‌ای مبتنی بر این APIها مهاجرت کند.
+- **Address Book مستقل مشتری هنوز طراحی نشده:** فرم سفارش اکنون از
+  Dropdown استان/شهر + نقشه استفاده می‌کند (Phase 5)، اما چند آدرس
+  ذخیره‌شده به ازای هر مشتری (برای انتخاب سریع در Checkout آینده
+  Storefront) هنوز یک Model/UI مستقل ندارد؛ باید هم‌زمان با Cart/Checkout
+  طراحی شود.
 
 - **مهم — محدودیت هر کاربر (`perUserLimit`) Coupon داخل یک
   Transaction نیست:** فقط یک‌بار قبل از رزرو ظرفیت بررسی می‌شود. در

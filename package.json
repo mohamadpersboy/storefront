@@ -12,10 +12,12 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@neshan-maps-platform/leaflet": "^1.0.8",
     "cloudinary": "^2.10.1",
     "clsx": "^2.1.1",
     "jalaali-js": "^2.0.1",
     "jose": "^6.2.9",
+    "leaflet": "^1.9.4",
     "lucide-react": "^1.33.0",
     "mongoose": "^9.9.3",
     "mongoose-paginate-v2": "^1.9.5",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/leaflet": "^1.9.22",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

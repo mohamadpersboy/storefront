@@ -22,6 +22,9 @@ const shippingAddressSchema = z.object({
   city: z.string().trim().min(2, "شهر الزامی است"),
   addressLine: z.string().trim().min(5, "آدرس کامل الزامی است"),
   postalCode: z.string().trim().min(5, "کد پستی معتبر نیست"),
+  // اختیاری — از Map Picker نشان پر می‌شود (بند ۵ سند Audit)
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
 });
 
 export const createOrderSchema = z.object({
