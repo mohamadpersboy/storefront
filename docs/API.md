@@ -197,22 +197,50 @@ hasNextPage, hasPrevPage }` است.
 
 ---
 
-## ۷. Wallet (نسخه ساده)
+## ۷. Wallet — کامل (واریز، برداشت، پرداخت ترکیبی)
 
-بدون درگاه پرداخت — فقط تعدیل دستی توسط ادمین:
+بدون درگاه پرداخت اختصاصی برای تعدیل دستی — اما **واریز از طریق
+زرین‌پال** و **برداشت به کارت/شبا (صف بررسی دستی)** کامل شدند.
 
+### تعدیل دستی (ادمین)
 | Method | Path | دسترسی |
 |---|---|---|
 | GET | `/api/v1/wallet` | هر کاربر Login‌شده (کیف پول خودش) |
 | GET | `/api/v1/wallets/:userId` | `WALLET_READ` (Staff+) |
 | POST | `/api/v1/wallets/:userId/adjust` | `WALLET_MANAGE` (فقط Admin) |
 
-`POST .../adjust` بدنه: `{ type: "credit"|"debit", amount: number,
-reason: string }`. تعدیل با `findOneAndUpdate`+`$inc` Atomic انجام
-می‌شود — شرط «موجودی کافی» برای `debit` داخل خود Query است، پس
-موجودی هرگز منفی نمی‌شود حتی با درخواست‌های هم‌زمان.
+### واریز (Top-up از طریق زرین‌پال)
+| Method | Path | دسترسی |
+|---|---|---|
+| POST | `/api/v1/wallet/topup` | هر کاربر Login‌شده — بدنه `{amount}` (حداقل ۱۰,۰۰۰ تومان)، پاسخ شامل `paymentUrl` |
+| GET | `/api/v1/wallet/topup/callback` | عمومی (Redirect زرین‌پال) → `/wallet/topup/result` |
 
-پاسخ `GET`:
+### درخواست برداشت (تسویه به کارت/شبا)
+| Method | Path | دسترسی |
+|---|---|---|
+| POST | `/api/v1/wallet/withdrawals` | هر کاربر — بدنه `{amount, ownerName, cardNumber?, iban?}` (حداقل ۱۶ رقمی کارت یا `IR`+۲۴رقم شبا، حداقل یکی الزامی) |
+| GET | `/api/v1/wallet/withdrawals` | خود کاربر — فهرست درخواست‌های خودش |
+| GET | `/api/v1/wallets/withdrawals?status=` | `WALLET_MANAGE` — صف بررسی همه کاربران |
+| POST | `/api/v1/wallets/withdrawals/:id/review` | `WALLET_MANAGE` — بدنه `{action: "approve"|"reject", note?}` |
+
+⚠️ هیچ API واقعی Payout خودکار وصل نیست — تأیید یعنی ادمین از قبل
+واریز واقعی (کارت‌به‌کارت/پایا/ساتنا) را خارج از سیستم انجام داده و
+فقط نتیجه را ثبت می‌کند. مبلغ از **لحظه ثبت درخواست** (نه لحظه تأیید)
+Atomic کسر می‌شود؛ رد کردن آن را برمی‌گرداند.
+
+### پرداخت ترکیبی (Wallet + زرین‌پال) روی سفارش‌ها
+`POST /api/v1/payments/initiate` حالا `useWallet: boolean` (اختیاری)
+می‌پذیرد. اگر `true`: تا سقف موجودی واقعی مشتری از مبلغ باقی‌مانده
+سفارش کسر می‌شود؛ اگر کل مبلغ را پوشش دهد اصلاً نیازی به زرین‌پال
+نیست (`paidFromWallet: true` در پاسخ)؛ در غیر این صورت فقط باقیمانده
+واقعی به درگاه فرستاده می‌شود. `Payment.walletAmount` سهم کیف پول را
+جدا از `Payment.amount` (سهم درگاه) نگه می‌دارد.
+
+**نکته صحت مالی:** اگر بعد از کسر سهم کیف پول، تلاش درگاه شکست
+بخورد/لغو شود، `payments/callback` خودکار همان سهم را به کیف پول
+برمی‌گرداند.
+
+پاسخ `GET /wallet` و `GET /wallets/:userId`:
 ```json
 {
   "balance": 500000,
@@ -222,8 +250,6 @@ reason: string }`. تعدیل با `findOneAndUpdate`+`$inc` Atomic انجام
   }]
 }
 ```
-
-⚠️ Cart هنوز مستقیماً به Wallet وصل نیست (نیازمند Checkout واقعی).
 
 ---
 
