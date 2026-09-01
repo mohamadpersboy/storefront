@@ -412,6 +412,42 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
     و وضعیت واقعی فعلی پروژه را نشان می‌دهد.
   - `.env.example` از Phase 4 به بعد به‌روز نگه داشته شده (بدون
     نیاز به تغییر بیشتر در این Phase).
+- ✅ Checkout واقعی — Cart متصل به Order Creation + پرداخت ترکیبی:
+  - **Refactor بدون تغییر رفتار:** منطق واقعی ایجاد سفارش از
+    `POST /api/v1/orders` (که فقط Staff با `ORDERS_UPDATE` صدا
+    می‌زند) به یک سرویس مشترک منتقل شد:
+    `src/lib/orders/create-order.ts` (`createOrder()`، خطاها با
+    `OrderCreationError` شامل `status`). همچنین منطق شروع پرداخت از
+    `POST /api/v1/payments/initiate` به
+    `src/lib/payment/initiate-order-payment.ts`
+    (`initiateOrderPayment()`) منتقل شد. هر دو Route قدیمی حالا فقط
+    Auth+Validation دارند و همان تابع مشترک را صدا می‌زنند — رفتار
+    قبلی‌شان کاملاً حفظ شد، فقط Duplicate از بین رفت.
+  - **`POST /api/v1/checkout`** — اولین Endpoint واقعی Checkout
+    پروژه، با `requireAuthenticatedUser` (نه یک Permission RBAC،
+    چون خود مشتری صاحب سفارش است):
+    1. Cart کاربر را بازمحاسبه می‌کند (دقیقاً مثل
+       `cart/validate`) — رد می‌کند اگر خالی باشد یا Itemی
+       `isAvailable: false` داشته باشد.
+    2. Itemهای Cart را با `createOrder()` (همان تابع مشترک Dashboard)
+       به یک سفارش واقعی تبدیل می‌کند — یعنی همان بازمحاسبه قیمت از
+       DB، رزرو Atomic کد تخفیف، و کسر موجودی که از قبل در
+       Dashboard تست‌شده بود، این‌جا هم عیناً اجرا می‌شود؛ کد تخفیف
+       اعمال‌شده روی Cart (`cart.appliedCoupon`) مستقیماً به
+       `createOrder` پاس داده می‌شود.
+    3. بعد از موفقیت، Cart را کامل خالی می‌کند.
+    4. اگر `paymentMethod !== "cash"`، بلافاصله
+       `initiateOrderPayment()` را با همان `useWallet` که کاربر
+       فرستاده صدا می‌زند (پرداخت ترکیبی Wallet+درگاه، بدون یک
+       Round-trip HTTP اضافه به Route دیگر).
+    5. اگر ایجاد سفارش موفق بود ولی شروع پرداخت شکست خورد، سفارش را
+       از دست نمی‌دهیم — پاسخ ۲۰۱ با `payment: null` و
+       `paymentError` برمی‌گردد؛ مشتری بعداً می‌تواند دوباره تلاش کند.
+  - ⚠️ **بدون موتور محاسبه هزینه ارسال:** `shippingCost` مستقیماً از
+    Client گرفته می‌شود (همان ریسکی که فرم سفارش Dashboard هم از قبل
+    داشت) — چون هیچ سرویس محاسبه خودکار هزینه ارسال (بر اساس فاصله
+    Lat/Lng که در Phase 5 ذخیره می‌شود) هنوز ساخته نشده.
+  - ۶ تست جدید Validation برای `checkoutSchema` — ۱۸۹ تست کل.
 - ✅ Wallet — تکمیل به نسخه قابل استفاده کامل (طبق درخواست صریح
   کارفرما، فراتر از نسخه ساده Phase 8):
   - **واریز (Top-up):** `WalletTopup` (مدل جدا از `Payment` — چون
@@ -627,7 +663,9 @@ src/
     db/         connect.ts
     constants/  rbac.ts, dashboard-nav.ts
     sms/        send-otp-sms.ts, send-order-status-sms.ts
-    payment/    zarinpal.ts (server-only — merchant secret never in client)
+    payment/    zarinpal.ts (server-only — merchant secret never in client),
+                initiate-order-payment.ts (initiateOrderPayment — پرداخت ترکیبی Wallet+درگاه)
+    orders/     create-order.ts (createOrder — منطق مشترک Dashboard + Checkout)
     audit/      log-activity.ts (Best-effort — مثل الگوی پیامک سفارش)
     discounts/  engine.ts, validate-coupon.ts, redeem-coupon.ts,
                 generate-coupon-code.ts
@@ -1023,20 +1061,30 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
   توسط ادمین (طبق تصمیم صریح کارفرما — نسخه ساده). اگر در آینده
   مشتری بخواهد خودش کیف پول را شارژ کند، آن یک تصمیم/Task کاملاً جدا
   (اتصال درگاه پرداخت واقعی) است.
-- **Cart هنوز مستقیماً به Wallet وصل نیست:** Wallet اکنون کامل است
-  (واریز، برداشت، پرداخت ترکیبی روی Payment سفارش‌ها)، اما Cart
-  فعلی هیچ گزینه «پرداخت با کیف پول» ندارد — چون Cart هنوز به
-  Checkout واقعی وصل نیست. وقتی Checkout ساخته شود، همان الگوی
-  `useWallet` که در `payments/initiate` پیاده شد، مستقیماً قابل
-  استفاده مجدد است.
+- **Cart↔Wallet اکنون وصل است (به‌روزرسانی):** با ساخت `POST
+  /api/v1/checkout`، پرداخت ترکیبی Wallet+درگاه اکنون از روی Cart
+  واقعی هم در دسترس است (فلگ `useWallet` در Checkout). ورودی قدیمی
+  این بخش (که می‌گفت «هنوز وصل نیست») منسوخ شد.
 - **بدون API واقعی Payout خودکار:** درخواست‌های برداشت یک صف بررسی
   دستی‌اند — ادمین باید واریز واقعی (کارت‌به‌کارت یا پایا/ساتنا) را
   خودش خارج از سیستم انجام دهد و فقط نتیجه را در Dashboard ثبت کند.
   اتصال به یک API واقعی Payout (اگر چنین سرویسی در آینده تهیه شود)
   یک تصمیم/Task جداست.
-- **Cart هنوز به فرآیند واقعی Checkout/Order Creation وصل نیست** و
-  Race Condition لحظه Checkout هنوز مدیریت نشده — این آخرین بخش باقی‌
-  مانده از Phase 8 است.
+- **بدون موتور محاسبه خودکار هزینه ارسال:** `POST /api/v1/checkout`
+  و فرم سفارش Dashboard هر دو `shippingCost` را مستقیماً از ورودی
+  می‌گیرند. Lat/Lng آدرس از Phase 5 ذخیره می‌شود، اما هنوز هیچ سرویسی
+  از روی فاصله هزینه واقعی را حساب نمی‌کند.
+- **Race Condition واقعی Checkout هنوز به‌صورت کامل تحت بار همزمان
+  تست نشده:** کسر موجودی در `createOrder()` با `Product.updateOne`
+  ساده انجام می‌شود (بدون شرط `stock >= quantity` در خود Query)؛ در
+  عمل به دلیل چک قبلی همان تابع (`variant.stock < item.quantity`)
+  ریسک پایینی دارد اما از نظر ساختاری، برخلاف `adjustWalletBalance`،
+  کاملاً Atomic نیست. این رفتار همانی است که از قبل (پیش از این
+  جلسه) در `POST /api/v1/orders` وجود داشت؛ Checkout جدید فقط از
+  همان تابع استفاده مجدد کرد، آن را تغییر نداد. اگر در آینده Traffic
+  همزمان واقعی روی یک Variant کم‌موجودی مطرح شد، باید به الگوی
+  `findOneAndUpdate` با شرط داخل Query (مثل `adjustWalletBalance`)
+  مهاجرت کند.
 - **بدون Integration/API Test واقعی:** تست‌های پروژه (از ابتدا) فقط
   Unit Test روی توابع خالص/Zod Schema هستند. اگر در آینده تست خودکار
   Route‌های واقعی با یک DB واقعی لازم شد، باید زیرساخت جداگانه‌ای

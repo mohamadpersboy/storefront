@@ -253,6 +253,47 @@ Atomic کسر می‌شود؛ رد کردن آن را برمی‌گرداند.
 
 ---
 
+## ۸. Checkout واقعی (Cart → Order)
+
+| Method | Path | دسترسی |
+|---|---|---|
+| POST | `/api/v1/checkout` | هر کاربر Login‌شده (خودش صاحب سفارش است) |
+
+بدنه:
+```json
+{
+  "shippingAddress": { "recipientName", "phoneNumber", "province", "city", "addressLine", "postalCode", "latitude?", "longitude?" },
+  "paymentMethod": "online" | "cash" | "split",
+  "prepaymentPercent": 50,
+  "shippingCost": 50000,
+  "useWallet": true,
+  "notes": ""
+}
+```
+
+رفتار:
+1. Cart کاربر بازمحاسبه می‌شود (دقیقاً مثل `POST /api/v1/cart/validate`)؛ اگر خالی باشد یا Itemی `isAvailable: false` داشته باشد، رد می‌شود.
+2. Itemهای Cart با همان منطق مشترک `createOrder()` (که Dashboard هم استفاده می‌کند) به سفارش واقعی تبدیل می‌شوند — بازمحاسبه قیمت از DB، رزرو Atomic کد تخفیف، کسر موجودی. کد تخفیف اعمال‌شده روی Cart مستقیماً پاس داده می‌شود.
+3. Cart بعد از موفقیت کامل خالی می‌شود.
+4. اگر `paymentMethod !== "cash"`: بلافاصله `initiateOrderPayment()` با همان `useWallet` صدا زده می‌شود (پرداخت ترکیبی).
+5. اگر ایجاد سفارش موفق ولی شروع پرداخت ناموفق بود: پاسخ ۲۰۱ با `payment: null` و `paymentError` — سفارش از دست نمی‌رود، بعداً می‌توان از `POST /api/v1/payments/initiate` دوباره تلاش کرد.
+
+پاسخ موفق:
+```json
+{
+  "order": { "id", "orderNumber", "totalAmount" },
+  "payment": {
+    "paymentId", "paymentUrl": "https://...|null",
+    "amount": 500000, "walletAmount": 200000,
+    "paidFromWallet": false, "reused": false
+  }
+}
+```
+
+⚠️ بدون موتور محاسبه خودکار هزینه ارسال — `shippingCost` مستقیماً از Client گرفته می‌شود.
+
+---
+
 ## Environment Variables جدید این سند
 
 به `.env.example` مراجعه کنید. خلاصه:
