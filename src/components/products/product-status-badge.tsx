@@ -11,6 +11,6 @@ const statusConfig: Record<
 };
 
 export function ProductStatusBadge({ status }: { status: ProductStatus }) {
-  const config = statusConfig[status];
+  const config = statusConfig[status] ?? { label: "نامشخص", tone: "neutral" as const };
   return <Badge tone={config.tone}>{config.label}</Badge>;
 }

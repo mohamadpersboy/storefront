@@ -15,6 +15,6 @@ const statusConfig: Record<
 };
 
 export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
-  const config = statusConfig[status];
+  const config = statusConfig[status] ?? { label: "نامشخص", tone: "neutral" as const };
   return <Badge tone={config.tone}>{config.label}</Badge>;
 }

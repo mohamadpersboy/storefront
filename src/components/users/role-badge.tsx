@@ -11,7 +11,12 @@ const roleConfig: Record<
   customer: { label: "مشتری", tone: "neutral" },
 };
 
+const unknownRoleConfig = { label: "نامشخص", tone: "neutral" as const };
+
 export function RoleBadge({ role }: { role: Role }) {
-  const config = roleConfig[role];
+  // اگر یک رکورد قدیمی/دستکاری‌شده در DB مقداری خارج از ۴ نقش تعریف‌شده
+  // داشته باشد (مثلاً از قبل از اضافه‌شدن RBAC)، به‌جای Crash کردن کل
+  // صفحه، یک Badge خنثی «نامشخص» نمایش داده می‌شود.
+  const config = roleConfig[role] ?? unknownRoleConfig;
   return <Badge tone={config.tone}>{config.label}</Badge>;
 }
