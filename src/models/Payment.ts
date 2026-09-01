@@ -27,6 +27,11 @@ export const PAYMENT_STATUSES: PaymentStatus[] = [
 export interface IPayment {
   order: Types.ObjectId;
   amount: number; // Tomans — the online portion being collected through the gateway
+  // بخشی که از کیف پول کسر شده (Phase «پرداخت ترکیبی»). جدا از
+  // `amount` نگه داشته می‌شود چون `amount` دقیقاً همان مبلغی است که
+  // به زرین‌پال درخواست داده شده و Zarinpal.verify باید همان عدد را
+  // ببیند؛ جمع این دو، مبلغ کل پرداخت‌شده برای این تلاش است.
+  walletAmount: number;
   provider: PaymentProvider;
   status: PaymentStatus;
   authority: string; // Zarinpal transaction identifier, issued at request time
@@ -46,6 +51,7 @@ const PaymentSchema = new Schema<IPayment>(
   {
     order: { type: Schema.Types.ObjectId, ref: "Order", required: true, index: true },
     amount: { type: Number, required: true, min: 0 },
+    walletAmount: { type: Number, default: 0, min: 0 },
     provider: { type: String, enum: ["zarinpal"], default: "zarinpal", required: true },
     status: {
       type: String,

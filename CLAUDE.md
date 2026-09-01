@@ -412,6 +412,45 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
     و وضعیت واقعی فعلی پروژه را نشان می‌دهد.
   - `.env.example` از Phase 4 به بعد به‌روز نگه داشته شده (بدون
     نیاز به تغییر بیشتر در این Phase).
+- ✅ Wallet — تکمیل به نسخه قابل استفاده کامل (طبق درخواست صریح
+  کارفرما، فراتر از نسخه ساده Phase 8):
+  - **واریز (Top-up):** `WalletTopup` (مدل جدا از `Payment` — چون
+    `Payment.order` اجباری است و شارژ کیف پول به هیچ سفارشی وصل
+    نیست). `POST /api/v1/wallet/topup` یک Session زرین‌پال می‌سازد
+    (دقیقاً همان الگوی `payments/initiate`)؛
+    `GET /api/v1/wallet/topup/callback` (عمومی، بدون Auth — چون
+    زرین‌پال مرورگر خود کاربر را برمی‌گرداند) بعد از Verify واقعی با
+    زرین‌پال، موجودی را با همان `adjustWalletBalance` مشترک اعتبار
+    می‌دهد. صفحه نتیجه: `/wallet/topup/result`.
+  - **درخواست برداشت (تسویه به کارت/شبا):** `WithdrawalRequest` —
+    چون هیچ API واقعی Payout خودکار وصل نیست، این یک صف بررسی دستی
+    است: مبلغ همان لحظه ثبت درخواست Atomic کسر می‌شود (نه لحظه تأیید
+    ادمین) تا کاربر نتواند با چند درخواست هم‌زمان بیشتر از موجودی
+    واقعی‌اش خرج کند؛ اگر رد شود مبلغ برمی‌گردد.
+    `POST /api/v1/wallet/withdrawals` (خود کاربر)،
+    `GET /api/v1/wallets/withdrawals` + `POST
+    /api/v1/wallets/withdrawals/:id/review` (Admin، `WALLET_MANAGE`).
+    UI: صفحه صف بررسی در `/dashboard/wallets/withdrawals` (لینک در
+    Nav اصلی Dashboard اضافه شد، نه زیرمجموعه Settings، چون یک Action
+    Queue است نه یک تنظیم).
+  - **پرداخت ترکیبی (Wallet + Zarinpal):** `POST
+    /api/v1/payments/initiate` حالا یک فیلد اختیاری `useWallet`
+    می‌گیرد. اگر true باشد، تا سقف موجودی واقعی کیف پول مشتری از
+    مبلغ باقی‌مانده کسر می‌شود (Atomic) و فقط باقیمانده واقعی به
+    زرین‌پال فرستاده می‌شود؛ اگر کل مبلغ را کیف پول پوشش دهد، اصلاً
+    به درگاه نیاز نیست. `Payment` یک فیلد جدید `walletAmount` گرفت
+    (Additive، پیش‌فرض ۰، سازگار با رکوردهای قدیمی) تا سهم کیف پول از
+    سهم درگاه جدا بماند.
+  - **⚠️ نکته صحت مالی مهم که اضافه شد:** اگر بعد از کسر بخش کیف پول،
+    تلاش درگاه شکست بخورد یا کاربر لغو کند،
+    `payments/callback` همان بخش کیف پول را خودکار برمی‌گرداند —
+    وگرنه مشتری بابت یک تلاش پرداخت ناموفق واقعاً پول از دست می‌داد.
+    این جبران دقیقاً یک‌بار اتفاق می‌افتد (به کمک همان Guard موجود که
+    از پردازش دوباره یک Payment که قبلاً به `failed` رفته جلوگیری
+    می‌کند).
+  - ۲۱ تست جدید Validation (Topup/Withdrawal/Review) — ۱۸۳ تست کل.
+  - RBAC از قبل موجود (`WALLET_READ`/`WALLET_MANAGE`) بدون تغییر
+    دوباره استفاده شد.
 - ✅ Audit / Activity Log (بند ۵۳): مدل `ActivityLog` Append-only
   (بدون API ویرایش/حذف — یک Audit Trail واقعی باید غیرقابل‌دستکاری
   بماند)؛ `actorName` به‌صورت Snapshot ذخیره می‌شود نه Populate زنده،
@@ -608,7 +647,8 @@ src/
                 storefront-products.ts
     mock/       dashboard.ts (فقط همین باقی مانده Mock)
   models/       SocialLinks.ts, Province.ts, City.ts, Cart.ts, Wallet.ts,
-                WalletTransaction.ts, User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts,
+                WalletTransaction.ts, WalletTopup.ts, WithdrawalRequest.ts,
+                User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts,
                 Color.ts, Order.ts, Counter.ts, AmazingOffer.ts, Payment.ts,
                 Coupon.ts, CouponRedemption.ts, DiscountSettings.ts,
                 ActivityLog.ts
@@ -983,11 +1023,17 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
   توسط ادمین (طبق تصمیم صریح کارفرما — نسخه ساده). اگر در آینده
   مشتری بخواهد خودش کیف پول را شارژ کند، آن یک تصمیم/Task کاملاً جدا
   (اتصال درگاه پرداخت واقعی) است.
-- **Cart هنوز مستقیماً به Wallet وصل نیست:** موجودی کیف پول در پاسخ
-  `GET /api/v1/cart` نمایش داده نمی‌شود و «پرداخت با کیف پول» جایی
-  اعمال نمی‌شود، چون Checkout واقعی هنوز وجود ندارد. ساختار عددی
-  فعلی Cart (`grandTotal`) هیچ مانعی برای این اتصال در آینده ایجاد
-  نکرده است.
+- **Cart هنوز مستقیماً به Wallet وصل نیست:** Wallet اکنون کامل است
+  (واریز، برداشت، پرداخت ترکیبی روی Payment سفارش‌ها)، اما Cart
+  فعلی هیچ گزینه «پرداخت با کیف پول» ندارد — چون Cart هنوز به
+  Checkout واقعی وصل نیست. وقتی Checkout ساخته شود، همان الگوی
+  `useWallet` که در `payments/initiate` پیاده شد، مستقیماً قابل
+  استفاده مجدد است.
+- **بدون API واقعی Payout خودکار:** درخواست‌های برداشت یک صف بررسی
+  دستی‌اند — ادمین باید واریز واقعی (کارت‌به‌کارت یا پایا/ساتنا) را
+  خودش خارج از سیستم انجام دهد و فقط نتیجه را در Dashboard ثبت کند.
+  اتصال به یک API واقعی Payout (اگر چنین سرویسی در آینده تهیه شود)
+  یک تصمیم/Task جداست.
 - **Cart هنوز به فرآیند واقعی Checkout/Order Creation وصل نیست** و
   Race Condition لحظه Checkout هنوز مدیریت نشده — این آخرین بخش باقی‌
   مانده از Phase 8 است.

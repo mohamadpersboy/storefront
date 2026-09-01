@@ -9,6 +9,7 @@ import {
   BadgePercent,
   Sparkles,
   Ticket,
+  Wallet,
   Settings,
 } from "lucide-react";
 
@@ -30,5 +31,7 @@ export const dashboardNav: DashboardNavItem[] = [
   { label: "تخفیف‌ها", href: "/dashboard/discounts", icon: BadgePercent, enabled: true },
   { label: "کدهای تخفیف", href: "/dashboard/coupons", icon: Ticket, enabled: true },
   { label: "تخفیف‌های شگفت‌انگیز", href: "/dashboard/amazing-offers", icon: Sparkles, enabled: true },
+  { label: "درخواست‌های برداشت", href: "/dashboard/wallets/withdrawals", icon: Wallet, enabled: true },
   { label: "تنظیمات", href: "/dashboard/settings", icon: Settings, enabled: true },
 ];
+

@@ -8,6 +8,7 @@ import { initiatePaymentSchema } from "@/lib/validations/payments";
 import { computeRemainingOnlineAmount } from "@/lib/utils/pricing";
 import { requestZarinpalPayment, getZarinpalStartPayUrl } from "@/lib/payment/zarinpal";
 import { env } from "@/config/env";
+import { getOrCreateWallet, adjustWalletBalance } from "@/lib/wallet/wallet-service";
 
 export async function POST(request: Request) {
   const guard = await requireApiUser(PERMISSIONS.PAYMENTS_MANAGE);
@@ -63,18 +64,79 @@ export async function POST(request: Request) {
     });
   }
 
-  const customer = order.customer as unknown as { phoneNumber?: string } | undefined;
+  const customer = order.customer as unknown as { _id?: unknown; phoneNumber?: string } | undefined;
+
+  // پرداخت ترکیبی (بند «پرداخت ترکیبی» — کسر از کیف پول + باقیمانده
+  // از درگاه). تا سقف موجودی واقعی کیف پول مشتری، نه بیشتر — و اگر
+  // کل مبلغ باقی‌مانده را کیف پول پوشش دهد، اصلاً نیازی به زرین‌پال
+  // نیست.
+  let remainingAfterWallet = remaining;
+  let walletPortion = 0;
+
+  if (parsed.data.useWallet && customer?._id) {
+    const wallet = await getOrCreateWallet(String(customer._id));
+    walletPortion = Math.min(wallet.balance, remaining);
+
+    if (walletPortion > 0) {
+      await adjustWalletBalance({
+        userId: String(customer._id),
+        type: "debit",
+        amount: walletPortion,
+        reason: `پرداخت بخشی از سفارش #${order.orderNumber} از کیف پول`,
+        performedBy: guard.user!.id,
+      });
+      remainingAfterWallet = remaining - walletPortion;
+    }
+  }
+
+  if (remainingAfterWallet <= 0) {
+    // کل مبلغ از کیف پول پوشش داده شد — نیازی به درگاه نیست.
+    const payment = await Payment.create({
+      order: order._id,
+      amount: 0,
+      walletAmount: walletPortion,
+      provider: "zarinpal",
+      status: "paid",
+      authority: `wallet-${order._id}-${Date.now()}`, // یکتا، هرگز واقعاً به زرین‌پال ارسال نمی‌شود
+      description: `پرداخت کامل سفارش #${order.orderNumber} از کیف پول`,
+      initiatedBy: guard.user!.id,
+      paidAt: new Date(),
+    });
+
+    return apiSuccess(
+      {
+        paymentId: payment.id,
+        paymentUrl: null,
+        amount: 0,
+        walletAmount: walletPortion,
+        paidFromWallet: true,
+      },
+      { status: 201 },
+    );
+  }
+
   const description = `پرداخت سفارش #${order.orderNumber} — فروشگاه فرش`;
   const callbackUrl = new URL("/api/v1/payments/callback", env.NEXT_PUBLIC_APP_URL).toString();
 
   const result = await requestZarinpalPayment({
-    amount: remaining,
+    amount: remainingAfterWallet,
     description,
     callbackUrl,
     mobile: customer?.phoneNumber,
   });
 
   if (!("authority" in result)) {
+    // درگاه رد کرد — اگر بخشی از کیف پول کسر شده بود، باید برگردانیم
+    // تا مشتری بابت یک تلاش ناموفق پول از دست ندهد.
+    if (walletPortion > 0 && customer?._id) {
+      await adjustWalletBalance({
+        userId: String(customer._id),
+        type: "credit",
+        amount: walletPortion,
+        reason: `استرداد بخش کیف پول — درخواست پرداخت سفارش #${order.orderNumber} توسط درگاه رد شد`,
+        performedBy: guard.user!.id,
+      });
+    }
     return apiError(result.message, { status: 502 });
   }
 
@@ -82,7 +144,8 @@ export async function POST(request: Request) {
 
   const payment = await Payment.create({
     order: order._id,
-    amount: remaining,
+    amount: remainingAfterWallet,
+    walletAmount: walletPortion,
     provider: "zarinpal",
     status: "pending",
     authority,
@@ -91,7 +154,13 @@ export async function POST(request: Request) {
   });
 
   return apiSuccess(
-    { paymentId: payment.id, paymentUrl, amount: remaining, reused: false },
+    {
+      paymentId: payment.id,
+      paymentUrl,
+      amount: remainingAfterWallet,
+      walletAmount: walletPortion,
+      reused: false,
+    },
     { status: 201 },
   );
 }
