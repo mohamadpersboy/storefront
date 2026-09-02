@@ -961,6 +961,27 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 
 ## 13. Important Decisions Log
 
+**🔴 باگ بحرانی رفع‌شده — Environment Variables در باندل Client:**
+`src/lib/neshan/config.ts` (مصرف‌شده توسط کامپوننت Client
+`NeshanMapPicker`) به‌اشتباه `env` را از `@/config/env` Import
+می‌کرد. چون آن فایل کل Schema اعتبارسنجی متغیرهای *سرور* (شامل
+`MONGODB_URI`, `AUTH_SECRET`, `CLOUDINARY_API_SECRET` و...) را هم در
+بر دارد، این Import کل آن منطق را داخل باندل جاوااسکریپت مرورگر
+می‌برد. در مرورگر `process.env` یک Object واقعی نیست (Next.js فقط
+ارجاع‌های *مستقیم* مثل `process.env.NEXT_PUBLIC_X` را زمان Build
+جایگزین می‌کند، نه یک خواندن کلی از `process.env`)، پس اعتبارسنجی
+همیشه با «همه فیلدها undefined» شکست می‌خورد — این دقیقاً همان خطای
+«Invalid environment variables» بود که در `/dashboard/orders/new`
+دیده شد؛ **هیچ ربطی به تنظیمات Vercel نداشت.**
+رفع شد: `neshan/config.ts` اکنون مستقیماً `process.env.NEXT_PUBLIC_NESHAN_API_KEY`
+(یک ارجاع ادبی مستقیم، قابل Inline شدن توسط Next.js) می‌خواند، نه از
+طریق ماژول مشترک `env.ts`. تأیید شد با بررسی مستقیم خروجی Build که
+دیگر هیچ اثری از Secretهای سرور در باندل Client نیست.
+**درس گرفته‌شده برای آینده:** هر فایلی که قرار است از یک کامپوننت
+`"use client"` مصرف شود، هرگز نباید از `@/config/env` (که کل
+Secretهای سرور را هم دارد) Import کند — حتی برای خواندن یک متغیر
+`NEXT_PUBLIC_*`. باید مستقیم از `process.env.NEXT_PUBLIC_X` خواند.
+
 | مرحله | تصمیم | دلیل |
 |---|---|---|
 | Social Links | `GET /api/v1/social-links` بدون `requireApiUser` (اولین Route عمومی پروژه) | Storefront آینده (فوتر) و Dashboard هر دو باید بتوانند بدون Session این را بخوانند؛ داده حساسیتی ندارد که نیاز به Auth داشته باشد |
