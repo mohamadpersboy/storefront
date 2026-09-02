@@ -166,7 +166,7 @@ export function OrderDetailCard({ order }: { order: OrderDetailData }) {
 
       <Card>
         <CardHeader title="اقلام سفارش" />
-        <Table className="min-w-[560px]">
+        <Table>
           <TableHeaderRow>
             <TableHead>محصول</TableHead>
             <TableHead>مشخصات</TableHead>
@@ -177,15 +177,17 @@ export function OrderDetailCard({ order }: { order: OrderDetailData }) {
           <TableBody>
             {order.items.map((item, i) => (
               <TableRow key={i}>
-                <TableCell className="font-medium text-foreground">{item.title}</TableCell>
-                <TableCell className="text-xs text-muted">
+                <TableCell mobileVariant="title" className="font-medium text-foreground">
+                  {item.title}
+                </TableCell>
+                <TableCell label="مشخصات" className="text-xs text-muted">
                   {[item.unit, item.colorName, ...item.attributes.map((a) => a.value)]
                     .filter(Boolean)
                     .join(" · ")}
                 </TableCell>
-                <TableCell className="tabular-nums">{toPersianDigits(item.quantity)}</TableCell>
-                <TableCell className="tabular-nums">{formatToman(item.unitPrice)}</TableCell>
-                <TableCell className="tabular-nums font-medium">
+                <TableCell label="تعداد" className="tabular-nums">{toPersianDigits(item.quantity)}</TableCell>
+                <TableCell label="قیمت واحد" className="tabular-nums">{formatToman(item.unitPrice)}</TableCell>
+                <TableCell label="جمع" className="tabular-nums font-medium">
                   {formatToman(item.lineTotal)}
                 </TableCell>
               </TableRow>

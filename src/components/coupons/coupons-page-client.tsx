@@ -180,30 +180,30 @@ export function CouponsPageClient() {
               <TableBody>
                 {coupons.map((c) => (
                   <TableRow key={c.id}>
-                    <TableCell className="px-4 py-3 font-medium tabular-nums text-foreground">
+                    <TableCell mobileVariant="title" className="px-4 py-3 font-medium tabular-nums text-foreground">
                       <span dir="ltr">{c.code}</span>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-sm">
+                    <TableCell label="تخفیف" className="px-4 py-3 text-sm">
                       {toPersianDigits(c.discountPercentage)}٪
                       {c.maxDiscountAmount ? (
                         <span className="text-muted"> (سقف {formatToman(c.maxDiscountAmount)})</span>
                       ) : null}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-sm">
+                    <TableCell label="نوع" className="px-4 py-3 text-sm">
                       {c.type === "public" ? "عمومی" : "خصوصی"}
                     </TableCell>
-                    <TableCell className="px-4 py-3 tabular-nums">
+                    <TableCell label="استفاده" className="px-4 py-3 tabular-nums">
                       {toPersianDigits(c.usedCount)}
                       {c.usageLimit ? ` از ${toPersianDigits(c.usageLimit)}` : ""}
                     </TableCell>
-                    <TableCell className="px-4 py-3 tabular-nums text-muted">
+                    <TableCell label="انقضا" className="px-4 py-3 tabular-nums text-muted">
                       {formatDate(c.expiresAt)}
                     </TableCell>
-                    <TableCell className="px-4 py-3">
+                    <TableCell label="وضعیت" className="px-4 py-3">
                       <CouponStatusBadge status={c.status} isExpired={c.isExpired} />
                     </TableCell>
-                    <TableCell className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
+                    <TableCell mobileVariant="actions" className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1 sm:justify-end">
                         <Link
                           href={`/dashboard/coupons/${c.id}/edit`}
                           className="flex size-7 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-surface-subtle hover:text-foreground"

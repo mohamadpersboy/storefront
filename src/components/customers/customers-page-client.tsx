@@ -120,7 +120,7 @@ export function CustomersPageClient() {
             <TableBody>
               {customers.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell className="px-4 py-3">
+                  <TableCell mobileVariant="title" className="px-4 py-3">
                     <Link
                       href={`/dashboard/customers/${c.id}`}
                       className="font-medium text-foreground hover:text-primary"
@@ -128,19 +128,21 @@ export function CustomersPageClient() {
                       {c.fullName ?? "بدون نام"}
                     </Link>
                   </TableCell>
-                  <TableCell className="px-4 py-3 tabular-nums text-foreground/80">
-                    {c.phoneNumber}
+                  <TableCell label="شماره موبایل" className="px-4 py-3">
+                    <span dir="ltr" className="tabular-nums text-foreground/80">
+                      {c.phoneNumber}
+                    </span>
                   </TableCell>
-                  <TableCell className="px-4 py-3 tabular-nums">
+                  <TableCell label="تعداد سفارش" className="px-4 py-3 tabular-nums">
                     {toPersianDigits(c.ordersCount)}
                   </TableCell>
-                  <TableCell className="px-4 py-3 tabular-nums">
+                  <TableCell label="مجموع خرید" className="px-4 py-3 tabular-nums">
                     {formatToman(c.totalSpent)}
                   </TableCell>
-                  <TableCell className="px-4 py-3">
+                  <TableCell label="وضعیت" className="px-4 py-3">
                     <UserStatusBadge isActive={c.isActive} />
                   </TableCell>
-                  <TableCell className="px-4 py-3 tabular-nums text-muted">
+                  <TableCell label="تاریخ عضویت" className="px-4 py-3 tabular-nums text-muted">
                     {formatDate(c.createdAt)}
                   </TableCell>
                 </TableRow>

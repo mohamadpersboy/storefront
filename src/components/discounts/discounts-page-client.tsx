@@ -96,17 +96,17 @@ export function DiscountsPageClient() {
             <TableBody>
               {products.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell className="px-4 py-3 font-medium text-foreground">
+                  <TableCell mobileVariant="title" className="px-4 py-3 font-medium text-foreground">
                     {p.title}
                   </TableCell>
-                  <TableCell className="px-4 py-3 tabular-nums">
+                  <TableCell label="Variantهای تخفیف‌دار" className="px-4 py-3 tabular-nums">
                     {toPersianDigits(p.discountedVariantsCount)} از{" "}
                     {toPersianDigits(p.variantsCount)}
                   </TableCell>
-                  <TableCell className="px-4 py-3 tabular-nums">
+                  <TableCell label="کمترین قیمت نهایی" className="px-4 py-3 tabular-nums">
                     {formatToman(p.minPrice)}
                   </TableCell>
-                  <TableCell className="px-4 py-3">
+                  <TableCell mobileVariant="actions" className="px-4 py-3">
                     <Link
                       href={`/dashboard/products/${p.id}/edit`}
                       className="flex size-7 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-surface-subtle hover:text-foreground"

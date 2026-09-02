@@ -100,7 +100,7 @@ export function CustomerDetailCard({ customer }: { customer: CustomerDetailData 
             <TableBody>
               {customer.orders.map((o) => (
                 <TableRow key={o.id}>
-                  <TableCell className="px-4 py-3">
+                  <TableCell mobileVariant="title" className="px-4 py-3">
                     <Link
                       href={`/dashboard/orders/${o.id}`}
                       className="font-medium text-foreground hover:text-primary"
@@ -108,13 +108,13 @@ export function CustomerDetailCard({ customer }: { customer: CustomerDetailData 
                       #{toPersianDigits(o.orderNumber)}
                     </Link>
                   </TableCell>
-                  <TableCell className="px-4 py-3 tabular-nums">
+                  <TableCell label="مبلغ" className="px-4 py-3 tabular-nums">
                     {formatToman(o.totalAmount)}
                   </TableCell>
-                  <TableCell className="px-4 py-3">
+                  <TableCell label="وضعیت" className="px-4 py-3">
                     <OrderStatusBadge status={o.status} />
                   </TableCell>
-                  <TableCell className="px-4 py-3 tabular-nums text-muted">
+                  <TableCell label="تاریخ" className="px-4 py-3 tabular-nums text-muted">
                     {formatDate(o.createdAt)}
                   </TableCell>
                 </TableRow>

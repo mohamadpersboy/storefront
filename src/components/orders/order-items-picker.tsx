@@ -144,7 +144,7 @@ export function OrderItemsPicker({
   return (
     <div className="flex flex-col gap-4">
       {items.length > 0 ? (
-        <div className="overflow-hidden rounded-[var(--radius-md)] border border-border">
+        <div className="sm:overflow-hidden sm:rounded-[var(--radius-md)] sm:border sm:border-border">
           <Table>
             <TableHeaderRow>
               <TableHead className="px-3 py-2">محصول</TableHead>
@@ -157,24 +157,24 @@ export function OrderItemsPicker({
             <TableBody>
               {items.map((item, i) => (
                 <TableRow key={i}>
-                  <TableCell className="px-3 py-2 font-medium text-foreground">
+                  <TableCell mobileVariant="title" className="px-3 py-2 font-medium text-foreground">
                     {item.title}
                   </TableCell>
-                  <TableCell className="px-3 py-2 text-xs text-muted">
+                  <TableCell label="مشخصات" className="px-3 py-2 text-xs text-muted">
                     {item.unit}
                     {item.colorName ? ` · ${item.colorName}` : ""}
                     {item.attributesText ? ` · ${item.attributesText}` : ""}
                   </TableCell>
-                  <TableCell className="px-3 py-2 tabular-nums">
+                  <TableCell label="تعداد" className="px-3 py-2 tabular-nums">
                     {toPersianDigits(item.quantity)}
                   </TableCell>
-                  <TableCell className="px-3 py-2 tabular-nums">
+                  <TableCell label="قیمت واحد" className="px-3 py-2 tabular-nums">
                     {formatToman(item.unitPrice)}
                   </TableCell>
-                  <TableCell className="px-3 py-2 tabular-nums font-medium">
+                  <TableCell label="جمع" className="px-3 py-2 tabular-nums font-medium">
                     {formatToman(item.unitPrice * item.quantity)}
                   </TableCell>
-                  <TableCell className="px-3 py-2">
+                  <TableCell mobileVariant="actions" className="px-3 py-2">
                     <button
                       type="button"
                       onClick={() => removeItem(i)}
@@ -188,7 +188,7 @@ export function OrderItemsPicker({
               ))}
             </TableBody>
           </Table>
-          <div className="border-t border-border px-3 py-2 text-left text-sm">
+          <div className="mt-3 border-t border-border px-3 py-2 text-left text-sm sm:mt-0">
             جمع اقلام: <span className="font-medium">{formatToman(subtotal)}</span>
           </div>
         </div>

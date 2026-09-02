@@ -155,28 +155,28 @@ export function AmazingOffersPageClient() {
               <TableBody>
                 {offers.map((offer) => (
                   <TableRow key={offer.id}>
-                    <TableCell className="px-4 py-3">
+                    <TableCell mobileVariant="title" className="px-4 py-3">
                       <div className="font-medium text-foreground">
                         {offer.product?.title ?? "محصول حذف‌شده"}
                       </div>
                       <div className="text-xs text-muted">{offer.variant?.unit}</div>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-sm">
+                    <TableCell label="تخفیف" className="px-4 py-3 text-sm">
                       {offer.discountType === "percent"
                         ? `${offer.discountValue}٪`
                         : formatToman(offer.discountValue)}
                     </TableCell>
-                    <TableCell className="px-4 py-3 tabular-nums">
+                    <TableCell label="قیمت نهایی" className="px-4 py-3 tabular-nums">
                       {offer.finalPrice !== null ? formatToman(offer.finalPrice) : "—"}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-sm">
+                    <TableCell label="زمان باقی‌مانده" className="px-4 py-3 text-sm">
                       <AmazingOfferCountdown endAt={offer.endAt} />
                     </TableCell>
-                    <TableCell className="px-4 py-3">
+                    <TableCell label="وضعیت" className="px-4 py-3">
                       <AmazingOfferStatusBadge status={offer.status} />
                     </TableCell>
-                    <TableCell className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
+                    <TableCell mobileVariant="actions" className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1 sm:justify-end">
                         <Link
                           href={`/dashboard/amazing-offers/${offer.id}/edit`}
                           className="flex size-7 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-surface-subtle hover:text-foreground"

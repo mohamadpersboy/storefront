@@ -136,7 +136,7 @@ export function UsersPageClient() {
             description="جستجو یا فیلتر را تغییر دهید."
           />
         ) : (
-          <Table className="min-w-[640px]">
+          <Table>
             <TableHeaderRow>
               <TableHead>نام</TableHead>
               <TableHead>شماره موبایل</TableHead>
@@ -147,7 +147,7 @@ export function UsersPageClient() {
             <TableBody>
               {users.map((u) => (
                 <TableRow key={u.id}>
-                  <TableCell>
+                  <TableCell mobileVariant="title">
                     <Link
                       href={`/dashboard/users/${u.id}`}
                       className="font-medium text-foreground hover:text-primary"
@@ -155,16 +155,18 @@ export function UsersPageClient() {
                       {u.fullName ?? "بدون نام"}
                     </Link>
                   </TableCell>
-                  <TableCell className="tabular-nums text-foreground/80">
-                    {u.phoneNumber}
+                  <TableCell label="شماره موبایل" className="text-foreground/80">
+                    <span dir="ltr" className="tabular-nums">
+                      {u.phoneNumber}
+                    </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell label="نقش">
                     <RoleBadge role={u.role} />
                   </TableCell>
-                  <TableCell>
+                  <TableCell label="وضعیت">
                     <UserStatusBadge isActive={u.isActive} />
                   </TableCell>
-                  <TableCell className="tabular-nums text-muted">
+                  <TableCell label="تاریخ عضویت" className="tabular-nums text-muted">
                     {formatDate(u.createdAt)}
                   </TableCell>
                 </TableRow>

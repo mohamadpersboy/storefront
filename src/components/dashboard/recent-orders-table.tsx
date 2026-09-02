@@ -28,7 +28,7 @@ export function RecentOrdersTable({
   }
 
   return (
-    <Table className="min-w-[560px]">
+    <Table>
       <TableHeaderRow>
         <TableHead>شماره سفارش</TableHead>
         <TableHead>مشتری</TableHead>
@@ -40,20 +40,20 @@ export function RecentOrdersTable({
       <TableBody>
         {orders.map((order) => (
           <TableRow key={order.id}>
-            <TableCell className="font-medium text-foreground">
+            <TableCell mobileVariant="title" className="font-medium text-foreground">
               #{toPersianDigits(order.id)}
             </TableCell>
-            <TableCell className="text-foreground/80">{order.customerName}</TableCell>
-            <TableCell className="tabular-nums text-foreground/80">
+            <TableCell label="مشتری" className="text-foreground/80">{order.customerName}</TableCell>
+            <TableCell label="اقلام" className="tabular-nums text-foreground/80">
               {toPersianDigits(order.itemsCount)}
             </TableCell>
-            <TableCell className="tabular-nums text-foreground/80">
+            <TableCell label="مبلغ" className="tabular-nums text-foreground/80">
               {formatToman(order.total)}
             </TableCell>
-            <TableCell>
+            <TableCell label="وضعیت">
               <OrderStatusBadge status={order.status} />
             </TableCell>
-            <TableCell className="tabular-nums text-muted">{order.createdAt}</TableCell>
+            <TableCell label="تاریخ" className="tabular-nums text-muted">{order.createdAt}</TableCell>
           </TableRow>
         ))}
       </TableBody>

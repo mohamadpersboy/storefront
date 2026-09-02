@@ -8,8 +8,8 @@ export function Table({
   className?: string;
 }) {
   return (
-    <div className="overflow-x-auto">
-      <table className={cn("w-full text-sm", className)}>{children}</table>
+    <div className={cn("w-full overflow-x-auto sm:overflow-visible", className)}>
+      <table className="responsive-table w-full text-sm">{children}</table>
     </div>
   );
 }
@@ -50,7 +50,7 @@ export function TableRow({
   return (
     <tr
       className={cn(
-        "border-b border-border last:border-0 hover:bg-surface-subtle",
+        "border-b border-border last:border-0 hover:bg-surface-subtle sm:border-b",
         className,
       )}
     >
@@ -59,12 +59,34 @@ export function TableRow({
   );
 }
 
+type TableCellMobileVariant = "row" | "title" | "actions" | "hidden";
+
 export function TableCell({
   children,
   className,
+  /** برچسب این ستون روی موبایل — باید معادل متن TableHead باشد. */
+  label,
+  /**
+   * نحوه نمایش این سلول روی موبایل (پیش‌فرض "row" — یک ردیف
+   * «برچسب: مقدار»). نگاه کنید توضیح کامل در globals.css.
+   */
+  mobileVariant = "row",
+  dir,
 }: {
   children?: React.ReactNode;
   className?: string;
+  label?: string;
+  mobileVariant?: TableCellMobileVariant;
+  dir?: "ltr" | "rtl";
 }) {
-  return <td className={cn("px-5 py-3 text-center", className)}>{children}</td>;
+  return (
+    <td
+      dir={dir}
+      data-label={mobileVariant === "row" ? label : undefined}
+      data-mobile={mobileVariant !== "row" ? mobileVariant : undefined}
+      className={cn("px-5 py-3 text-center", className)}
+    >
+      {children}
+    </td>
+  );
 }

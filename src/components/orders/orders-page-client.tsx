@@ -139,7 +139,7 @@ export function OrdersPageClient() {
             description="جستجو یا فیلتر را تغییر دهید، یا سفارش جدیدی ثبت کنید."
           />
         ) : (
-          <Table className="min-w-[640px]">
+          <Table>
             <TableHeaderRow>
               <TableHead>شماره سفارش</TableHead>
               <TableHead>مشتری</TableHead>
@@ -151,7 +151,7 @@ export function OrdersPageClient() {
             <TableBody>
               {orders.map((o) => (
                 <TableRow key={o.id}>
-                  <TableCell>
+                  <TableCell mobileVariant="title">
                     <Link
                       href={`/dashboard/orders/${o.id}`}
                       className="font-medium text-foreground hover:text-primary"
@@ -159,19 +159,19 @@ export function OrdersPageClient() {
                       #{toPersianDigits(o.orderNumber)}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-foreground/80">
+                  <TableCell label="مشتری" className="text-foreground/80">
                     {o.customer?.fullName ?? o.customer?.phoneNumber ?? "—"}
                   </TableCell>
-                  <TableCell className="tabular-nums text-foreground/80">
+                  <TableCell label="اقلام" className="tabular-nums text-foreground/80">
                     {toPersianDigits(o.itemsCount)}
                   </TableCell>
-                  <TableCell className="tabular-nums text-foreground/80">
+                  <TableCell label="مبلغ کل" className="tabular-nums text-foreground/80">
                     {formatToman(o.totalAmount)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell label="وضعیت">
                     <OrderStatusBadge status={o.status} />
                   </TableCell>
-                  <TableCell className="tabular-nums text-muted">
+                  <TableCell label="تاریخ" className="tabular-nums text-muted">
                     {formatDate(o.createdAt)}
                   </TableCell>
                 </TableRow>

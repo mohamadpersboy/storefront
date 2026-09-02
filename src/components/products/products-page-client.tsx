@@ -175,7 +175,7 @@ export function ProductsPageClient() {
             description="جستجو یا فیلتر را تغییر دهید، یا محصول جدیدی بسازید."
           />
         ) : (
-          <Table className="min-w-[760px]">
+          <Table>
             <TableHeaderRow>
               <TableHead>محصول</TableHead>
               <TableHead>دسته‌بندی</TableHead>
@@ -188,10 +188,10 @@ export function ProductsPageClient() {
             <TableBody>
               {products.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell>
+                  <TableCell mobileVariant="title">
                     <Link
                       href={`/dashboard/products/${p.id}/edit`}
-                      className="flex items-center justify-center gap-3"
+                      className="flex items-center justify-center gap-3 sm:justify-center"
                     >
                       <div className="relative size-10 shrink-0 overflow-hidden rounded-[var(--radius-sm)] bg-surface-subtle">
                         {p.coverImage ? (
@@ -209,22 +209,22 @@ export function ProductsPageClient() {
                       </span>
                     </Link>
                   </TableCell>
-                  <TableCell className="text-foreground/80">
+                  <TableCell label="دسته‌بندی" className="text-foreground/80">
                     {p.category?.name ?? "—"}
                   </TableCell>
-                  <TableCell className="tabular-nums text-foreground/80">
+                  <TableCell label="Variantها" className="tabular-nums text-foreground/80">
                     {toPersianDigits(p.variantsCount)}
                   </TableCell>
-                  <TableCell className="tabular-nums text-foreground/80">
+                  <TableCell label="شروع قیمت" className="tabular-nums text-foreground/80">
                     {formatToman(p.minPrice)}
                   </TableCell>
-                  <TableCell className="tabular-nums text-foreground/80">
+                  <TableCell label="موجودی" className="tabular-nums text-foreground/80">
                     {toPersianDigits(p.totalStock)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell label="وضعیت">
                     <ProductStatusBadge status={p.status} />
                   </TableCell>
-                  <TableCell>
+                  <TableCell mobileVariant="actions">
                     <div className="flex items-center justify-center gap-1">
                       <button
                         onClick={() =>
