@@ -1,4 +1,34 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
+
+/**
+ * پوششی مشابه Card برای Listهای مبتنی بر Table — روی موبایل، برخلاف
+ * Card معمولی، هیچ حاشیه/پس‌زمینه‌ای ندارد (شفاف و بدون Padding)
+ * چون خود Card باعث می‌شد یک «کانتینر» بزرگ دور همه کارت‌های تک‌ردیفی
+ * دیده شود؛ فقط خود کارت‌های تک‌ردیفی (هر <tr>) باید حاشیه/پس‌زمینه
+ * سفید داشته باشند. روی دسکتاپ دقیقاً مثل Card معمولی است.
+ */
+export function TableCard({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-[var(--radius-lg)] border border-border bg-surface",
+        "max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
 
 export function Table({
   children,
@@ -43,14 +73,26 @@ export function TableBody({ children }: { children: React.ReactNode }) {
 export function TableRow({
   children,
   className,
+  /**
+   * اگر داده شود، کل ردیف (روی موبایل: کل کارت) قابل کلیک و به این
+   * مسیر لینک می‌شود — نه فقط عنوان داخلش. دکمه‌های عملیات داخل ردیف
+   * باید خودشان `stopPropagation` کنند تا کلیک رویشان باعث ناوبری
+   * ردیف نشود.
+   */
+  href,
 }: {
   children: React.ReactNode;
   className?: string;
+  href?: string;
 }) {
+  const router = useRouter();
+
   return (
     <tr
+      onClick={href ? () => router.push(href) : undefined}
       className={cn(
         "border-b border-border last:border-0 hover:bg-surface-subtle sm:border-b",
+        href && "cursor-pointer",
         className,
       )}
     >
@@ -71,17 +113,14 @@ export function TableCell({
    * «برچسب: مقدار»). نگاه کنید توضیح کامل در globals.css.
    */
   mobileVariant = "row",
-  dir,
 }: {
   children?: React.ReactNode;
   className?: string;
   label?: string;
   mobileVariant?: TableCellMobileVariant;
-  dir?: "ltr" | "rtl";
 }) {
   return (
     <td
-      dir={dir}
       data-label={mobileVariant === "row" ? label : undefined}
       data-mobile={mobileVariant !== "row" ? mobileVariant : undefined}
       className={cn("px-5 py-3 text-center", className)}

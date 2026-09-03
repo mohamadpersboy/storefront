@@ -3,11 +3,11 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { Search, Users as UsersIcon } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import {
   Table,
+  TableCard,
   TableHeaderRow,
   TableHead,
   TableBody,
@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RoleBadge } from "@/components/users/role-badge";
 import { UserStatusBadge } from "@/components/users/user-status-badge";
 import type { Role } from "@/lib/constants/rbac";
+import { toPersianDigits } from "@/lib/utils/format";
 
 const PAGE_SIZE = 8;
 const SEARCH_DEBOUNCE_MS = 400;
@@ -120,7 +121,7 @@ export function UsersPageClient() {
         </div>
       </div>
 
-      <Card>
+      <TableCard>
         {loading ? (
           <div className="p-5">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -146,19 +147,18 @@ export function UsersPageClient() {
             </TableHeaderRow>
             <TableBody>
               {users.map((u) => (
-                <TableRow key={u.id}>
+                <TableRow key={u.id} href={`/dashboard/users/${u.id}`}>
                   <TableCell mobileVariant="title">
                     <Link
                       href={`/dashboard/users/${u.id}`}
+                      onClick={(e) => e.stopPropagation()}
                       className="font-medium text-foreground hover:text-primary"
                     >
                       {u.fullName ?? "بدون نام"}
                     </Link>
                   </TableCell>
                   <TableCell label="شماره موبایل" className="text-foreground/80">
-                    <span dir="ltr" className="tabular-nums">
-                      {u.phoneNumber}
-                    </span>
+                    {toPersianDigits(u.phoneNumber)}
                   </TableCell>
                   <TableCell label="نقش">
                     <RoleBadge role={u.role} />
@@ -178,7 +178,7 @@ export function UsersPageClient() {
         {!loading && !error ? (
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         ) : null}
-      </Card>
+      </TableCard>
     </div>
   );
 }

@@ -3,7 +3,6 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
@@ -13,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Table,
+  TableCard,
   TableHeaderRow,
   TableHead,
   TableBody,
@@ -126,7 +126,7 @@ export function AmazingOffersPageClient() {
         </Link>
       </div>
 
-      <Card className="overflow-hidden">
+      <TableCard className="overflow-hidden">
         {loading && offers.length === 0 ? (
           <div className="flex flex-col gap-2 p-5">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -154,7 +154,7 @@ export function AmazingOffersPageClient() {
               </TableHeaderRow>
               <TableBody>
                 {offers.map((offer) => (
-                  <TableRow key={offer.id}>
+                  <TableRow key={offer.id} href={`/dashboard/amazing-offers/${offer.id}/edit`}>
                     <TableCell mobileVariant="title" className="px-4 py-3">
                       <div className="font-medium text-foreground">
                         {offer.product?.title ?? "محصول حذف‌شده"}
@@ -179,6 +179,7 @@ export function AmazingOffersPageClient() {
                       <div className="flex items-center justify-end gap-1 sm:justify-end">
                         <Link
                           href={`/dashboard/amazing-offers/${offer.id}/edit`}
+                          onClick={(e) => e.stopPropagation()}
                           className="flex size-7 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-surface-subtle hover:text-foreground"
                           aria-label="ویرایش"
                         >
@@ -186,7 +187,10 @@ export function AmazingOffersPageClient() {
                         </Link>
                         <button
                           type="button"
-                          onClick={() => setPendingDelete(offer)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPendingDelete(offer);
+                          }}
                           className="flex size-7 items-center justify-center rounded-[var(--radius-sm)] text-danger hover:bg-red-50"
                           aria-label="حذف"
                         >
@@ -201,7 +205,7 @@ export function AmazingOffersPageClient() {
             <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
           </>
         )}
-      </Card>
+      </TableCard>
 
       <ConfirmDialog
         open={pendingDelete !== null}

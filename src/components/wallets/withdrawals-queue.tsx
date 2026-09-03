@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatToman } from "@/lib/utils/format";
+import { formatToman, toPersianDigits } from "@/lib/utils/format";
 
 interface Withdrawal {
   id: string;
@@ -107,10 +107,10 @@ export function WithdrawalsQueue() {
           <CardContent className="flex flex-col gap-2 p-4">
             <div className="flex items-center justify-between">
               <span className="font-medium text-foreground">
-                {w.user.fullName ?? w.user.phoneNumber}
+                {w.user.fullName ?? toPersianDigits(w.user.phoneNumber)}
               </span>
-              <span dir="ltr" className="text-xs text-muted">
-                {w.user.phoneNumber}
+              <span className="text-xs text-muted">
+                {toPersianDigits(w.user.phoneNumber)}
               </span>
             </div>
             <p className="text-lg font-semibold text-foreground">{formatToman(w.amount)}</p>

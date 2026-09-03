@@ -3,7 +3,6 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { Plus, Search, ShoppingCart } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
+  TableCard,
   TableHeaderRow,
   TableHead,
   TableBody,
@@ -123,7 +123,7 @@ export function OrdersPageClient() {
         </Link>
       </div>
 
-      <Card>
+      <TableCard>
         {loading ? (
           <div className="p-5">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -150,17 +150,19 @@ export function OrdersPageClient() {
             </TableHeaderRow>
             <TableBody>
               {orders.map((o) => (
-                <TableRow key={o.id}>
+                <TableRow key={o.id} href={`/dashboard/orders/${o.id}`}>
                   <TableCell mobileVariant="title">
                     <Link
                       href={`/dashboard/orders/${o.id}`}
+                      onClick={(e) => e.stopPropagation()}
                       className="font-medium text-foreground hover:text-primary"
                     >
                       #{toPersianDigits(o.orderNumber)}
                     </Link>
                   </TableCell>
                   <TableCell label="مشتری" className="text-foreground/80">
-                    {o.customer?.fullName ?? o.customer?.phoneNumber ?? "—"}
+                    {o.customer?.fullName ??
+                      (o.customer?.phoneNumber ? toPersianDigits(o.customer.phoneNumber) : "—")}
                   </TableCell>
                   <TableCell label="اقلام" className="tabular-nums text-foreground/80">
                     {toPersianDigits(o.itemsCount)}
@@ -183,7 +185,7 @@ export function OrdersPageClient() {
         {!loading && !error ? (
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         ) : null}
-      </Card>
+      </TableCard>
     </div>
   );
 }

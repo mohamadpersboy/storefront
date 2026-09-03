@@ -3,10 +3,10 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { Search, Users as UsersIcon } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Table,
+  TableCard,
   TableHeaderRow,
   TableHead,
   TableBody,
@@ -92,7 +92,7 @@ export function CustomersPageClient() {
         />
       </div>
 
-      <Card className="overflow-hidden">
+      <TableCard className="overflow-hidden">
         {loading && customers.length === 0 ? (
           <div className="flex flex-col gap-2 p-5">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -119,19 +119,18 @@ export function CustomersPageClient() {
             </TableHeaderRow>
             <TableBody>
               {customers.map((c) => (
-                <TableRow key={c.id}>
+                <TableRow key={c.id} href={`/dashboard/customers/${c.id}`}>
                   <TableCell mobileVariant="title" className="px-4 py-3">
                     <Link
                       href={`/dashboard/customers/${c.id}`}
+                      onClick={(e) => e.stopPropagation()}
                       className="font-medium text-foreground hover:text-primary"
                     >
                       {c.fullName ?? "بدون نام"}
                     </Link>
                   </TableCell>
-                  <TableCell label="شماره موبایل" className="px-4 py-3">
-                    <span dir="ltr" className="tabular-nums text-foreground/80">
-                      {c.phoneNumber}
-                    </span>
+                  <TableCell label="شماره موبایل" className="px-4 py-3 text-foreground/80">
+                    {toPersianDigits(c.phoneNumber)}
                   </TableCell>
                   <TableCell label="تعداد سفارش" className="px-4 py-3 tabular-nums">
                     {toPersianDigits(c.ordersCount)}
@@ -154,7 +153,7 @@ export function CustomersPageClient() {
         {!loading && !error ? (
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         ) : null}
-      </Card>
+      </TableCard>
     </div>
   );
 }

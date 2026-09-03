@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Package, Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
@@ -16,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Table,
+  TableCard,
   TableHeaderRow,
   TableHead,
   TableBody,
@@ -159,7 +159,7 @@ export function ProductsPageClient() {
         </div>
       ) : null}
 
-      <Card>
+      <TableCard>
         {loading ? (
           <div className="p-5">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -187,11 +187,12 @@ export function ProductsPageClient() {
             </TableHeaderRow>
             <TableBody>
               {products.map((p) => (
-                <TableRow key={p.id}>
+                <TableRow key={p.id} href={`/dashboard/products/${p.id}/edit`}>
                   <TableCell mobileVariant="title">
                     <Link
                       href={`/dashboard/products/${p.id}/edit`}
-                      className="flex items-center justify-center gap-3 sm:justify-center"
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-3 sm:justify-center"
                     >
                       <div className="relative size-10 shrink-0 overflow-hidden rounded-[var(--radius-sm)] bg-surface-subtle">
                         {p.coverImage ? (
@@ -227,16 +228,20 @@ export function ProductsPageClient() {
                   <TableCell mobileVariant="actions">
                     <div className="flex items-center justify-center gap-1">
                       <button
-                        onClick={() =>
-                          router.push(`/dashboard/products/${p.id}/edit`)
-                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/dashboard/products/${p.id}/edit`);
+                        }}
                         aria-label="ویرایش"
                         className="flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-surface-subtle"
                       >
                         <Pencil className="size-4" />
                       </button>
                       <button
-                        onClick={() => setPendingDelete(p)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPendingDelete(p);
+                        }}
                         aria-label="حذف"
                         className="flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-danger hover:bg-red-50"
                       >
@@ -253,7 +258,7 @@ export function ProductsPageClient() {
         {!loading && !error ? (
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         ) : null}
-      </Card>
+      </TableCard>
 
       <ConfirmDialog
         open={pendingDelete !== null}

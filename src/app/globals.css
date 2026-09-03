@@ -117,6 +117,7 @@ body {
   }
   .responsive-table tr {
     display: block;
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     padding: 0.875rem 1rem;
@@ -124,28 +125,39 @@ body {
   .responsive-table tr + tr {
     margin-top: 0.75rem;
   }
+  /*
+   * هر سلول یک Grid دو‌ستونی با نسبت ۲ به ۳ است (روی ۵ واحد فرضی:
+   * ۲ واحد عنوان، ۳ واحد مقدار) — نه Flex با space-between؛ این‌طور
+   * مقدارها به‌جای چسبیدن به لبه چپ کارت، بلافاصله بعد از عنوان (که
+   * عرض ثابتی دارد) می‌آیند و همه‌چیز راست‌چین می‌ماند.
+   */
   .responsive-table td {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
+    display: grid;
+    grid-template-columns: 2fr 3fr;
+    align-items: start;
+    justify-items: start;
+    gap: 0.5rem;
     padding-block: 0.375rem;
+    text-align: right !important;
   }
   .responsive-table td[data-label]::before {
     content: attr(data-label);
-    flex-shrink: 0;
     font-size: 0.75rem;
     font-weight: 500;
     color: var(--color-muted);
   }
   .responsive-table td[data-mobile="title"] {
     display: block;
+    grid-template-columns: none;
     padding-block: 0 0.625rem;
     margin-bottom: 0.5rem;
     border-bottom: 1px solid var(--color-border);
+    text-align: right !important;
   }
   .responsive-table td[data-mobile="actions"] {
-    justify-content: center;
+    display: flex;
+    grid-template-columns: none;
+    justify-content: flex-start;
     padding-block: 0.625rem 0;
     margin-top: 0.25rem;
     border-top: 1px solid var(--color-border);

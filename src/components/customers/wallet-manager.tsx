@@ -5,7 +5,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatToman } from "@/lib/utils/format";
+import { formatToman, toPersianDigits } from "@/lib/utils/format";
 
 interface Transaction {
   id: string;
@@ -134,7 +134,11 @@ export function WalletManager({ userId }: Props) {
                   <div className="flex flex-col">
                     <span className="text-foreground">{t.reason}</span>
                     <span className="text-xs text-muted">
-                      {t.performedBy?.fullName ?? t.performedBy?.phoneNumber ?? "—"} ·{" "}
+                      {t.performedBy?.fullName ??
+                        (t.performedBy?.phoneNumber
+                          ? toPersianDigits(t.performedBy.phoneNumber)
+                          : "—")}{" "}
+                      ·{" "}
                       {new Intl.DateTimeFormat("fa-IR").format(new Date(t.createdAt))}
                     </span>
                   </div>

@@ -3,7 +3,6 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { Pencil, Plus, Search, Ticket, Trash2 } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Table,
+  TableCard,
   TableHeaderRow,
   TableHead,
   TableBody,
@@ -150,7 +150,7 @@ export function CouponsPageClient() {
         </Link>
       </div>
 
-      <Card className="overflow-hidden">
+      <TableCard className="overflow-hidden">
         {loading && coupons.length === 0 ? (
           <div className="flex flex-col gap-2 p-5">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -179,7 +179,7 @@ export function CouponsPageClient() {
               </TableHeaderRow>
               <TableBody>
                 {coupons.map((c) => (
-                  <TableRow key={c.id}>
+                  <TableRow key={c.id} href={`/dashboard/coupons/${c.id}/edit`}>
                     <TableCell mobileVariant="title" className="px-4 py-3 font-medium tabular-nums text-foreground">
                       <span dir="ltr">{c.code}</span>
                     </TableCell>
@@ -206,6 +206,7 @@ export function CouponsPageClient() {
                       <div className="flex items-center justify-end gap-1 sm:justify-end">
                         <Link
                           href={`/dashboard/coupons/${c.id}/edit`}
+                          onClick={(e) => e.stopPropagation()}
                           className="flex size-7 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-surface-subtle hover:text-foreground"
                           aria-label="ویرایش"
                         >
@@ -213,7 +214,10 @@ export function CouponsPageClient() {
                         </Link>
                         <button
                           type="button"
-                          onClick={() => setPendingDelete(c)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPendingDelete(c);
+                          }}
                           className="flex size-7 items-center justify-center rounded-[var(--radius-sm)] text-danger hover:bg-red-50"
                           aria-label="حذف"
                         >
@@ -228,7 +232,7 @@ export function CouponsPageClient() {
             <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
           </>
         )}
-      </Card>
+      </TableCard>
 
       <ConfirmDialog
         open={pendingDelete !== null}

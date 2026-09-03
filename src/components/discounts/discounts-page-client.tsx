@@ -3,13 +3,13 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { BadgePercent, Pencil } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pagination } from "@/components/ui/pagination";
 import {
   Table,
+  TableCard,
   TableHeaderRow,
   TableHead,
   TableBody,
@@ -69,7 +69,7 @@ export function DiscountsPageClient() {
   }, [page]);
 
   return (
-    <Card className="overflow-hidden">
+    <TableCard className="overflow-hidden">
       {loading && products.length === 0 ? (
         <div className="flex flex-col gap-2 p-5">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -95,7 +95,7 @@ export function DiscountsPageClient() {
             </TableHeaderRow>
             <TableBody>
               {products.map((p) => (
-                <TableRow key={p.id}>
+                <TableRow key={p.id} href={`/dashboard/products/${p.id}/edit`}>
                   <TableCell mobileVariant="title" className="px-4 py-3 font-medium text-foreground">
                     {p.title}
                   </TableCell>
@@ -109,6 +109,7 @@ export function DiscountsPageClient() {
                   <TableCell mobileVariant="actions" className="px-4 py-3">
                     <Link
                       href={`/dashboard/products/${p.id}/edit`}
+                      onClick={(e) => e.stopPropagation()}
                       className="flex size-7 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-surface-subtle hover:text-foreground"
                       aria-label="ویرایش محصول"
                     >
@@ -122,6 +123,6 @@ export function DiscountsPageClient() {
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </>
       )}
-    </Card>
+    </TableCard>
   );
 }
