@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ const statusOptions: Array<{ value: AmazingOfferComputedStatus | "all"; label: s
 ];
 
 export function AmazingOffersPageClient() {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<AmazingOfferComputedStatus | "all">("all");
   const [page, setPage] = useState(1);
 
@@ -176,7 +178,8 @@ export function AmazingOffersPageClient() {
                       <AmazingOfferStatusBadge status={offer.status} />
                     </TableCell>
                     <TableCell mobileVariant="actions" className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1 sm:justify-end">
+                      {/* دسکتاپ: فشرده، فقط آیکون */}
+                      <div className="hidden items-center justify-end gap-1 sm:flex">
                         <Link
                           href={`/dashboard/amazing-offers/${offer.id}/edit`}
                           onClick={(e) => e.stopPropagation()}
@@ -196,6 +199,35 @@ export function AmazingOffersPageClient() {
                         >
                           <Trash2 className="size-4" />
                         </button>
+                      </div>
+                      {/* موبایل: دکمه‌های واقعی با متن */}
+                      <div className="flex w-full gap-2 sm:hidden">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="flex-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/dashboard/amazing-offers/${offer.id}/edit`);
+                          }}
+                        >
+                          <Pencil className="size-4" />
+                          ویرایش
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="danger"
+                          size="sm"
+                          className="flex-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPendingDelete(offer);
+                          }}
+                        >
+                          <Trash2 className="size-4" />
+                          حذف
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

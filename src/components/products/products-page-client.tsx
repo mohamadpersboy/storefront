@@ -29,6 +29,14 @@ import type { ProductStatus } from "@/models/Product";
 const PAGE_SIZE = 8;
 const SEARCH_DEBOUNCE_MS = 400;
 
+interface ApiProductVariant {
+  id: string;
+  label: string;
+  price: number;
+  stock: number;
+  isActive: boolean;
+}
+
 interface ApiProduct {
   id: string;
   title: string;
@@ -39,6 +47,7 @@ interface ApiProduct {
   variantsCount: number;
   minPrice: number;
   totalStock: number;
+  variants: ApiProductVariant[];
 }
 
 const statusOptions: Array<{ value: ProductStatus | "all"; label: string }> = [
@@ -209,24 +218,67 @@ export function ProductsPageClient() {
                         {p.title}
                       </span>
                     </Link>
+
+                    {/* فقط روی موبایل: قیمت و موجودی هر Variant به‌صورت
+                        جداگانه (نه یک عدد تجمیعی) — بند خواسته‌شده. */}
+                    {p.variants.length > 0 ? (
+                      <div className="mt-2.5 flex flex-col gap-1.5 border-t border-border pt-2.5 sm:hidden">
+                        {p.variants.map((v) => (
+                          <div
+                            key={v.id}
+                            className="flex items-center justify-between gap-2 rounded-[var(--radius-sm)] bg-surface-subtle px-2.5 py-1.5 text-xs"
+                          >
+                            <span
+                              className={
+                                v.isActive ? "text-foreground/80" : "text-muted line-through"
+                              }
+                            >
+                              {v.label}
+                            </span>
+                            <span className="flex shrink-0 items-center gap-1.5 tabular-nums">
+                              <span className="text-muted">
+                                {toPersianDigits(v.stock)} عدد
+                              </span>
+                              <span className="text-border">·</span>
+                              <span className="font-medium text-foreground">
+                                {formatToman(v.price)}
+                              </span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                   </TableCell>
                   <TableCell label="دسته‌بندی" className="text-foreground/80">
                     {p.category?.name ?? "—"}
                   </TableCell>
-                  <TableCell label="Variantها" className="tabular-nums text-foreground/80">
+                  <TableCell
+                    label="Variantها"
+                    mobileVariant="hidden"
+                    className="tabular-nums text-foreground/80"
+                  >
                     {toPersianDigits(p.variantsCount)}
                   </TableCell>
-                  <TableCell label="شروع قیمت" className="tabular-nums text-foreground/80">
+                  <TableCell
+                    label="شروع قیمت"
+                    mobileVariant="hidden"
+                    className="tabular-nums text-foreground/80"
+                  >
                     {formatToman(p.minPrice)}
                   </TableCell>
-                  <TableCell label="موجودی" className="tabular-nums text-foreground/80">
+                  <TableCell
+                    label="موجودی"
+                    mobileVariant="hidden"
+                    className="tabular-nums text-foreground/80"
+                  >
                     {toPersianDigits(p.totalStock)}
                   </TableCell>
                   <TableCell label="وضعیت">
                     <ProductStatusBadge status={p.status} />
                   </TableCell>
                   <TableCell mobileVariant="actions">
-                    <div className="flex items-center justify-center gap-1">
+                    {/* دسکتاپ: فشرده، فقط آیکون */}
+                    <div className="hidden items-center justify-center gap-1 sm:flex">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -247,6 +299,35 @@ export function ProductsPageClient() {
                       >
                         <Trash2 className="size-4" />
                       </button>
+                    </div>
+                    {/* موبایل: دکمه‌های واقعی با متن، نه فقط آیکون */}
+                    <div className="flex w-full gap-2 sm:hidden">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="flex-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/dashboard/products/${p.id}/edit`);
+                        }}
+                      >
+                        <Pencil className="size-4" />
+                        ویرایش
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        className="flex-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPendingDelete(p);
+                        }}
+                      >
+                        <Trash2 className="size-4" />
+                        حذف
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>

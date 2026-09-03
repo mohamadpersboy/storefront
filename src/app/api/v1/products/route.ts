@@ -83,6 +83,18 @@ export async function GET(request: NextRequest) {
         discountedVariantsCount,
         minPrice: prices.length ? Math.min(...prices) : 0,
         totalStock,
+        // برای نمایش تفکیکی قیمت/موجودی هر Variant در کارت موبایل
+        // (بند «تعداد و قیمت هر ورینت جداگانه نمایش داده شود»).
+        // هیچ Query اضافه‌ای لازم نیست چون unit/attributes از قبل
+        // داخل خود سند Product Embed شده‌اند.
+        variants: p.variants.map((v) => ({
+          id: String(v._id),
+          label:
+            v.attributes.map((a) => a.value).join("، ") || v.unit || "بدون مشخصات",
+          price: computeFinalPrice(v.price, v.discountPercent, v.discountAmount),
+          stock: v.stock,
+          isActive: v.isActive,
+        })),
         createdAt: p.createdAt,
       };
     }),
