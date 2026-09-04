@@ -674,6 +674,8 @@ src/
     wallet/     check-wallet-adjustment.ts (تابع خالص), wallet-service.ts
                 (adjustWalletBalance — Atomic با findOneAndUpdate+$inc)
     storefront/ product-summary.ts (buildPublicProductSummary — خروجی مشترک ۴ API عمومی محصول)
+    products/   resolve-categories.ts (resolveProductCategories — جایگزین امن populate("category")
+                در برابر category خراب در DB؛ نگاه کنید Known Issues)
     import/     parse-excel.ts, validate-province-city-rows.ts (تابع خالص),
                 import-provinces-cities.ts
     neshan/     config.ts (NEXT_PUBLIC_NESHAN_API_KEY + آدرس‌های پایه API)
@@ -1069,6 +1071,44 @@ Response آن صفحه (نه فقط همان محصول) خراب شود. دقی
 `order-detail-card.tsx`، و `order-items-picker.tsx` — چون همه این‌ها
 دقیقاً همان ریسک را داشتند (فقط هنوز به یک محصول قدیمی بدون این فیلد
 برنخورده بودند).
+
+**🔴 باگ بحرانی رفع‌شده — کل صفحه محصولات باز هم Crash می‌کرد
+(این‌بار به دلیل واقعاً عمیق‌تر — `category` خراب در DB واقعی):**
+بعد از رفع باگ `attributes`، خطای دیگری با همان الگو (یک محصول خراب،
+کل لیست را می‌شکند) گزارش شد: `CastError: Cast to ObjectId failed
+for value "vegetable"`. یعنی حداقل یک سند Product واقعی در MongoDB
+مقدار `category` را به‌صورت رشته متنی `"vegetable"` دارد، نه یک
+ObjectId معتبر — به‌احتمال زیاد باقیمانده‌ای از داده تستی اولیه پروژه
+(طبق یادداشت این فایل: «Layout reference: persboy.ir (fruit/vegetable
+store)» که فقط قرار بود برای الگوی چیدمان استفاده شود، نه داده واقعی).
+علت فنی: `Product.paginate(..., { populate: { path: "category" } })`
+هنگام Populate کردن، سعی می‌کند شناسه‌های `category` همه نتایج را با
+هم به ObjectId تبدیل کند (`Category.find({_id: {$in: [...]}})`)؛
+یک رشته نامعتبر در همین آرایه، کل Cast را می‌شکند و **کل درخواست** را
+Crash می‌کند، نه فقط همان یک محصول.
+**رفع ساختاری (نه فقط پاک‌کردن آن یک رکورد خراب):** یک تابع مشترک
+جدید ساخته شد — `src/lib/products/resolve-categories.ts`
+(`resolveProductCategories`) — که به‌جای `populate()`، ابتدا فقط
+شناسه‌های *واقعاً معتبر* ObjectId را جدا می‌کند، فقط همان‌ها را از
+Category می‌خواند، و برای هر محصول Category را دستی وصل می‌کند؛ یک
+شناسه خراب فقط باعث می‌شود همان محصول `category: null` نشان داده
+شود، نه اینکه کل لیست از کار بیفتد. این جایگزین `populate("category")`
+در هر ۳ Route‌ای شد که این کار را می‌کردند: `GET /api/v1/products`،
+`GET /api/v1/products/latest`، `GET /api/v1/products/best-discounts`
+(بقیه Routeهای Storefront مثل `best-selling`/`amazing-offers` قبلاً
+از Aggregation `$lookup` استفاده می‌کردند که اصلاً چنین Castی انجام
+نمی‌دهد، پس در معرض این باگ نبودند).
+**⚠️ نکته باقی‌مانده:** خود رکورد خراب (`category: "vegetable"`) در
+DB واقعی هنوز پاک نشده — با این رفع، دیگر آن محصول باعث Crash نمی‌شود
+اما در لیست‌ها با «بدون دسته‌بندی» (`category: null`) نمایش داده
+می‌شود. برای پاک‌سازی خود داده، باید مستقیماً به MongoDB متصل شد (که
+این Session به آن دسترسی ندارد)؛ اگر کاربر بخواهد، می‌توان یک
+Script/Endpoint یک‌بارمصرف برای پیدا/اصلاح این‌گونه رکوردها نوشت.
+**درس کلی‌تر:** هر Route‌ای که `populate()` روی یک فیلد Reference
+انجام می‌دهد، در برابر داده خراب/قدیمی در همان فیلد آسیب‌پذیر است؛
+برای فیلدهایی که ریسک داده خراب دارند (به‌خصوص در پروژه‌هایی با
+سابقه داده تستی دستی)، Resolve دستی با فیلتر `isValidObjectId` امن‌تر
+از تکیه بر Populate خام Mongoose است.
 
 **🔴 باگ بحرانی رفع‌شده — Environment Variables در باندل Client:**
 `src/lib/neshan/config.ts` (مصرف‌شده توسط کامپوننت Client

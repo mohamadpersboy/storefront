@@ -4,6 +4,7 @@ import { Product } from "@/models/Product";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { storefrontProductsQuerySchema } from "@/lib/validations/storefront-products";
 import { buildPublicProductSummary } from "@/lib/storefront/product-summary";
+import { resolveProductCategories } from "@/lib/products/resolve-categories";
 
 /**
  * بدون Auth — بند ۶ سند Audit («بیشترین تخفیف... بر اساس درصد تخفیف
@@ -43,11 +44,19 @@ export async function GET(request: NextRequest) {
       { "variants.discountAmount": { $gt: 0 } },
     ],
   })
-    .populate("category", "name slug")
+    // ⚠️ عمداً populate نمی‌کنیم — نگاه کنید توضیح در
+    // src/lib/products/resolve-categories.ts.
     .lean();
 
+  const categoryMap = await resolveProductCategories(candidates.map((p) => p.category));
+
   const summaries = candidates
-    .map((p) => buildPublicProductSummary(p))
+    .map((p) =>
+      buildPublicProductSummary({
+        ...p,
+        category: categoryMap.get(String(p.category)) ?? null,
+      }),
+    )
     .filter((s) => s.maxDiscountPercent > 0)
     .sort((a, b) => b.maxDiscountPercent - a.maxDiscountPercent);
 

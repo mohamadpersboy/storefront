@@ -3,6 +3,7 @@ import type { Types } from "mongoose";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Product, type IProduct } from "@/models/Product";
 import { Category } from "@/models/Category";
+import { resolveProductCategories } from "@/lib/products/resolve-categories";
 import { PERMISSIONS } from "@/lib/constants/rbac";
 import { requireApiUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
@@ -59,9 +60,15 @@ export async function GET(request: NextRequest) {
     page,
     limit,
     sort: { createdAt: -1 },
-    populate: { path: "category", select: "name slug" },
+    // ⚠️ عمداً populate نمی‌کنیم — نگاه کنید توضیح کامل در
+    // src/lib/products/resolve-categories.ts (یک category خراب در DB
+    // باعث CastError و از کار افتادن کل لیست می‌شد).
     lean: true,
   });
+
+  const categoryMap = await resolveProductCategories(
+    (result.docs as LeanProduct[]).map((p) => p.category as unknown as Types.ObjectId),
+  );
 
   return apiSuccess(
     (result.docs as LeanProduct[]).map((p) => {
@@ -76,7 +83,7 @@ export async function GET(request: NextRequest) {
         id: String(p._id),
         title: p.title,
         slug: p.slug,
-        category: p.category,
+        category: categoryMap.get(String(p.category)) ?? null,
         status: p.status,
         coverImage: p.images[0]?.url ?? null,
         variantsCount: p.variants.length,

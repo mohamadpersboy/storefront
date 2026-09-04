@@ -5,6 +5,7 @@ import { Product, type IProduct } from "@/models/Product";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { storefrontProductsQuerySchema } from "@/lib/validations/storefront-products";
 import { buildPublicProductSummary } from "@/lib/storefront/product-summary";
+import { resolveProductCategories } from "@/lib/products/resolve-categories";
 
 type LeanProduct = IProduct & {
   _id: Types.ObjectId;
@@ -39,19 +40,33 @@ export async function GET(request: NextRequest) {
       page,
       limit,
       sort: { createdAt: -1 },
-      populate: { path: "category", select: "name slug" },
+      // ⚠️ عمداً populate نمی‌کنیم — نگاه کنید توضیح در
+      // src/lib/products/resolve-categories.ts.
       lean: true,
     },
   );
 
-  return apiSuccess((result.docs as LeanProduct[]).map((p) => buildPublicProductSummary(p)), {
-    pagination: {
-      totalDocs: result.totalDocs,
-      totalPages: result.totalPages,
-      page: result.page ?? page,
-      limit: result.limit,
-      hasNextPage: result.hasNextPage,
-      hasPrevPage: result.hasPrevPage,
+  const docs = result.docs as LeanProduct[];
+  const categoryMap = await resolveProductCategories(
+    docs.map((p) => p.category as unknown as Types.ObjectId),
+  );
+
+  return apiSuccess(
+    docs.map((p) =>
+      buildPublicProductSummary({
+        ...p,
+        category: categoryMap.get(String(p.category)) ?? null,
+      }),
+    ),
+    {
+      pagination: {
+        totalDocs: result.totalDocs,
+        totalPages: result.totalPages,
+        page: result.page ?? page,
+        limit: result.limit,
+        hasNextPage: result.hasNextPage,
+        hasPrevPage: result.hasPrevPage,
+      },
     },
-  });
+  );
 }
