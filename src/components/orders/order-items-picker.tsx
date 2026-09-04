@@ -122,7 +122,9 @@ export function OrderItemsPicker({
         title: selectedProduct.title,
         unit: variant.unit,
         colorName: variant.colorId ? (colorNames[variant.colorId] ?? null) : null,
-        attributesText: variant.attributes.map((a) => `${a.name}: ${a.value}`).join("، "),
+        attributesText: (variant.attributes ?? [])
+          .map((a) => `${a.name}: ${a.value}`)
+          .join("، "),
         unitPrice,
         quantity: qty,
         availableStock: variant.stock,

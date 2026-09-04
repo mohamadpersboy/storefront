@@ -34,7 +34,7 @@ export async function GET(
       id: String(v._id),
       unit: v.unit,
       colorId: v.colorId ? String(v.colorId) : null,
-      attributes: v.attributes,
+      attributes: v.attributes ?? [],
       sku: v.sku ?? "",
       price: v.price,
       discountPercent: v.discountPercent,

@@ -36,7 +36,7 @@ function serialize(offer: LeanOffer) {
       ? {
           id: String(variant._id),
           unit: variant.unit,
-          attributes: variant.attributes,
+          attributes: variant.attributes ?? [],
           basePrice: variant.price,
         }
       : null,

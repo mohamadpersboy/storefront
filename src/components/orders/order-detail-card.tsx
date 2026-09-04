@@ -181,7 +181,7 @@ export function OrderDetailCard({ order }: { order: OrderDetailData }) {
                   {item.title}
                 </TableCell>
                 <TableCell label="مشخصات" className="text-xs text-muted">
-                  {[item.unit, item.colorName, ...item.attributes.map((a) => a.value)]
+                  {[item.unit, item.colorName, ...(item.attributes ?? []).map((a) => a.value)]
                     .filter(Boolean)
                     .join(" · ")}
                 </TableCell>

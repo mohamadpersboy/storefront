@@ -107,7 +107,7 @@ export async function createOrder(params: CreateOrderParams) {
       title: product.title,
       unit: variant.unit,
       colorName: null,
-      attributes: variant.attributes,
+      attributes: variant.attributes ?? [],
       unitPrice,
       quantity: item.quantity,
       lineTotal: unitPrice * item.quantity,

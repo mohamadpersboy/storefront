@@ -87,13 +87,20 @@ export async function GET(request: NextRequest) {
         // (بند «تعداد و قیمت هر ورینت جداگانه نمایش داده شود»).
         // هیچ Query اضافه‌ای لازم نیست چون unit/attributes از قبل
         // داخل خود سند Product Embed شده‌اند.
+        // ⚠️ `attributes` با `?? []` محافظت شده چون محصولات قدیمی‌تر
+        // (ساخته‌شده پیش از اضافه‌شدن این فیلد به Schema) ممکن است این
+        // فیلد را در DB نداشته باشند؛ بدون این محافظت، یک محصول قدیمی
+        // به‌تنهایی کل درخواست لیست محصولات را با خطای سرور متوقف
+        // می‌کرد — دقیقاً همان الگوی باگ role کاربران قدیمی.
         variants: p.variants.map((v) => ({
           id: String(v._id),
           label:
-            v.attributes.map((a) => a.value).join("، ") || v.unit || "بدون مشخصات",
-          price: computeFinalPrice(v.price, v.discountPercent, v.discountAmount),
-          stock: v.stock,
-          isActive: v.isActive,
+            (v.attributes ?? []).map((a) => a.value).join("، ") ||
+            v.unit ||
+            "بدون مشخصات",
+          price: computeFinalPrice(v.price, v.discountPercent ?? 0, v.discountAmount ?? 0),
+          stock: v.stock ?? 0,
+          isActive: v.isActive ?? true,
         })),
         createdAt: p.createdAt,
       };
