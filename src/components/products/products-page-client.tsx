@@ -201,7 +201,7 @@ export function ProductsPageClient() {
                     <Link
                       href={`/dashboard/products/${p.id}/edit`}
                       onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-3 sm:justify-center"
+                      className="flex w-full items-center gap-3 sm:justify-center"
                     >
                       <div className="relative size-10 shrink-0 overflow-hidden rounded-[var(--radius-sm)] bg-surface-subtle">
                         {p.coverImage ? (
@@ -220,9 +220,14 @@ export function ProductsPageClient() {
                     </Link>
 
                     {/* فقط روی موبایل: قیمت و موجودی هر Variant به‌صورت
-                        جداگانه (نه یک عدد تجمیعی) — بند خواسته‌شده. */}
+                        جداگانه (نه یک عدد تجمیعی) — بند خواسته‌شده.
+                        خط جداکننده یک عنصر مستقل تمام‌عرض است (نه
+                        border-top روی یک Flex Container) تا وقتی عنوان
+                        محصول دو‌خطی می‌شود هم کامل بماند، نه کوتاه. */}
                     {p.variants.length > 0 ? (
-                      <div className="mt-2.5 flex flex-col gap-1.5 border-t border-border pt-2.5 sm:hidden">
+                      <>
+                        <div className="mt-2.5 h-px w-full bg-border sm:hidden" />
+                        <div className="flex w-full flex-col gap-1.5 pt-2.5 sm:hidden">
                         {p.variants.map((v) => (
                           <div
                             key={v.id}
@@ -246,7 +251,8 @@ export function ProductsPageClient() {
                             </span>
                           </div>
                         ))}
-                      </div>
+                        </div>
+                      </>
                     ) : null}
                   </TableCell>
                   <TableCell label="دسته‌بندی" className="text-foreground/80">
