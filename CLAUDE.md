@@ -26,10 +26,14 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار:** شروع Storefront — کاربر صریحاً تأیید کرد (بعد از تأیید
-پالت رنگی و ترتیب مراحل). **مرحله ۱ از Sequential Workflow انجام شد:**
-Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، طبق بند
-۴۹ Master Prompt — یک مرحله در هر تأیید).
+**آخرین کار:** بخش «محتوای سایت» به Dashboard اضافه شد — درباره ما،
+تماس با ما، و سوالات متداول (درخواست صریح کاربر، خارج از ترتیب
+Sequential Workflow صفحات Storefront چون یک نیاز Dashboard/Backend
+بود، نه یک مرحله از صفحه اصلی Storefront). قبل از این، شروع
+Storefront — کاربر صریحاً تأیید کرد (بعد از تأیید پالت رنگی و ترتیب
+مراحل). **مرحله ۱ از Sequential Workflow صفحه اصلی انجام شد:** Layout
+مستقل Storefront + Header + SearchBar (فقط این دو بخش، طبق بند ۴۹
+Master Prompt — یک مرحله در هر تأیید).
 **Branch فعلی:** `main`
 **Feature بعدی:** مرحله ۲ (HeroSlider) — منتظر تأیید کاربر برای ادامه
 
@@ -497,6 +501,29 @@ Layout مستقل Storefront + Header + SearchBar (فقط این دو بخش، �
   تنظیمات پاداش پرداخت، ساخت/ویرایش/حذف Amazing Offer؛ صفحه نمایش در
   `/dashboard/settings/activity-log` (فقط خواندنی، Permission
   اختصاصی `ACTIVITY_LOG_READ`، Admin+)
+- ✅ محتوای سایت (درباره ما / تماس با ما / سوالات متداول) — درخواست
+  صریح کارفرما، همان الگوی Social Links (اولین Route عمومی پروژه):
+  - `AboutUs` (Singleton، `src/models/AboutUs.ts`): `title`, `content`,
+    `imageUrl` (اختیاری، فقط لینک — بدون آپلود اختصاصی Cloudinary).
+  - `ContactUs` (Singleton، `src/models/ContactUs.ts`): `phone`,
+    `secondaryPhone`, `email`, `address`, `workingHours`, و
+    `latitude`/`longitude` اختیاری — فرم Dashboard از همان
+    `NeshanMapPicker` مرحله ۵ سند Audit استفاده مجدد می‌کند (بدون هیچ
+    منطق نقشه جدید) تا موقعیت فروشگاه انتخاب شود.
+  - `Faq` (لیست معمولی، `src/models/Faq.ts`، الگوی `Color`):
+    `question`, `answer`, `isActive`, `sortOrder` — CRUD کامل.
+  - APIها: `GET/PATCH /api/v1/about-us`, `GET/PATCH
+    /api/v1/contact-us`, `GET/POST /api/v1/faqs`, `PATCH|DELETE
+    /api/v1/faqs/:id`. هر سه `GET` عمداً بدون Auth (هم Dashboard هم
+    Storefront آینده مصرف می‌کنند، داده حساس نیست)؛ نوشتن با
+    `SETTINGS_MANAGE` محافظت می‌شود (پرمیشن جدیدی اضافه نشد — از
+    همان Permission تنظیمات محتوایی موجود استفاده شد).
+  - UI: `/dashboard/settings/about-us`, `/dashboard/settings/contact-us`,
+    `/dashboard/settings/faq` (لیست + Modal ساخت/ویرایش، دقیقاً الگوی
+    `ColorsManager`/`ColorFormModal`)؛ لینک هر سه به صفحه اصلی
+    `/dashboard/settings` اضافه شد.
+  - ۲۰ تست Unit جدید برای سه Validation Schema (`about-us.test.ts`,
+    `contact-us.test.ts`, `faqs.test.ts`) — ۲۰۹ تست کل.
 
 ## 4. In Progress
 
@@ -605,6 +632,7 @@ src/
       categories/  page.tsx + new/ + [id]/edit/
       products/  page.tsx + new/ + [id]/edit/ + loading.tsx + error.tsx
       settings/  page.tsx + colors/page.tsx + discounts/page.tsx + activity-log/page.tsx
+                 + about-us/page.tsx + contact-us/page.tsx + faq/page.tsx
       orders/  page.tsx + new/ + [id]/page.tsx + loading.tsx + error.tsx
       discounts/  page.tsx
       amazing-offers/  page.tsx + new/ + [id]/edit/
@@ -641,7 +669,8 @@ src/
                   VariantEditor, TechnicalSpecsEditor, ProductStatusBadge,
                   products-page-client
     settings/   - ColorsManager, ColorFormModal, DiscountSettingsForm,
-                  ActivityLogPageClient, SocialLinksForm, ProvincesCitiesManager
+                  ActivityLogPageClient, SocialLinksForm, ProvincesCitiesManager,
+                  AboutUsForm, ContactUsForm, FaqManager, FaqFormModal
     orders/     - OrderForm, OrderItemsPicker, OrderDetailCard,
                   OrderStatusBadge, PaymentPanel, PaymentStatusBadge,
                   orders-page-client
@@ -684,14 +713,14 @@ src/
     validations/ auth.ts, users.ts, categories.ts, category-depth.ts, products.ts,
                 amazing-offers.ts, customers.ts, payments.ts, coupons.ts,
                 discount-settings.ts, social-links.ts, cart.ts, wallet.ts,
-                storefront-products.ts
+                storefront-products.ts, about-us.ts, contact-us.ts, faqs.ts
     mock/       dashboard.ts (فقط همین باقی مانده Mock)
   models/       SocialLinks.ts, Province.ts, City.ts, Cart.ts, Wallet.ts,
                 WalletTransaction.ts, WalletTopup.ts, WithdrawalRequest.ts,
                 User.ts, Otp.ts, SystemFlag.ts, Category.ts, Product.ts,
                 Color.ts, Order.ts, Counter.ts, AmazingOffer.ts, Payment.ts,
                 Coupon.ts, CouponRedemption.ts, DiscountSettings.ts,
-                ActivityLog.ts
+                ActivityLog.ts, AboutUs.ts, ContactUs.ts, Faq.ts
   proxy.ts
 public/fonts/  - IRANYekanX woff2 (۴ وزن)
 scripts/vercel-env-sync.sh

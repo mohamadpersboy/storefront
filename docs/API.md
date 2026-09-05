@@ -294,6 +294,65 @@ Atomic کسر می‌شود؛ رد کردن آن را برمی‌گرداند.
 
 ---
 
+## ۹. محتوای سایت — درباره ما، تماس با ما، سوالات متداول
+
+سه Route عمومی جدید (بدون Auth برای `GET`، همان الگوی Social Links —
+هم Dashboard و هم صفحات آینده Storefront به این محتوا نیاز دارند و
+داده حساسی نیست).
+
+### درباره ما
+
+| Method | Path | دسترسی |
+|---|---|---|
+| GET | `/api/v1/about-us` | عمومی |
+| PATCH | `/api/v1/about-us` | `SETTINGS_MANAGE` |
+
+`GET`/`PATCH` بدنه: `{ title, content, imageUrl }`. `imageUrl`
+اختیاری (رشته خالی یا URL معتبر) — فعلاً فقط یک لینک ساده است، بدون
+آپلود اختصاصی به Cloudinary (خارج از Scope این کار).
+
+مدل Singleton `AboutUs` (`src/models/AboutUs.ts`)، دقیقاً الگوی
+`getSocialLinks()`/`getDiscountSettings()` — سند به‌صورت Atomic در
+اولین دسترسی با مقادیر پیش‌فرض ساخته می‌شود.
+
+### تماس با ما
+
+| Method | Path | دسترسی |
+|---|---|---|
+| GET | `/api/v1/contact-us` | عمومی |
+| PATCH | `/api/v1/contact-us` | `SETTINGS_MANAGE` |
+
+بدنه: `{ phone, secondaryPhone, email, address, workingHours,
+latitude, longitude }`. `latitude`/`longitude` اختیاری (`null` قابل
+قبول) — فرم Dashboard از همان `NeshanMapPicker` مرحله ۵ سند Audit
+استفاده مجدد می‌کند تا موقعیت فروشگاه روی نقشه انتخاب شود؛ هیچ منطق
+نقشه جدیدی ساخته نشد.
+
+مدل Singleton `ContactUs` (`src/models/ContactUs.ts`)، همان الگوی
+`AboutUs`.
+
+### سوالات متداول (FAQ)
+
+| Method | Path | دسترسی |
+|---|---|---|
+| GET | `/api/v1/faqs` | عمومی |
+| POST | `/api/v1/faqs` | `SETTINGS_MANAGE` |
+| PATCH | `/api/v1/faqs/:id` | `SETTINGS_MANAGE` |
+| DELETE | `/api/v1/faqs/:id` | `SETTINGS_MANAGE` |
+
+`GET` تمام سوالات (فعال و غیرفعال) را با `sortOrder` مرتب‌شده
+برمی‌گرداند — فیلترکردن به فعال‌ها وظیفه مصرف‌کننده (صفحه FAQ آینده
+Storefront) است؛ Dashboard برای مدیریت به همه نیاز دارد (دقیقاً همان
+تصمیم `GET /api/v1/social-links`).
+
+مدل `Faq` (`src/models/Faq.ts`) — لیست معمولی (نه Singleton)، الگوی
+`Color`: `{ question, answer, isActive, sortOrder }`.
+
+UI: `/dashboard/settings/about-us`، `/dashboard/settings/contact-us`،
+`/dashboard/settings/faq`.
+
+---
+
 ## Environment Variables جدید این سند
 
 به `.env.example` مراجعه کنید. خلاصه:

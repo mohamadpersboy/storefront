@@ -1,5 +1,15 @@
 import Link from "next/link";
-import { Palette, BadgePercent, History, Share2, MapPin, ChevronLeft } from "lucide-react";
+import {
+  Palette,
+  BadgePercent,
+  History,
+  Share2,
+  MapPin,
+  ChevronLeft,
+  Info,
+  Phone,
+  HelpCircle,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 const settingsSections = [
@@ -8,6 +18,24 @@ const settingsSections = [
     icon: Palette,
     title: "رنگ‌ها",
     description: "مدیریت رنگ‌های قابل انتخاب برای Variant محصولات",
+  },
+  {
+    href: "/dashboard/settings/about-us",
+    icon: Info,
+    title: "درباره ما",
+    description: "محتوای صفحه «درباره ما»ی فروشگاه",
+  },
+  {
+    href: "/dashboard/settings/contact-us",
+    icon: Phone,
+    title: "تماس با ما",
+    description: "تلفن، ایمیل، آدرس و موقعیت فروشگاه",
+  },
+  {
+    href: "/dashboard/settings/faq",
+    icon: HelpCircle,
+    title: "سوالات متداول",
+    description: "مدیریت سوالات و پاسخ‌های پرتکرار مشتریان",
   },
   {
     href: "/dashboard/settings/social-links",
