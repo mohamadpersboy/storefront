@@ -525,7 +525,58 @@ Master Prompt — یک مرحله در هر تأیید).
   - ۲۰ تست Unit جدید برای سه Validation Schema (`about-us.test.ts`,
     `contact-us.test.ts`, `faqs.test.ts`) — ۲۰۹ تست کل.
 
+- ✅ **مدیریت مالی — Phase 1 (بانک‌ها + چک‌های دریافتی)** — طبق سند
+  «Master Prompt — Financial Management, Check Management & Order
+  Payments»، فقط Phase 1 (چک‌های دریافتی) اجرا شد؛ Phase 2 (روش‌های
+  دریافت وجه + اتصال Payment↔Check↔Order) منتظر تأیید صریح کارفرماست:
+  - `Bank` (`src/models/Bank.ts`): `name` (unique)، `logoUrl`/
+    `logoPublicId` (آپلود Cloudinary، پوشه جدید `saghchi-carpet/banks`)،
+    `isActive`، `sortOrder`. بدون DELETE — فقط غیرفعال‌سازی (چون چک‌های
+    قدیمی ممکن است ارجاع داشته باشند).
+  - `Check` (`src/models/Check.ts`): بانک، صادرکننده (نام/نام‌خانوادگی/
+    کدملی)، دریافت‌کننده (ref User، محدود به role=admin|super_admin)،
+    ضامن اختیاری، شماره تماس، تاریخ دریافت/سررسید، مبلغ (Number،
+    تومان)، سری چک، شناسه چک (هر دو حداکثر ۶ رقم)، شناسه صیادی (دقیقاً
+    ۱۶ رقم)، `status` (enum قابل توسعه در
+    `src/lib/constants/check-status.ts` — فقط `not_registered` /
+    `registered` / `returned` / `transferred` در این Phase فعال است)،
+    `transferredTo`، `returnInfo`. **بدون DELETE در API** — عودت/انتقال
+    Status را تغییر می‌دهند و در `returnInfo`/`transferredTo` ثبت
+    می‌شوند، رکورد هرگز حذف نمی‌شود (Audit Trail کامل طبق الزام سند).
+    اتصال به `Order`/`Payment` عمداً در این مدل نیست — طبق سند این
+    اتصال متعلق به `Payment` در Phase ۲ است.
+  - APIها: `GET/POST /api/v1/banks`, `PATCH /api/v1/banks/:id`,
+    `GET/POST /api/v1/checks`, `GET/PATCH /api/v1/checks/:id`,
+    `POST /api/v1/checks/:id/return`, `POST /api/v1/checks/:id/transfer`.
+  - Permissionهای جدید: `BANKS_READ`, `BANKS_MANAGE`, `CHECKS_READ`,
+    `CHECKS_CREATE`, `CHECKS_UPDATE`, `CHECKS_RETURN`,
+    `CHECKS_TRANSFER` (Staff فقط READ، Admin+ همه).
+  - اعتبارسنجی کد ملی ایرانی: `src/lib/utils/national-id.ts`
+    (الگوریتم Checksum استاندارد ۱۰ رقمی، Pure Function، تست‌شده).
+  - مبلغ به حروف: `src/lib/utils/number-to-words.ts` — از مقدار
+    عددی تولید می‌شود (طبق الزام سند، بدون ذخیره تکراری در DB).
+  - آپلود لوگوی بانک از همان مسیر Signed Upload موجود پروژه استفاده
+    می‌کند؛ `/api/v1/uploads/sign` یک پارامتر `target` («product-image»
+    پیش‌فرض یا «bank-logo») گرفت تا پوشه/Permission را انتخاب کند —
+    بدون هیچ Route موازی جدید برای امضای آپلود.
+  - Activity Log: `check.created`, `check.updated`, `check.returned`,
+    `check.transferred` با همان سیستم `ActivityLog` موجود ثبت می‌شوند.
+  - UI: `/dashboard/settings/banks` (لیست + Modal + آپلود لوگو +
+    فعال/غیرفعال)، `/dashboard/checks` (لیست با Search/Filter/
+    Pagination)، `/dashboard/checks/new` (فرم ثبت)،
+    `/dashboard/checks/:id` (جزئیات + دکمه‌های عودت/انتقال — فقط روی
+    وضعیت `registered` نمایش داده می‌شوند). آیتم ناوبری جدید
+    «چک‌های دریافتی» در `dashboard-nav.ts`.
+  - ۴۳ تست Unit جدید (`national-id.test.ts`, `number-to-words.test.ts`,
+    `checks.test.ts`, `banks.test.ts`) — ۲۵۲ تست کل، همه سبز.
+  - Build/TypeScript/ESLint هر سه سبز.
+
 ## 4. In Progress
+
+**مدیریت مالی — Phase 1 تکمیل شد، منتظر تأیید صریح کارفرما برای
+شروع Phase 2** (روش‌های دریافت وجه سفارش‌ها: نقدی/کارتخوان/کارت‌به‌
+کارت/چک + اتصال Payment↔Check↔Order + پرداخت ترکیبی). طبق قانون سند،
+بدون عبارتی مثل «تأیید است» یا «Phase 2 را شروع کن» وارد آن نمی‌شویم.
 
 سند «بررسی تکمیل Backend/Dashboard و آماده‌سازی برای توسعه
 Storefront» — **هر ۱۰ Phase آن کامل شد** (تا جایی که بدون یک
@@ -851,6 +902,36 @@ Verify همیشه از رکورد ذخیره‌شده `Payment.amount` خوان�
 از Query String که قابل‌دستکاری توسط کاربر است. موفقیت پرداخت وضعیت
 `Order.status` را خودکار تغییر نمی‌دهد؛ آن State Machine یک تصمیم
 آگاهانه ادمین در Dashboard می‌ماند.
+
+### Bank
+مرجع بانک‌ها برای انتخاب هنگام ثبت چک (و آماده برای استفاده مجدد در
+حساب‌های بانکی فروشگاه در Phase ۲): `name` (unique)، `logoUrl`/
+`logoPublicId` (اختیاری، Cloudinary)، `isActive`، `sortOrder`. بدون
+DELETE — چک‌های قدیمی ممکن است به یک بانک ارجاع داشته باشند؛
+غیرفعال‌سازی جایگزین حذف است.
+
+### Check
+`bank` (ref Bank)، `issuer` (نام/نام‌خانوادگی/کدملی — Subdocument
+`_id: false`)، `receiver` (ref User، محدود در API به
+role=admin|super_admin)، `guarantor` (اختیاری، همان شکل issuer اما
+کدملی اختیاری)، `phoneNumber`، `receivedDate`/`dueDate` (Date —
+سررسید باید >= دریافت)، `amount` (Number، تومان)، `checkSeries`/
+`checkNumber` (هر دو حداکثر ۶ رقم)، `sayadiId` (دقیقاً ۱۶ رقم)،
+`status` (enum قابل توسعه — `src/lib/constants/check-status.ts`؛ فقط
+`not_registered`/`registered`/`returned`/`transferred` در Phase ۱
+فعال‌اند، بقیه — `pending_collection`/`collected`/`bounced`/`voided` —
+برای Phaseهای بعدی رزرو شده‌اند)، `transferredTo`، `returnInfo`
+(`returnedAt`, `returnedToName`, `returnedToNationalId`, `reason`)،
+`createdBy` (ref User).
+
+عمداً بدون فیلد ارجاع به `Order` — طبق Master Prompt این ارتباط باید
+از طریق `Payment` برقرار شود (Phase ۲: یک `Payment` از نوع «چک» به
+`Check` اشاره می‌کند)، نه اینکه `Check` مستقیماً بداند به کدام سفارش
+تعلق دارد؛ این باعث می‌شود `Check` یک Entity مستقل و قابل‌استفاده‌ی
+مجدد بماند. بدون API حذف — عودت/انتقال Status را تغییر می‌دهند و در
+`returnInfo`/`transferredTo` ثبت می‌شوند، رکورد هرگز پاک نمی‌شود.
+منطق مجازبودن عودت/انتقال (`canReturnCheck`/`canTransferCheck` در
+همان فایل Status) هر دو فقط روی وضعیت `registered` اجازه می‌دهند.
 
 ### ActivityLog
 Append-only (بند ۵۳). `actor` (ref User)، `actorName` (Snapshot —

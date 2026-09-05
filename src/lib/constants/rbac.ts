@@ -58,6 +58,15 @@ export const PERMISSIONS = {
 
   WALLET_READ: "wallet.read",
   WALLET_MANAGE: "wallet.manage",
+
+  BANKS_READ: "banks.read",
+  BANKS_MANAGE: "banks.manage",
+
+  CHECKS_READ: "checks.read",
+  CHECKS_CREATE: "checks.create",
+  CHECKS_UPDATE: "checks.update",
+  CHECKS_RETURN: "checks.return",
+  CHECKS_TRANSFER: "checks.transfer",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -77,6 +86,8 @@ const STAFF_PERMISSIONS: Permission[] = [
   PERMISSIONS.DASHBOARD_READ,
   PERMISSIONS.LOCATIONS_READ,
   PERMISSIONS.WALLET_READ,
+  PERMISSIONS.BANKS_READ,
+  PERMISSIONS.CHECKS_READ,
 ];
 
 const ADMIN_PERMISSIONS: Permission[] = [
@@ -97,6 +108,11 @@ const ADMIN_PERMISSIONS: Permission[] = [
   PERMISSIONS.USERS_UPDATE,
   PERMISSIONS.LOCATIONS_MANAGE,
   PERMISSIONS.WALLET_MANAGE,
+  PERMISSIONS.BANKS_MANAGE,
+  PERMISSIONS.CHECKS_CREATE,
+  PERMISSIONS.CHECKS_UPDATE,
+  PERMISSIONS.CHECKS_RETURN,
+  PERMISSIONS.CHECKS_TRANSFER,
 ];
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {

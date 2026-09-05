@@ -9,6 +9,7 @@ import {
   Info,
   Phone,
   HelpCircle,
+  Landmark,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
@@ -48,6 +49,12 @@ const settingsSections = [
     icon: MapPin,
     title: "استان‌ها و شهرها",
     description: "Import از Excel — منبع Dropdown آدرس در فرم‌های مختلف",
+  },
+  {
+    href: "/dashboard/settings/banks",
+    icon: Landmark,
+    title: "بانک‌ها",
+    description: "مدیریت بانک‌های قابل انتخاب برای ثبت چک‌های دریافتی",
   },
   {
     href: "/dashboard/settings/discounts",

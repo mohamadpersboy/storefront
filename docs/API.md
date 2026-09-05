@@ -353,14 +353,112 @@ UI: `/dashboard/settings/about-us`، `/dashboard/settings/contact-us`،
 
 ---
 
+## ۱۰. مدیریت مالی — Phase 1: بانک‌ها و چک‌های دریافتی
+
+بر اساس Master Prompt — Financial Management. این Phase فقط ثبت،
+مشاهده، عودت و انتقال چک‌های دریافتی را پیاده‌سازی می‌کند. اتصال
+Check ↔ Payment ↔ Order (پرداخت ترکیبی سفارش‌ها با چک) موضوع Phase 2
+است و عمداً اینجا پیاده‌سازی نشده.
+
+### بانک‌ها (Settings)
+
+| Method | Path | دسترسی |
+|---|---|---|
+| GET | `/api/v1/banks` | `BANKS_READ` |
+| POST | `/api/v1/banks` | `BANKS_MANAGE` |
+| PATCH | `/api/v1/banks/:id` | `BANKS_MANAGE` |
+
+بدنه: `{ name, logoUrl?, logoPublicId?, isActive? }`. لوگو از همان
+مکانیزم Signed Upload به Cloudinary پروژه استفاده می‌کند (پوشه
+`saghchi-carpet/banks`، جدا از پوشه محصولات).
+
+مدل `Bank` (`src/models/Bank.ts`): `{ name (unique), logoUrl,
+logoPublicId, isActive, sortOrder }`. حذف (DELETE) ندارد — بانک با
+غیرفعال‌کردن از گردش کار خارج می‌شود، نه با حذف رکورد (چون ممکن است
+چک‌های قدیمی به آن ارجاع داشته باشند).
+
+UI: `/dashboard/settings/banks`.
+
+### چک‌های دریافتی
+
+| Method | Path | دسترسی |
+|---|---|---|
+| GET | `/api/v1/checks` | `CHECKS_READ` |
+| POST | `/api/v1/checks` | `CHECKS_CREATE` |
+| GET | `/api/v1/checks/:id` | `CHECKS_READ` |
+| PATCH | `/api/v1/checks/:id` | `CHECKS_UPDATE` |
+| POST | `/api/v1/checks/:id/return` | `CHECKS_RETURN` |
+| POST | `/api/v1/checks/:id/transfer` | `CHECKS_TRANSFER` |
+
+**عمداً DELETE ندارد** — چک یک رکورد مالی واقعی است؛ عودت/انتقال
+Status را تغییر می‌دهند و اطلاعات را در `returnInfo`/`transferredTo`
+ثبت می‌کنند، هرگز رکورد حذف نمی‌شود (تاریخچه Audit کامل می‌ماند).
+
+بدنه `POST /api/v1/checks`:
+```
+{
+  bankId, issuer: { firstName, lastName, nationalId },
+  receiverId,               // باید یکی از کاربران role=admin|super_admin باشد
+  guarantor?: { firstName, lastName, nationalId? },
+  phoneNumber,               // 09xxxxxxxxx
+  receivedDate, dueDate,     // ISO date — تاریخ سررسید >= تاریخ دریافت
+  amount,                    // Number صحیح مثبت — تومان
+  checkSeries,               // حداکثر ۶ رقم
+  checkNumber,               // حداکثر ۶ رقم — «شناسه چک»
+  sayadiId,                  // دقیقاً ۱۶ رقم
+  status?                    // "registered" | "not_registered" — پیش‌فرض registered
+}
+```
+
+بدنه `POST .../return`: `{ returnedAt, returnedToName,
+returnedToNationalId?, reason }` — فقط روی چک با وضعیت `registered`
+مجاز است.
+
+بدنه `POST .../transfer`: `{ firstName, lastName, nationalId? }` —
+فقط روی چک با وضعیت `registered` مجاز است؛ وضعیت را به `transferred`
+می‌برد.
+
+`GET /api/v1/checks` Query Params: `page`, `limit` (حداکثر ۵۰),
+`search` (روی نام/نام‌خانوادگی/کدملی صادرکننده، شماره تماس، سری چک،
+شناسه چک، شناسه صیادی)، `status`, `bankId`. Pagination با
+`mongoose-paginate-v2` مثل بقیه لیست‌های پروژه.
+
+مدل `Check` (`src/models/Check.ts`) — فیلدهای اصلی طبق بدنه بالا، به‌
+علاوه `status` (enum قابل توسعه در `src/lib/constants/check-status.ts`
+— فقط `not_registered`/`registered`/`returned`/`transferred` در این
+Phase قابل دسترس‌اند، بقیه مقادیر برای Phaseهای بعدی رزرو شده‌اند)،
+`createdBy` (ref User). ارتباط با `Order`/`Payment` عمداً در این مدل
+وجود ندارد — طبق Master Prompt این اتصال متعلق به `Payment` در Phase
+۲ است.
+
+اعتبارسنجی کد ملی: `src/lib/utils/national-id.ts`
+(`isValidIranianNationalId`) — الگوریتم استاندارد Checksum ۱۰ رقمی،
+برای صادرکننده/ضامن/گیرندهٔ عودت/گیرندهٔ انتقال استفاده می‌شود.
+
+مبلغ به حروف: `src/lib/utils/number-to-words.ts`
+(`numberToPersianWords`) — از مقدار عددی تولید می‌شود، در Database
+ذخیره نمی‌شود (طبق الزام سند: از ذخیره اطلاعات تکراری خودداری شود).
+
+Activity Log: هر سه عملیات (`check.created`, `check.updated`,
+`check.returned`, `check.transferred`) با سیستم `ActivityLog` موجود
+پروژه ثبت می‌شوند — سیستم Log موازی ساخته نشد.
+
+UI: `/dashboard/checks` (لیست با Search/Filter/Pagination)،
+`/dashboard/checks/new` (فرم ثبت)، `/dashboard/checks/:id` (جزئیات +
+دکمه‌های عودت/انتقال، فقط وقتی وضعیت چک `registered` باشد).
+
+---
+
 ## Environment Variables جدید این سند
 
-به `.env.example` مراجعه کنید. خلاصه:
+هیچ Environment Variable جدیدی برای Phase 1 مدیریت مالی لازم نبود —
+لوگوی بانک از همان متغیرهای Cloudinary موجود پروژه استفاده می‌کند.
+
+برای بخش قبلی (Audit/Storefront prep)، به `.env.example` مراجعه کنید. خلاصه:
 
 | متغیر | توضیح |
 |---|---|
 | `NEXT_PUBLIC_NESHAN_API_KEY` | Client-side، برای نقشه + Reverse Geocoding نشان |
 
-هیچ Environment Variable دیگری در Phase 2 تا 8 اضافه نشد (Social
-Links/Province-City/Cart/Wallet همه فقط از `MONGODB_URI` موجود
-استفاده می‌کنند).
+هیچ Environment Variable دیگری در Phase 2 تا 8 (سند Audit) یا Phase 1
+مدیریت مالی اضافه نشد.

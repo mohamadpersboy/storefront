@@ -11,3 +11,4 @@ cloudinary.config({
 export { cloudinary };
 
 export const PRODUCT_IMAGES_FOLDER = "saghchi-carpet/products";
+export const BANK_LOGOS_FOLDER = "saghchi-carpet/banks";
