@@ -1332,6 +1332,19 @@ Secretهای سرور را هم دارد) Import کند — حتی برای خو
 
 ## 14. Known Issues
 
+- **پاک‌کردن ناقص دیتابیس باعث می‌شود اولین کاربر جدید Super Admin
+  نشود:** منطق «اولین کاربر = Super Admin» (`claimFirstAdminSlot` در
+  `src/models/SystemFlag.ts`) یک Flag اتمیک در Collection جداگانه‌ی
+  `systemflags` (سند با `key: "firstAdminAssigned"`) ذخیره می‌کند تا
+  از Race Condition جلوگیری کند. اگر فقط Collection `users` پاک شود
+  ولی `systemflags` باقی بماند، ورود بعدی با OTP یک کاربر جدید با نقش
+  `customer` می‌سازد (نه Super Admin) — چون Flag از قبل «Claim شده»
+  است. علامت این مشکل دقیقاً همین است: ورود موفق است، اما بلافاصله از
+  `/dashboard` به `/` ریدایرکت می‌شود (طبق `dashboard/layout.tsx`:
+  `if (user.role === "customer") redirect("/")`). **راه‌حل:** یا نقش
+  کاربر موردنظر را مستقیماً در Collection `users` به `super_admin`
+  تغییر بده، یا برای ریست کامل، هر دو Collection `users` و
+  `systemflags` را با هم پاک کن تا منطق اولین کاربر دوباره کار کند.
 - **Address Book مستقل مشتری هنوز طراحی نشده:** فرم سفارش اکنون از
   Dropdown استان/شهر + نقشه استفاده می‌کند (Phase 5)، اما چند آدرس
   ذخیره‌شده به ازای هر مشتری (برای انتخاب سریع در Checkout آینده
