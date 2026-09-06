@@ -1,13 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Combobox } from "@/components/ui/combobox";
 import { digitsOnly } from "@/lib/utils/format";
+
+interface ApiBank {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
 
 export interface CardAccountFormValues {
   id?: string;
   cardNumber: string;
+  shabaNumber: string;
+  bankId: string;
   accountNumber: string;
   ownerName: string;
 }
@@ -21,11 +30,23 @@ export function CardAccountFormModal({
   onCancel: () => void;
   onSaved: () => void;
 }) {
+  const [banks, setBanks] = useState<ApiBank[]>([]);
   const [cardNumber, setCardNumber] = useState(initial?.cardNumber ?? "");
+  const [shabaNumber, setShabaNumber] = useState(initial?.shabaNumber ?? "");
+  const [bankId, setBankId] = useState(initial?.bankId ?? "");
   const [accountNumber, setAccountNumber] = useState(initial?.accountNumber ?? "");
   const [ownerName, setOwnerName] = useState(initial?.ownerName ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/v1/banks")
+      .then((res) => res.json())
+      .then((body) => {
+        if (body.success) setBanks(body.data.filter((b: ApiBank) => b.isActive));
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,7 +58,13 @@ export function CardAccountFormModal({
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardNumber, accountNumber, ownerName }),
+        body: JSON.stringify({
+          cardNumber,
+          shabaNumber: shabaNumber.trim().toUpperCase(),
+          bankId,
+          accountNumber,
+          ownerName,
+        }),
       });
       const body = await res.json();
       if (!res.ok || !body.success) {
@@ -53,17 +80,26 @@ export function CardAccountFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
       <form
         onSubmit={handleSubmit}
-        className="relative w-full max-w-sm rounded-[var(--radius-lg)] border border-border bg-surface p-5"
+        className="relative my-8 w-full max-w-sm rounded-[var(--radius-lg)] border border-border bg-surface p-5"
       >
         <h2 className="mb-4 text-sm font-semibold text-foreground">
           {initial?.id ? "ویرایش کارت/حساب" : "کارت/حساب جدید"}
         </h2>
 
         <div className="flex flex-col gap-4">
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-foreground/80">بانک</label>
+            <Combobox
+              value={bankId}
+              onChange={setBankId}
+              placeholder="انتخاب بانک"
+              options={banks.map((b) => ({ value: b.id, label: b.name }))}
+            />
+          </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium text-foreground/80">
               شماره کارت
@@ -72,6 +108,17 @@ export function CardAccountFormModal({
               value={cardNumber}
               onChange={(e) => setCardNumber(digitsOnly(e.target.value).slice(0, 16))}
               placeholder="۱۶ رقم بدون خط تیره"
+              dir="ltr"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-foreground/80">
+              شماره شبا
+            </label>
+            <Input
+              value={shabaNumber}
+              onChange={(e) => setShabaNumber(e.target.value)}
+              placeholder="IR..."
               dir="ltr"
             />
           </div>

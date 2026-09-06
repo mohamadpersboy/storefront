@@ -633,6 +633,50 @@ Master Prompt — یک مرحله در هر تأیید).
     `order-payments.test.ts`) — ۲۸۳ تست کل، همه سبز.
   - Build/TypeScript/ESLint هر سه سبز.
 
+- ✅ **حذف پیامک خودکار وضعیت سفارش + دکمه ارسال دستی** — طبق درخواست
+  کارفرما:
+  - پیامک وضعیت سفارش دیگر خودکار ارسال نمی‌شود — نه در ثبت سفارش
+    (`create-order.ts`) و نه در تغییر وضعیت
+    (`orders/:id/status`). هر دو فراخوانی `sendOrderStatusSms` حذف
+    شدند؛ خود تابع دست‌نخورده ماند (منطق پیام هنوز آنجاست).
+  - Endpoint جدید: `POST /api/v1/orders/:id/notify-status` — پیامک
+    وضعیت *فعلی* سفارش را برای مشتری ارسال می‌کند؛ Permission:
+    `ORDERS_UPDATE`.
+  - دکمهٔ «ارسال وضعیت به مشتری» در صفحهٔ جزئیات سفارش
+    (`order-detail-card.tsx`) این Endpoint را صدا می‌زند و نتیجه
+    (موفق/خطا) را زیر آن نمایش می‌دهد.
+  - متن تأییدیهٔ تغییر وضعیت (Confirm Dialog) که به «ارسال خودکار
+    پیامک» اشاره می‌کرد، به‌روزرسانی شد.
+
+- ✅ **ارسال شماره کارت به مشتری (پیامکی)** — طبق درخواست کارفرما:
+  - `CardAccount` توسعه یافت (Additive): `bank` (ref `Bank`) و
+    `shabaNumber` اضافه شدند. هر دو در سطح Schema اختیاری‌اند (نه
+    `required`) تا رکوردهای قدیمی‌تر بدون این دو فیلد هم بدون خطای
+    Validation لود شوند؛ اما در Zod (`createCardAccountSchema`)
+    هنگام ساخت کارت جدید هر دو الزامی‌اند.
+  - `POST /api/v1/card-accounts/:id/send` — پیامک اطلاعات کارت
+    (شماره کارت، شبا، نام بانک، نام صاحب حساب + نام فروشگاه) را به
+    شماره موبایل واردشده ارسال می‌کند. اگر کارت هنوز بانک/شبا نداشته
+    باشد، خطای واضح برمی‌گرداند (نه ارسال ناقص).
+  - **متن پیامک قابل تغییرِ آسان**: کل قالب پیام در یک فایل مجزا
+    تعریف شده — `src/lib/sms/card-share-message.ts`
+    (`buildCardShareMessage`) — شامل ثابت `STORE_NAME` (فعلاً «سرای
+    فرش سَقَطچی»). برای تغییر متن یا نام فروشگاه در آینده، فقط همین
+    یک فایل ویرایش می‌شود؛ هیچ Route یا Componentای نیازی به تغییر
+    ندارد.
+  - منطق مشترک ارسال HTTP به sms.ir (که قبلاً فقط داخل
+    `send-order-status-sms.ts` بود) به `src/lib/sms/send-bulk-sms.ts`
+    منتقل شد تا بین «پیامک وضعیت سفارش» و «پیامک اطلاعات کارت»
+    Duplicate نشود؛ `sendOrderStatusSms` بدون تغییر رفتار/امضا روی
+    همان تابع مشترک بازنویسی شد (تست موجودش دست‌نخورده سبز است).
+  - UI: در `CardAccountsManager` دکمهٔ ارسال (آیکن) روی هر ردیف؛
+    Modal کوچک `SendCardAccountModal` برای گرفتن شماره موبایل مشتری.
+    فرم کارت/حساب (`CardAccountFormModal`) فیلدهای بانک (Combobox) و
+    شبا را هم گرفت.
+  - ۲ تست Unit جدید برای `buildCardShareMessage` و `sendCardAccountSchema`
+    — ۲۸۹ تست کل، همه سبز.
+  - Build/TypeScript/ESLint هر سه سبز.
+
 ## 4. In Progress
 
 **مدیریت مالی — Phase ۱ و Phase ۲ (Master Prompt — Financial

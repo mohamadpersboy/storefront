@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock } from "lucide-react";
+import { Clock, Send } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -97,6 +98,28 @@ export function OrderDetailCard({ order }: { order: OrderDetailData }) {
   const [statusNote, setStatusNote] = useState("");
   const [changing, setChanging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notifying, setNotifying] = useState(false);
+  const [notifyMessage, setNotifyMessage] = useState<{ type: "success" | "error"; text: string } | null>(
+    null,
+  );
+
+  async function sendStatusNotification() {
+    setNotifying(true);
+    setNotifyMessage(null);
+    try {
+      const res = await fetch(`/api/v1/orders/${order.id}/notify-status`, { method: "POST" });
+      const body = await res.json();
+      setNotifyMessage(
+        res.ok && body.success
+          ? { type: "success", text: "پیامک وضعیت برای مشتری ارسال شد" }
+          : { type: "error", text: body.message ?? "ارسال پیامک با خطا مواجه شد" },
+      );
+    } catch {
+      setNotifyMessage({ type: "error", text: "ارتباط با سرور برقرار نشد" });
+    } finally {
+      setNotifying(false);
+    }
+  }
 
   async function confirmStatusChange() {
     if (!pendingStatus) return;
@@ -141,6 +164,29 @@ export function OrderDetailCard({ order }: { order: OrderDetailData }) {
           action={<OrderStatusBadge status={order.status} />}
         />
         <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted">
+              پیامک وضعیت دیگر به‌صورت خودکار ارسال نمی‌شود؛ برای اطلاع‌رسانی به مشتری از دکمهٔ
+              زیر استفاده کنید.
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={sendStatusNotification}
+              disabled={notifying}
+            >
+              <Send className="size-4" />
+              {notifying ? "در حال ارسال..." : "ارسال وضعیت به مشتری"}
+            </Button>
+          </div>
+
+          {notifyMessage ? (
+            <p className={`text-xs ${notifyMessage.type === "success" ? "text-success" : "text-danger"}`}>
+              {notifyMessage.text}
+            </p>
+          ) : null}
+
           {allowedNext.length > 0 ? (
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
               <div className="flex-1">
@@ -347,7 +393,7 @@ export function OrderDetailCard({ order }: { order: OrderDetailData }) {
         title="تغییر وضعیت سفارش"
         description={
           pendingStatus
-            ? `آیا از تغییر وضعیت سفارش به «${orderStatusLabels[pendingStatus]}» مطمئن هستید؟ پیامک اطلاع‌رسانی برای مشتری ارسال می‌شود.`
+            ? `آیا از تغییر وضعیت سفارش به «${orderStatusLabels[pendingStatus]}» مطمئن هستید؟`
             : ""
         }
         confirmLabel="تأیید تغییر"

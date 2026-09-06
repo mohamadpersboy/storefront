@@ -1,7 +1,5 @@
-import { env } from "@/config/env";
 import type { OrderStatus } from "@/lib/constants/order-status";
-
-const SMS_IR_BULK_URL = "https://api.sms.ir/v1/send/bulk";
+import { sendBulkSms } from "@/lib/sms/send-bulk-sms";
 
 const STATUS_MESSAGES: Record<OrderStatus, (orderNumber: number) => string> = {
   pending: (n) => `سفارش شما به شماره ${n} در فرش سقطچی ثبت شد و در انتظار بررسی است.`,
@@ -15,41 +13,19 @@ const STATUS_MESSAGES: Record<OrderStatus, (orderNumber: number) => string> = {
 };
 
 /**
- * Best-effort order-status notification via sms.ir's Bulk method
- * (freeform text, no pre-approved template required — unlike OTP,
- * which uses the approved Pattern/Verify template because the exact
- * wording there is fixed and time-critical). Callers should treat
- * failures here as non-fatal: a status change should never fail just
- * because the notification SMS couldn't be sent.
+ * Sends the SMS for an order's *current* status. Best-effort: callers
+ * should treat failures here as non-fatal in automatic contexts.
+ *
+ * NOTE: per the employer's explicit decision, this is no longer
+ * called automatically anywhere (not on order creation, not on a
+ * status transition) — the only caller left in the codebase is the
+ * manual `POST /api/v1/orders/:id/notify-status` endpoint, wired to
+ * the "ارسال وضعیت به مشتری" button on the order detail page.
  */
 export async function sendOrderStatusSms(
   phoneNumber: string,
   orderNumber: number,
   status: OrderStatus,
 ): Promise<void> {
-  const messageText = STATUS_MESSAGES[status](orderNumber);
-
-  const response = await fetch(SMS_IR_BULK_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-KEY": env.SMS_IR_API_KEY,
-    },
-    body: JSON.stringify({
-      lineNumber: Number(env.SMS_IR_LINE_NUMBER),
-      messageText,
-      mobiles: [phoneNumber],
-      sendDateTime: null,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => "");
-    throw new Error(`sms.ir bulk request failed (${response.status}): ${errorBody}`);
-  }
-
-  const data: { status?: number; message?: string } = await response.json();
-  if (data.status !== 1) {
-    throw new Error(`sms.ir rejected the request: ${data.message ?? "unknown error"}`);
-  }
+  await sendBulkSms(phoneNumber, STATUS_MESSAGES[status](orderNumber));
 }

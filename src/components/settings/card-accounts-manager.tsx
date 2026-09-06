@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { CreditCard, Pencil, Plus } from "lucide-react";
+import { CreditCard, Landmark, Pencil, Plus, Send } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,10 +13,13 @@ import {
   CardAccountFormModal,
   type CardAccountFormValues,
 } from "@/components/settings/card-account-form-modal";
+import { SendCardAccountModal } from "@/components/settings/send-card-account-modal";
 
 interface ApiCardAccount {
   id: string;
   cardNumber: string;
+  shabaNumber: string | null;
+  bank: { id: string; name: string } | null;
   accountNumber: string;
   ownerName: string;
   isActive: boolean;
@@ -31,6 +34,8 @@ export function CardAccountsManager() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<CardAccountFormValues | undefined>();
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [sendingFor, setSendingFor] = useState<ApiCardAccount | null>(null);
+  const [sentMessage, setSentMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,6 +90,10 @@ export function CardAccountsManager() {
         </Button>
       </div>
 
+      {sentMessage ? (
+        <p className="text-xs text-success">{sentMessage}</p>
+      ) : null}
+
       <Card>
         {loading ? (
           <div className="p-5">
@@ -111,12 +120,25 @@ export function CardAccountsManager() {
                   <span className="block text-sm font-medium text-foreground tabular-nums">
                     {toPersianDigits(account.cardNumber)}
                   </span>
-                  <span className="block text-xs text-muted">{account.ownerName}</span>
+                  <span className="flex items-center gap-1 text-xs text-muted">
+                    <Landmark className="size-3" />
+                    {account.bank?.name ?? "بدون بانک"} · {account.ownerName}
+                  </span>
                 </span>
                 <Badge tone={account.isActive ? "success" : "neutral"}>
                   {account.isActive ? "فعال" : "غیرفعال"}
                 </Badge>
                 <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      setSentMessage(null);
+                      setSendingFor(account);
+                    }}
+                    aria-label="ارسال به مشتری"
+                    className="flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-surface-subtle"
+                  >
+                    <Send className="size-4" />
+                  </button>
                   <button
                     onClick={() => toggleActive(account)}
                     disabled={togglingId === account.id}
@@ -126,7 +148,14 @@ export function CardAccountsManager() {
                   </button>
                   <button
                     onClick={() => {
-                      setEditing(account);
+                      setEditing({
+                        id: account.id,
+                        cardNumber: account.cardNumber,
+                        shabaNumber: account.shabaNumber ?? "",
+                        bankId: account.bank?.id ?? "",
+                        accountNumber: account.accountNumber,
+                        ownerName: account.ownerName,
+                      });
                       setFormOpen(true);
                     }}
                     aria-label="ویرایش"
@@ -148,6 +177,18 @@ export function CardAccountsManager() {
           onSaved={() => {
             setFormOpen(false);
             setReloadToken((t) => t + 1);
+          }}
+        />
+      ) : null}
+
+      {sendingFor ? (
+        <SendCardAccountModal
+          cardAccountId={sendingFor.id}
+          cardLabel={`${toPersianDigits(sendingFor.cardNumber)} — ${sendingFor.ownerName}`}
+          onCancel={() => setSendingFor(null)}
+          onSent={() => {
+            setSendingFor(null);
+            setSentMessage("اطلاعات کارت برای مشتری پیامک شد");
           }}
         />
       ) : null}

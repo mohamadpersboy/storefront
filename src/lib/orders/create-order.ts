@@ -6,7 +6,6 @@ import { CouponRedemption } from "@/models/CouponRedemption";
 import { getDiscountSettings } from "@/models/DiscountSettings";
 import { getNextSequence } from "@/models/Counter";
 import { computeFinalPrice, computePrepayment, type PaymentMethod } from "@/lib/utils/pricing";
-import { sendOrderStatusSms } from "@/lib/sms/send-order-status-sms";
 import { resolveOrderDiscount } from "@/lib/discounts/engine";
 import { validateCouponEligibility } from "@/lib/discounts/validate-coupon";
 import {
@@ -255,12 +254,10 @@ export async function createOrder(params: CreateOrderParams) {
     }
   }
 
-  // Best-effort order-confirmation SMS — must never fail order creation.
-  try {
-    await sendOrderStatusSms(customer.phoneNumber, order.orderNumber, "pending");
-  } catch (error) {
-    console.error("Failed to send order confirmation SMS:", error);
-  }
+  // یادداشت: پیامک تأیید ثبت سفارش قبلاً اینجا به‌صورت خودکار ارسال
+  // می‌شد. طبق درخواست کارفرما، ارسال خودکار پیامک وضعیت (چه در ثبت
+  // سفارش و چه در تغییر وضعیت) حذف شد؛ ارسال اکنون فقط با دکمهٔ
+  // دستی «ارسال وضعیت به مشتری» در صفحهٔ جزئیات سفارش انجام می‌شود.
 
   return { order, customer: customer as UserDocument, resolvedDiscount };
 }

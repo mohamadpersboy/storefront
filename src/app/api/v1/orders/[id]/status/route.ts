@@ -1,13 +1,11 @@
 import { connectToDatabase } from "@/lib/db/connect";
 import { Order } from "@/models/Order";
 import { Product } from "@/models/Product";
-import { User } from "@/models/User";
 import { PERMISSIONS } from "@/lib/constants/rbac";
 import { requireApiUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { updateOrderStatusSchema } from "@/lib/validations/orders";
 import { canTransitionOrderStatus, type OrderStatus } from "@/lib/constants/order-status";
-import { sendOrderStatusSms } from "@/lib/sms/send-order-status-sms";
 import { logActivity } from "@/lib/audit/log-activity";
 
 export async function PATCH(
@@ -74,16 +72,11 @@ export async function PATCH(
     description: `وضعیت سفارش #${order.orderNumber} از «${previousStatus}» به «${nextStatus}» تغییر یافت`,
   });
 
-  // Best-effort customer notification — a failed SMS must never fail
-  // (or roll back) the status change itself.
-  try {
-    const customer = await User.findById(order.customer).select("phoneNumber").lean();
-    if (customer) {
-      await sendOrderStatusSms(customer.phoneNumber, order.orderNumber, nextStatus);
-    }
-  } catch (error) {
-    console.error("Failed to send order status SMS:", error);
-  }
+  // یادداشت: قبلاً اینجا پیامک وضعیت به‌صورت خودکار ارسال می‌شد.
+  // طبق درخواست کارفرما، این ارسال خودکار حذف شد — ارسال پیامک وضعیت
+  // اکنون فقط دستی و از طریق دکمهٔ «ارسال وضعیت به مشتری» در صفحهٔ
+  // جزئیات سفارش انجام می‌شود (ببینید:
+  // POST /api/v1/orders/:id/notify-status).
 
   return apiSuccess(
     { id: order.id, status: order.status },

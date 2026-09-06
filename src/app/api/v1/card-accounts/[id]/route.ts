@@ -1,5 +1,6 @@
 import { connectToDatabase } from "@/lib/db/connect";
 import { CardAccount } from "@/models/CardAccount";
+import { Bank } from "@/models/Bank";
 import { PERMISSIONS } from "@/lib/constants/rbac";
 import { requireApiUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
@@ -30,13 +31,27 @@ export async function PATCH(
     return apiError("کارت/حساب یافت نشد", { status: 404 });
   }
 
-  Object.assign(account, parsed.data);
+  if (parsed.data.bankId) {
+    const bank = await Bank.findById(parsed.data.bankId);
+    if (!bank || !bank.isActive) {
+      return apiError("بانک انتخاب‌شده معتبر نیست", {
+        status: 422,
+        errors: { bankId: ["بانک انتخاب‌شده معتبر نیست"] },
+      });
+    }
+    account.bank = bank._id;
+  }
+
+  const { bankId: _bankId, ...rest } = parsed.data;
+  void _bankId;
+  Object.assign(account, rest);
   await account.save();
 
   return apiSuccess(
     {
       id: account.id,
       cardNumber: account.cardNumber,
+      shabaNumber: account.shabaNumber,
       accountNumber: account.accountNumber,
       ownerName: account.ownerName,
       isActive: account.isActive,
