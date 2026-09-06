@@ -3,10 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-function digitsOnly(value: string): string {
-  return value.replace(/[^0-9]/g, "");
-}
+import { digitsOnly } from "@/lib/utils/format";
 
 export function TransferCheckModal({
   checkId,

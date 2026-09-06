@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShoppingCart, Phone, Calendar, Clock } from "lucide-react";
+import { ShoppingCart, Phone, Calendar, Clock, Pencil } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { RoleBadge } from "@/components/users/role-badge";
 import { UserStatusBadge } from "@/components/users/user-status-badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -50,6 +51,12 @@ export function UserDetailCard({
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(user.fullName ?? "");
+  const [displayName, setDisplayName] = useState(user.fullName);
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+
   // Client-side hint only — the API route is the real authorization
   // boundary and re-checks all of this itself.
   const canElevateToPrivileged = actorRole === "super_admin";
@@ -78,6 +85,35 @@ export function UserDetailCard({
       setMessage({ type: "error", text: "ارتباط با سرور برقرار نشد" });
     } finally {
       setSavingRole(false);
+    }
+  }
+
+  async function saveName() {
+    const trimmed = nameInput.trim();
+    if (trimmed.length < 2) {
+      setNameError("نام باید حداقل ۲ حرف باشد");
+      return;
+    }
+    setSavingName(true);
+    setNameError(null);
+    try {
+      const res = await fetch(`/api/v1/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullName: trimmed }),
+      });
+      const body = await res.json();
+      if (!res.ok || !body.success) {
+        setNameError(body.message ?? "خطایی رخ داد");
+        return;
+      }
+      setDisplayName(body.data.fullName);
+      setEditingName(false);
+      router.refresh();
+    } catch {
+      setNameError("ارتباط با سرور برقرار نشد");
+    } finally {
+      setSavingName(false);
     }
   }
 
@@ -127,11 +163,58 @@ export function UserDetailCard({
 
       <Card>
         <CardHeader
-          title={user.fullName ?? "بدون نام"}
+          title={editingName ? "ویرایش نام" : (displayName ?? "بدون نام")}
           description={user.phoneNumber}
-          action={<UserStatusBadge isActive={user.isActive} />}
+          action={
+            <div className="flex items-center gap-2">
+              <UserStatusBadge isActive={user.isActive} />
+              {!editingName ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNameInput(displayName ?? "");
+                    setNameError(null);
+                    setEditingName(true);
+                  }}
+                  aria-label="ویرایش نام"
+                  className="flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-muted hover:bg-surface-subtle"
+                >
+                  <Pencil className="size-4" />
+                </button>
+              ) : null}
+            </div>
+          }
         />
         <CardContent className="flex flex-col gap-4">
+          {editingName ? (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="flex-1">
+                <label className="mb-1.5 block text-xs font-medium text-foreground/80">
+                  نام و نام خانوادگی
+                </label>
+                <Input
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  placeholder="نام و نام خانوادگی"
+                />
+                {nameError ? <p className="mt-1 text-xs text-danger">{nameError}</p> : null}
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={saveName} disabled={savingName}>
+                  {savingName ? "در حال ذخیره..." : "ذخیره"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setEditingName(false)}
+                  disabled={savingName}
+                >
+                  انصراف
+                </Button>
+              </div>
+            </div>
+          ) : null}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div className="flex items-center gap-2 text-sm text-foreground/80">
               <Phone className="size-4 text-muted" />
@@ -222,7 +305,7 @@ export function UserDetailCard({
       <ConfirmDialog
         open={confirmDeactivate}
         title="غیرفعال کردن کاربر"
-        description={`آیا از غیرفعال کردن «${user.fullName ?? user.phoneNumber}» مطمئن هستید؟ این کاربر تا فعال‌سازی مجدد نمی‌تواند وارد حساب خود شود.`}
+        description={`آیا از غیرفعال کردن «${displayName ?? user.phoneNumber}» مطمئن هستید؟ این کاربر تا فعال‌سازی مجدد نمی‌تواند وارد حساب خود شود.`}
         confirmLabel="غیرفعال کردن"
         confirmVariant="danger"
         loading={savingStatus}

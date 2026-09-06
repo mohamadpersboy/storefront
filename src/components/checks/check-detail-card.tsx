@@ -11,7 +11,7 @@ import { ErrorState } from "@/components/ui/error-state";
 import { CheckStatusBadge } from "@/components/checks/check-status-badge";
 import { ReturnCheckModal } from "@/components/checks/return-check-modal";
 import { TransferCheckModal } from "@/components/checks/transfer-check-modal";
-import { formatToman, toPersianDigits } from "@/lib/utils/format";
+import { formatToman, formatPersonWithPhone, toPersianDigits } from "@/lib/utils/format";
 import { formatJalali } from "@/lib/utils/jalali";
 import { numberToPersianWords } from "@/lib/utils/number-to-words";
 import { canReturnCheck, canTransferCheck, type CheckStatus } from "@/lib/constants/check-status";
@@ -90,7 +90,7 @@ export function CheckDetailCard({ checkId }: { checkId: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
       <Card className="flex flex-col gap-1 p-5">
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -126,7 +126,7 @@ export function CheckDetailCard({ checkId }: { checkId: string }) {
         <h2 className="mb-2 text-sm font-semibold text-foreground">دریافت‌کننده</h2>
         <Row
           label="نام"
-          value={check.receiver?.fullName ?? toPersianDigits(check.receiver?.phoneNumber ?? "—")}
+          value={formatPersonWithPhone(check.receiver?.fullName, check.receiver?.phoneNumber ?? "—")}
         />
       </Card>
 

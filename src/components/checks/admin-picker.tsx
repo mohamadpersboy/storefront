@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { toPersianDigits } from "@/lib/utils/format";
+import { toPersianDigits, formatPersonWithPhone } from "@/lib/utils/format";
 
 interface AdminUser {
   id: string;
@@ -57,7 +57,7 @@ export function AdminPicker({
     return (
       <div className="flex items-center gap-2 rounded-[var(--radius-md)] border border-border bg-surface-subtle px-3 py-2">
         <span className="flex-1 text-sm text-foreground">
-          {value.fullName ?? toPersianDigits(value.phoneNumber)}
+          {formatPersonWithPhone(value.fullName, value.phoneNumber)}
         </span>
         <button
           type="button"

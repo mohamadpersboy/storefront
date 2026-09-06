@@ -20,7 +20,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
-import { formatToman, toPersianDigits } from "@/lib/utils/format";
+import { formatToman, toPersianDigits, formatPersonWithPhone } from "@/lib/utils/format";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/constants/order-status";
 import { orderStatusLabels } from "@/components/orders/order-status-badge";
 
@@ -161,8 +161,9 @@ export function OrdersPageClient() {
                     </Link>
                   </TableCell>
                   <TableCell label="مشتری" className="text-foreground/80">
-                    {o.customer?.fullName ??
-                      (o.customer?.phoneNumber ? toPersianDigits(o.customer.phoneNumber) : "—")}
+                    {o.customer
+                      ? formatPersonWithPhone(o.customer.fullName ?? null, o.customer.phoneNumber)
+                      : "—"}
                   </TableCell>
                   <TableCell label="اقلام" className="tabular-nums text-foreground/80">
                     {toPersianDigits(o.itemsCount)}

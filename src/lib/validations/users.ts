@@ -15,3 +15,7 @@ export const updateUserRoleSchema = z.object({
 export const updateUserStatusSchema = z.object({
   isActive: z.boolean(),
 });
+
+export const updateUserNameSchema = z.object({
+  fullName: z.string().trim().min(2, "نام باید حداقل ۲ حرف باشد").max(100),
+});

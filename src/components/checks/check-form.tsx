@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Combobox } from "@/components/ui/combobox";
 import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { AdminPicker } from "@/components/checks/admin-picker";
-import { toPersianDigits } from "@/lib/utils/format";
+import { toPersianDigits, digitsOnly } from "@/lib/utils/format";
 import { numberToPersianWords } from "@/lib/utils/number-to-words";
 
 interface ApiBank {
@@ -22,10 +22,6 @@ interface ReceiverUser {
   fullName: string | null;
   phoneNumber: string;
   role: string;
-}
-
-function digitsOnly(value: string): string {
-  return value.replace(/[^0-9]/g, "");
 }
 
 export function CheckForm() {
@@ -138,7 +134,7 @@ export function CheckForm() {
   ];
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-2xl flex-col gap-4">
       <Card className="flex flex-col gap-4 p-5">
         <h2 className="text-sm font-semibold text-foreground">اطلاعات بانک و صادرکننده</h2>
 
@@ -264,12 +260,14 @@ export function CheckForm() {
           <label className="mb-1.5 block text-xs font-medium text-foreground/80">مبلغ (تومان)</label>
           <Input
             dir="ltr"
-            value={amountInput ? toPersianDigits(Number(digitsOnly(amountInput)).toLocaleString("en-US")) : ""}
+            value={amountInput ? Number(digitsOnly(amountInput)).toLocaleString("en-US") : ""}
             onChange={(e) => setAmountInput(digitsOnly(e.target.value))}
-            placeholder="۰"
+            placeholder="0"
           />
           {amountWords ? (
-            <p className="mt-1 text-xs text-muted">{amountWords} تومان</p>
+            <p className="mt-1 text-xs text-muted">
+              {toPersianDigits(amount.toLocaleString("en-US"))} تومان — {amountWords} تومان
+            </p>
           ) : null}
           {fieldErrors.amount ? (
             <p className="mt-1 text-xs text-danger">{fieldErrors.amount[0]}</p>

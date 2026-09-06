@@ -5,10 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
-
-function digitsOnly(value: string): string {
-  return value.replace(/[^0-9]/g, "");
-}
+import { digitsOnly } from "@/lib/utils/format";
 
 export function ReturnCheckModal({
   checkId,

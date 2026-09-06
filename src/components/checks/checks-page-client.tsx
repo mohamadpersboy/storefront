@@ -20,7 +20,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { CheckStatusBadge } from "@/components/checks/check-status-badge";
-import { formatToman, toPersianDigits } from "@/lib/utils/format";
+import { formatToman, formatPersonWithPhone } from "@/lib/utils/format";
 import { formatJalali } from "@/lib/utils/jalali";
 import { CHECK_STATUSES, checkStatusLabel, type CheckStatus } from "@/lib/constants/check-status";
 
@@ -160,8 +160,9 @@ export function ChecksPageClient() {
                     {c.issuer.firstName} {c.issuer.lastName}
                   </TableCell>
                   <TableCell label="دریافت‌کننده" className="text-foreground/80">
-                    {c.receiver?.fullName ??
-                      (c.receiver?.phoneNumber ? toPersianDigits(c.receiver.phoneNumber) : "—")}
+                    {c.receiver
+                      ? formatPersonWithPhone(c.receiver.fullName, c.receiver.phoneNumber)
+                      : "—"}
                   </TableCell>
                   <TableCell label="مبلغ" className="tabular-nums text-foreground/80">
                     {formatToman(c.amount)}
