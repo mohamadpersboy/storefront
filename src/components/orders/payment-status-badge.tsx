@@ -12,6 +12,7 @@ const statusConfig: Record<
   cancelled: { label: "لغوشده", tone: "danger" },
   refunded: { label: "بازگشت‌داده‌شده", tone: "neutral" },
   partially_paid: { label: "پرداخت جزئی", tone: "warning" },
+  returned: { label: "عودت داده‌شده", tone: "neutral" },
 };
 
 export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {

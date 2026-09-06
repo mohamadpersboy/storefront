@@ -10,6 +10,8 @@ import {
   Phone,
   HelpCircle,
   Landmark,
+  CreditCard,
+  Terminal,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
@@ -55,6 +57,18 @@ const settingsSections = [
     icon: Landmark,
     title: "بانک‌ها",
     description: "مدیریت بانک‌های قابل انتخاب برای ثبت چک‌های دریافتی",
+  },
+  {
+    href: "/dashboard/settings/card-accounts",
+    icon: CreditCard,
+    title: "کارت‌ها و حساب‌های بانکی",
+    description: "حساب‌های مقصد فروشگاه برای دریافت کارت‌به‌کارت",
+  },
+  {
+    href: "/dashboard/settings/pos-terminals",
+    icon: Terminal,
+    title: "کارتخوان‌ها",
+    description: "کارتخوان‌های فروشگاه برای ثبت پرداخت‌های حضوری",
   },
   {
     href: "/dashboard/settings/discounts",

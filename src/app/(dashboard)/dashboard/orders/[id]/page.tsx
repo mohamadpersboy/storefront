@@ -73,6 +73,7 @@ export default async function OrderDetailPage({
           prepaymentPercent: order.prepaymentPercent,
           prepaymentAmount: order.prepaymentAmount,
           remainingAmount: order.remainingAmount,
+          paidAmount: order.paidAmount ?? 0,
           status: order.status,
           statusHistory: order.statusHistory.map((entry) => ({
             status: entry.status,

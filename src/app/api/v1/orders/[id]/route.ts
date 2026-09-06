@@ -36,6 +36,7 @@ export async function GET(
     prepaymentPercent: order.prepaymentPercent,
     prepaymentAmount: order.prepaymentAmount,
     remainingAmount: order.remainingAmount,
+    paidAmount: order.paidAmount ?? 0,
     status: order.status,
     statusHistory: order.statusHistory,
     notes: order.notes,

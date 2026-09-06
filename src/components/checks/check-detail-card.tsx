@@ -18,6 +18,7 @@ import { canReturnCheck, canTransferCheck, type CheckStatus } from "@/lib/consta
 
 interface ApiCheckDetail {
   id: string;
+  linkedOrder: { orderId: string; orderNumber: number; paymentStatus: string } | null;
   bank: { name: string; logoUrl: string | null } | null;
   issuer: { firstName: string; lastName: string; nationalId: string };
   receiver: { fullName: string | null; phoneNumber: string } | null;
@@ -129,6 +130,27 @@ export function CheckDetailCard({ checkId }: { checkId: string }) {
           value={formatPersonWithPhone(check.receiver?.fullName, check.receiver?.phoneNumber ?? "—")}
         />
       </Card>
+
+      {check.linkedOrder ? (
+        <Card className="flex flex-col p-5">
+          <h2 className="mb-2 text-sm font-semibold text-foreground">سفارش متصل</h2>
+          <Row
+            label="شماره سفارش"
+            value={
+              <a
+                href={`/dashboard/orders/${check.linkedOrder.orderId}`}
+                className="text-primary underline"
+              >
+                #{toPersianDigits(check.linkedOrder.orderNumber)}
+              </a>
+            }
+          />
+          <Row
+            label="وضعیت این پرداخت"
+            value={check.linkedOrder.paymentStatus === "returned" ? "عودت داده شده" : "دریافت‌شده"}
+          />
+        </Card>
+      ) : null}
 
       {check.guarantor ? (
         <Card className="flex flex-col p-5">

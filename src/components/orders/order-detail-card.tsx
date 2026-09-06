@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { OrderStatusBadge, orderStatusLabels } from "@/components/orders/order-status-badge";
 import { PaymentPanel, type PaymentPanelData } from "@/components/orders/payment-panel";
+import { ManualPaymentsPanel } from "@/components/orders/manual-payments-panel";
 import { formatToman, toPersianDigits } from "@/lib/utils/format";
 import {
   Table,
@@ -67,6 +68,7 @@ export interface OrderDetailData {
   prepaymentPercent: number;
   prepaymentAmount: number;
   remainingAmount: number;
+  paidAmount: number;
   status: OrderStatus;
   statusHistory: OrderStatusHistoryItem[];
   notes: string;
@@ -299,6 +301,13 @@ export function OrderDetailCard({ order }: { order: OrderDetailData }) {
         paymentMethod={order.paymentMethod}
         prepaymentAmount={order.prepaymentAmount}
         initialPayments={order.payments}
+      />
+
+      <ManualPaymentsPanel
+        orderId={order.id}
+        totalAmount={order.totalAmount}
+        paidAmount={order.paidAmount}
+        remainingAmount={order.remainingAmount}
       />
 
       <Card>

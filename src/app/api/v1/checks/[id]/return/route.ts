@@ -1,11 +1,13 @@
 import { connectToDatabase } from "@/lib/db/connect";
 import { Check } from "@/models/Check";
+import { Payment } from "@/models/Payment";
 import { PERMISSIONS } from "@/lib/constants/rbac";
 import { requireApiUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { returnCheckSchema } from "@/lib/validations/checks";
 import { canReturnCheck, checkStatusLabel } from "@/lib/constants/check-status";
 import { logActivity } from "@/lib/audit/log-activity";
+import { recalculateOrderPaymentTotals } from "@/lib/payments/recalculate-order-payments";
 
 /**
  * Returns a received check to its issuer/customer. This is a real
@@ -14,12 +16,12 @@ import { logActivity } from "@/lib/audit/log-activity";
  * status moves to "returned" and `returnInfo` records who it went
  * back to, when, and why, so the audit trail stays complete.
  *
- * NOTE (Phase 1 scope): recomputing an Order's paid/remaining amount
- * when a linked check is returned (Master Prompt بند ۹-۱۰) requires
- * the Check↔Payment↔Order link that Phase 2 introduces. Nothing to
- * recompute yet here because no check can be assigned to an order
- * until then — documented as a Phase 2 dependency, not implemented
- * as a guess in Phase 1.
+ * Phase ۲: if this check is linked to an order through a `Payment`
+ * (method "check"), that Payment's status moves to "returned" too —
+ * it is never deleted, only stops counting as received money — and
+ * the order's `paidAmount`/`remainingAmount` are recomputed (بند
+ * ۹-۱۱). A check registered but never assigned to any order simply
+ * has no matching Payment, so this is a no-op for it.
  */
 export async function POST(
   request: Request,
@@ -63,6 +65,13 @@ export async function POST(
 
   await check.save();
 
+  const linkedPayment = await Payment.findOne({ check: check._id, status: { $ne: "returned" } });
+  if (linkedPayment) {
+    linkedPayment.status = "returned";
+    await linkedPayment.save();
+    await recalculateOrderPaymentTotals(String(linkedPayment.order));
+  }
+
   await logActivity({
     actor: guard.user,
     action: "check.returned",
@@ -71,5 +80,8 @@ export async function POST(
     description: `چک به مبلغ ${check.amount.toLocaleString("fa-IR")} تومان به ${parsed.data.returnedToName} عودت داده شد`,
   });
 
-  return apiSuccess({ id: check.id, status: check.status }, { message: "چک با موفقیت عودت داده شد" });
+  return apiSuccess(
+    { id: check.id, status: check.status, orderAffected: Boolean(linkedPayment) },
+    { message: "چک با موفقیت عودت داده شد" },
+  );
 }

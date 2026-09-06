@@ -70,6 +70,16 @@ export interface IOrder {
   prepaymentPercent: number; // 0-100; 100 for 'online', 0 for 'cash', admin-set for 'split'
   prepaymentAmount: number;
   remainingAmount: number;
+  // مجموع واقعی مبالغ دریافت‌شده — از جمع Paymentهای فعال (غیر
+  // returned/failed/cancelled) این سفارش محاسبه می‌شود، نه یک عدد
+  // ثابتِ زمان ساخت سفارش. فقط توسط
+  // `recalculateOrderPaymentTotals` (Master Prompt — Financial
+  // Management، Phase ۲) نوشته می‌شود؛ برای سفارش‌هایی که هرگز
+  // Payment دستی/چک روی آن‌ها ثبت نشده، ۰ باقی می‌ماند و به معنای
+  // «هنوز محاسبه نشده» نیست — یعنی remainingAmount قدیمی (زمان ساخت)
+  // دست‌نخورده می‌ماند، دقیقاً طبق تصمیم مستندشده که موفقیت پرداخت
+  // آنلاین بدون دخالت این فیلد جدید ثبت می‌شود.
+  paidAmount: number;
   status: OrderStatus;
   statusHistory: IOrderStatusHistoryEntry[];
   notes: string;
@@ -162,6 +172,7 @@ const OrderSchema = new Schema<IOrder>(
     prepaymentPercent: { type: Number, required: true, min: 0, max: 100 },
     prepaymentAmount: { type: Number, required: true, min: 0 },
     remainingAmount: { type: Number, required: true, min: 0 },
+    paidAmount: { type: Number, default: 0, min: 0 },
     status: {
       type: String,
       enum: ORDER_STATUSES,

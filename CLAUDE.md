@@ -571,12 +571,75 @@ Master Prompt — یک مرحله در هر تأیید).
     `checks.test.ts`, `banks.test.ts`) — ۲۵۲ تست کل، همه سبز.
   - Build/TypeScript/ESLint هر سه سبز.
 
+- ✅ **مدیریت مالی — Phase 2 (روش‌های دریافت وجه + اتصال
+  Payment↔Check↔Order)** — طبق تأیید صریح کارفرما اجرا شد:
+  - `CardAccount` (`src/models/CardAccount.ts`): کارت/حساب بانکی
+    فروشگاه برای دریافت کارت‌به‌کارت — `cardNumber` (۱۶ رقم)،
+    `accountNumber`، `ownerName`، `isActive`. بدون DELETE (مثل Bank).
+  - `PosTerminal` (`src/models/PosTerminal.ts`): کارتخوان — `name`،
+    `bank` (ref Bank، استفاده مجدد از همان مرجع بانک‌های Phase ۱)،
+    `accountNumber`، `isActive`.
+  - `Payment` توسعه یافت (Additive، بدون تغییر رفتار جریان Zarinpal
+    موجود): فیلد جدید `method` (`zarinpal` | `cash` | `pos` |
+    `card_transfer` | `check`)، `provider` مقدار جدید `"manual"`
+    گرفت، رفرنس‌های اختیاری `posTerminal`/`cardAccount`/`check`، و
+    Status جدید `"returned"` (برای Paymentِ نوع چک که چک متصل به آن
+    عودت داده شده — هرگز حذف نمی‌شود، فقط از محاسبه دریافتی خارج
+    می‌شود). Paymentهای دستی از `authority` ساختگی یکتا
+    (`manual-<uuid>`) استفاده می‌کنند تا محدودیت unique قبلی دست‌نخورده
+    بماند.
+  - `Order.paidAmount` فیلد جدید (Additive) — فقط توسط
+    `recalculateOrderPaymentTotals()`
+    (`src/lib/payments/recalculate-order-payments.ts`) نوشته می‌شود:
+    جمع Paymentهای `status: "paid"` این سفارش، و `remainingAmount` را
+    از `totalAmount - paidAmount` بازمحاسبه می‌کند. **عمداً به مسیر
+    آنلاین Zarinpal (`payments/callback`) وصل نشد** — طبق تصمیم
+    مستندشده قبلی که موفقیت پرداخت آنلاین به‌تنهایی فیلدهای سفارش را
+    تغییر نمی‌دهد؛ این تابع فقط زیرسیستم جدید پرداخت دستی را اداره
+    می‌کند.
+  - APIها: `GET/POST /api/v1/card-accounts`, `PATCH
+    /api/v1/card-accounts/:id`, `GET/POST /api/v1/pos-terminals`,
+    `PATCH /api/v1/pos-terminals/:id`, `GET/POST
+    /api/v1/orders/:id/payments` (ثبت دریافت وجه دستی — نقدی/کارتخوان/
+    کارت‌به‌کارت/چک؛ برای چک یا `checkId` یک چک ثبت‌شده موجود یا
+    `newCheck` برای ثبت هم‌زمان چک جدید، دقیقاً طبق بند ۷ سند). مبلغ
+    Payment نوع چک همیشه از `check.amount` سرور مشتق می‌شود، هرگز از
+    Client گرفته نمی‌شود.
+  - جلوگیری از تخصیص دوباره چک (بند ۹): قبل از ساخت Payment جدید از
+    نوع چک، جست‌وجو می‌شود که آیا Payment فعال دیگری (`status !=
+    "returned"`) از قبل به همان چک اشاره دارد.
+  - اتصال به عودت چک (بند ۱۰): `checks/:id/return` حالا هر Payment
+    متصل به آن چک را به `status: "returned"` می‌برد و بلافاصله
+    `recalculateOrderPaymentTotals` سفارش مربوطه را صدا می‌زند —
+    Payment/Check هرگز حذف نمی‌شوند (بند ۱۱).
+  - Permission: پرمیشن جدیدی اضافه نشد — از `PAYMENTS_READ`/
+    `PAYMENTS_MANAGE` موجود (که از قبل در RBAC تعریف شده بود ولی
+    routeای از آن استفاده نمی‌کرد) برای CardAccount/PosTerminal/ثبت
+    پرداخت دستی استفاده شد؛ طبق سند («اگر سیستم Permission فعلی
+    ساختار متفاوتی دارد، با همان معماری موجود هماهنگ شو»).
+  - Activity Log: رویداد جدید `order.payment_recorded` با همان سیستم
+    `ActivityLog` موجود ثبت می‌شود؛ ثبت چک جدید در همین مسیر هم
+    `check.created` را دوباره فراخوانی می‌کند (بدون Duplicate منطق —
+    مستقیماً از همان الگوی Route چک‌ها).
+  - UI: `/dashboard/settings/card-accounts`,
+    `/dashboard/settings/pos-terminals` (لیست + Modal + فعال/غیرفعال،
+    الگوی دقیق `BanksManager`)؛ در جزئیات سفارش، کامپوننت جدید
+    `ManualPaymentsPanel` (بند ۱۱ سند: نمایش مبلغ کل / نقدی / کارتخوان
+    / کارت‌به‌کارت / چک / مجموع پرداخت‌شده / باقی‌مانده + فرم «ثبت
+    دریافت وجه» با انتخاب روش و برای چک، سوییچ «چک موجود» / «چک
+    جدید»)؛ در جزئیات چک (بند ۱۴)، بخش «سفارش متصل» نمایش داده می‌شود
+    اگر آن چک به Payment سفارشی وصل باشد.
+  - ۱۹ تست Unit جدید (`card-accounts.test.ts`, `pos-terminals.test.ts`,
+    `order-payments.test.ts`) — ۲۸۳ تست کل، همه سبز.
+  - Build/TypeScript/ESLint هر سه سبز.
+
 ## 4. In Progress
 
-**مدیریت مالی — Phase 1 تکمیل شد، منتظر تأیید صریح کارفرما برای
-شروع Phase 2** (روش‌های دریافت وجه سفارش‌ها: نقدی/کارتخوان/کارت‌به‌
-کارت/چک + اتصال Payment↔Check↔Order + پرداخت ترکیبی). طبق قانون سند،
-بدون عبارتی مثل «تأیید است» یا «Phase 2 را شروع کن» وارد آن نمی‌شویم.
+**مدیریت مالی — Phase ۱ و Phase ۲ (Master Prompt — Financial
+Management) تکمیل شدند.** سند اصلی فقط همین دو Phase را تعریف کرده
+بود (پایان Phase ۲ در سند: «آیا تأیید می‌کنی وارد فاز بعدی مدیریت
+مالی شوم؟») — فاز بعدی (هزینه‌ها/درآمدها/صندوق/تسویه‌حساب و...) هنوز
+تعریف نشده و منتظر یک Master Prompt جدید یا تأیید صریح کارفرماست.
 
 سند «بررسی تکمیل Backend/Dashboard و آماده‌سازی برای توسعه
 Storefront» — **هر ۱۰ Phase آن کامل شد** (تا جایی که بدون یک

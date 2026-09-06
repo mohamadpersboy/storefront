@@ -2,6 +2,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { Check } from "@/models/Check";
 import { Bank } from "@/models/Bank";
 import { User } from "@/models/User";
+import { Payment } from "@/models/Payment";
 import { PERMISSIONS, ROLES } from "@/lib/constants/rbac";
 import { requireApiUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
@@ -28,8 +29,21 @@ export async function GET(
     return apiError("چک یافت نشد", { status: 404 });
   }
 
+  // Phase ۲: چک متصل به سفارش، از طریق Payment (بند ۱۴)
+  const linkedPayment = await Payment.findOne({ check: check._id })
+    .populate("order", "orderNumber")
+    .lean();
+
   return apiSuccess({
     id: String(check._id),
+    linkedOrder:
+      linkedPayment && linkedPayment.order
+        ? {
+            orderId: String((linkedPayment.order as { _id: unknown })._id),
+            orderNumber: (linkedPayment.order as unknown as { orderNumber: number }).orderNumber,
+            paymentStatus: linkedPayment.status,
+          }
+        : null,
     bank: check.bank,
     issuer: check.issuer,
     receiver: check.receiver,
