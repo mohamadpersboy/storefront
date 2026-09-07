@@ -26,16 +26,42 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار:** بخش «محتوای سایت» به Dashboard اضافه شد — درباره ما،
-تماس با ما، و سوالات متداول (درخواست صریح کاربر، خارج از ترتیب
-Sequential Workflow صفحات Storefront چون یک نیاز Dashboard/Backend
-بود، نه یک مرحله از صفحه اصلی Storefront). قبل از این، شروع
-Storefront — کاربر صریحاً تأیید کرد (بعد از تأیید پالت رنگی و ترتیب
-مراحل). **مرحله ۱ از Sequential Workflow صفحه اصلی انجام شد:** Layout
-مستقل Storefront + Header + SearchBar (فقط این دو بخش، طبق بند ۴۹
-Master Prompt — یک مرحله در هر تأیید).
+**آخرین کار:** کاربر یک Master Workflow جدید برای توسعه Storefront
+ارائه کرد («Storefront Development Workflow») که ترتیب Phaseهای
+Homepage را نسبت به لیست قبلی (بخش ۵) تغییر می‌دهد — ترتیب جدید و
+معتبر:
+
+Phase 1: Mobile Bottom Bar → Phase 2: Desktop Header → Phase 3: Hero
+Slider → Phase 4: Special Offers Carousel → Phase 5: Latest Products
+Carousel → Phase 6: Most Discounted Carousel → Phase 7: Best Sellers
+Carousel → Phase 8: سایر بخش‌ها (در صورت نیاز) → Phase 9: Footer.
+
+این ترتیب جایگزین لیست قدیمی «Planned» (بخش ۵) می‌شود؛ لیست قدیمی
+دیگر معتبر نیست (نگاه کنید بخش ۵ برای نسخه به‌روزشده).
+
+**Phase 1 (Mobile Bottom Bar) انجام شد:**
+- Route Group `(storefront)` دوباره ساخته شد (`layout.tsx` با کلاس
+  `storefront` + `page.tsx` Placeholder موقت — فقط برای اینکه Route
+  Group قابل build باشد؛ محتوای واقعی صفحه اصلی در Phaseهای بعدی
+  اضافه می‌شود).
+- Token های مستقل `--sf-*` (پالت navy/blue، تصمیم قبلاً تأییدشده)
+  دوباره در `globals.css` داخل کلاس `.storefront` اضافه شدند —
+  دقیقاً همان مقادیر قبلی، چون این تصمیم Discard نشده بود، فقط
+  پیاده‌سازی‌اش حذف شده بود.
+- `src/components/storefront/mobile-bottom-bar.tsx`: ۵ تب (خانه،
+  دسته‌بندی‌ها، سبد خرید، علاقه‌مندی‌ها، حساب من)، فقط زیر `sm`
+  نمایش داده می‌شود (`sm:hidden`)، `safe-area-inset-bottom` برای
+  گوشی‌های دارای Notch، حالت Active بر اساس `usePathname`. بج سبد
+  خرید فعلاً همیشه ۰ است (Cart واقعی نیاز به Login دارد و اتصال آن
+  خارج از Scope همین ماژول است — طبق بند ۵۲ Master Prompt: صفر واقعی
+  به‌جای عدد ساختگی).
+- `src/app/page.tsx` قدیمی حذف و با `(storefront)/page.tsx` جایگزین
+  شد (Next.js اجازه دو `page.tsx` هم‌مسیر در `/` را نمی‌دهد).
+- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۲۷۷ تست) ✅، Build ✅.
+
 **Branch فعلی:** `main`
-**Feature بعدی:** مرحله ۲ (HeroSlider) — منتظر تأیید کاربر برای ادامه
+**Feature بعدی:** Phase 2 (Desktop Header) — منتظر تأیید کاربر برای
+ادامه (طبق قانون اصلی: بدون تأیید صریح، ماژول بعدی شروع نمی‌شود).
 
 ## 3. Completed Features
 
@@ -724,20 +750,21 @@ UI مرحله ۱ آن Discard شد).
 
 ## 5. Planned (به ترتیب)
 
-**Storefront — شروع مجدد از صفر (کل کار مرحله ۱ حذف شد، نگاه کنید
-بخش «In Progress»؛ Sequential Workflow، یک مرحله در هر تأیید):**
+**Storefront — Homepage (طبق Master Workflow جدید کاربر، جایگزین
+ترتیب قبلی این بخش؛ Sequential Workflow، یک ماژول در هر تأیید،
+بدون تأیید صریح کاربر به ماژول بعدی نرو):**
 
-- [ ] مرحله ۱: Layout + Header + SearchBar (نسخه قبلی حذف شد — باید
-  دوباره از صفر طراحی/تأیید شود)
-- [ ] مرحله ۲: HeroSlider (نیاز به مدل Banner — هنوز وجود ندارد)
-- [ ] مرحله ۳: PromoSlider + CategorySection
-- [ ] مرحله ۴: ProductCard مشترک
-- [ ] مرحله ۵: Product Carousels (شگفت‌انگیز/جدیدترین/پرفروش/پرتخفیف)
-- [ ] مرحله ۶: About Us + Trust Section
-- [ ] مرحله ۷: Footer + شبکه‌های اجتماعی (فعلاً Placeholder — کاربر
+- [x] Phase 1: Mobile Bottom Bar — انجام شد (نگاه کنید بخش ۲)
+- [ ] Phase 2: Desktop Header
+- [ ] Phase 3: Hero Slider (نیاز به مدل Banner — هنوز وجود ندارد)
+- [ ] Phase 4: Special Offers Carousel
+- [ ] Phase 5: Latest Products Carousel
+- [ ] Phase 6: Most Discounted Products Carousel
+- [ ] Phase 7: Best Sellers Carousel
+- [ ] Phase 8: سایر بخش‌های موردنیاز Homepage (در صورت نیاز)
+- [ ] Phase 9: Footer + شبکه‌های اجتماعی (فعلاً Placeholder — کاربر
   گفته لینک‌ها بعداً از طریق پنل Dashboard مدیریت می‌شوند؛ یک بخش
   Settings جدید برای این باید ساخته شود، هنوز نساخته‌ایم)
-- [ ] مرحله ۸: Fixed Bottom Navigation
 - [ ] بعد از صفحه اصلی: Products/Category/Product Detail/Search/Cart/
   Checkout/Login-OTP/Account/Orders/Address (بند ۶۹) — Checkout باید
   به مدل‌های موجود `Order`/`Payment` وصل شود، نه بازنویسی
