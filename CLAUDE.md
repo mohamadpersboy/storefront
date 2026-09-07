@@ -812,6 +812,49 @@ Cookie (JWT با jose، HttpOnly، Secure در Production). اولین کارب�
 ```
 هلپرها: `src/lib/utils/api-response.ts` (`apiSuccess`/`apiError`).
 
+### Storefront Route/Page Standards (Master Workflow — بندهای ۱۹-۳۲)
+
+استانداردهای اجباری زیر برای تمام صفحات/Routeهای Storefront برقرارند
+(نه فقط Homepage)، اما طبق بند ۳۲ **یکجا برای کل Storefront پیاده
+نمی‌شوند** — هنگام ساخت هر صفحه/ماژول به‌صورت متناسب همان بخش اضافه
+می‌شود، طبق همان Workflow اصلی «Module → Implement → Test → Commit →
+Push → STOP → Approval».
+
+- **فایل‌های هر Route:** `page.tsx` (فقط Composition/Entry Point، بدون
+  State غیرضروری) + `loading.tsx` (فقط اگر Route واقعاً Loading State
+  دارد — Skeleton باید ساختار بصری واقعی همان صفحه را منعکس کند، نه
+  Generic) + `error.tsx` (فقط اگر امکان خطای Runtime/Data Fetching
+  دارد — بدون نمایش Stack Trace به کاربر، امکان Retry). `layout.tsx`
+  فقط در صورت نیاز واقعی. `global-error.tsx`/`not-found.tsx` فقط اگر
+  معماری فعلی Next.js لازمش کند.
+- **Skeleton System:** Component های مشترک و Reusable
+  (`ProductCardSkeleton`، `ProductGridSkeleton`, `HeroSkeleton`, ...)
+  — نه بیش‌ازحد Generic؛ باید بدون Layout Shift و هماهنگ با UI واقعی
+  باشند.
+- **State Management:** Scope-based — UI محلی (Modal/Toggle/Carousel)
+  با Local State، Server State (داده از Backend) با Server
+  Components/Server-side Fetching تا حد امکان (نه قاطی با Client
+  State)، Shared State (Cart/Favorites/Auth/Search/Filter) با یک
+  معماری مشخص و متمرکز — نه پراکنده در Componentها. قبل از افزودن
+  State Library جدید (Zustand/Redux/...) باید از کارفرما اجازه گرفته
+  شود؛ فعلاً چنین Library ای در پروژه نیست.
+- **Image Loading:** برای تصاویر اصلی (Product/Hero/Banner) الزامی
+  است: Blur Placeholder قبل از نمایش تصویر کامل (Mesh Blur)، بدون
+  Layout Shift (Aspect Ratio از ابتدا مشخص)، Transition نرم بعد از
+  Load. یک Component استاندارد قابل استفاده مجدد (مثلاً
+  `components/ui/optimized-image/`) باید این منطق را یک‌جا مدیریت
+  کند — قبل از ساخت آن، بررسی شود که آیا از قبل چیزی مشابه وجود
+  دارد (فعلاً وجود ندارد).
+- **Accessibility:** Alt مناسب، `aria-label` لازم، Keyboard
+  Navigation، Focus State، Contrast، Touch Target مناسب موبایل؛
+  Skeleton نباید محتوای غیرضروری برای Screen Reader بسازد.
+
+**وضعیت فعلی:** Mobile Bottom Bar (Phase ۱) یک Component ثابت بدون
+Data Fetching/State پیچیده است، پس نیازی به `loading.tsx`/`error.tsx`
+اختصاصی نداشت. این استانداردها از Phase ۲ به بعد (بخصوص جایی که
+Fetch واقعی داده وجود دارد: Hero Slider، Product Carousels) رعایت
+خواهند شد.
+
 ## 7. Tech Stack
 
 | Package | Version | یادداشت |
