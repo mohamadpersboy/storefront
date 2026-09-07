@@ -211,7 +211,12 @@ Master Prompt — یک مرحله در هر تأیید).
     (`ProvinceCitySelect`/`NeshanMapPicker`) مستقیماً در آن فرم هم
     قابل استفاده مجدد است؛ فقط یک Model `Address` جدا با `customer`
     Ref لازم می‌شود.
-- ✅ Storefront Product APIs (بند ۶ سند Audit) — چهار Route عمومی
+- ❌ ~~Storefront Product APIs~~ **[حذف شد به دستور صریح کارفرما —
+  نگاه کنید بخش «In Progress»]** — این چهار Route قبلاً ساخته شده
+  بودند ولی همراه با کل کار Storefront مرحله ۱ حذف شدند. توضیحات زیر
+  فقط به‌عنوان یادداشت طراحی برای بازسازی احتمالی آینده نگه داشته
+  شده‌اند، **این Routeها دیگر در پروژه وجود ندارند:**
+  (بند ۶ سند Audit) — چهار Route عمومی
   (بدون Auth، اولین‌بار در Phase 2 با social-links شروع شد) که همگی
   فقط محصولات `published`/حذف‌نشده را برمی‌گردانند:
   - `GET /api/v1/products/latest` — ساده، `Product.paginate` با
@@ -688,15 +693,42 @@ Management) تکمیل شدند.** سند اصلی فقط همین دو Phase ر
 سند «بررسی تکمیل Backend/Dashboard و آماده‌سازی برای توسعه
 Storefront» — **هر ۱۰ Phase آن کامل شد** (تا جایی که بدون یک
 Checkout واقعی امکان‌پذیر بود؛ نگاه کنید Known Issues برای موارد
-باقی‌مانده که به وجود یک Checkout واقعی وابسته‌اند). مرحله بعدی
-طبیعی: شروع واقعی توسعه صفحات Storefront (که این کل سند صرفاً
-پیش‌نیاز آن بود).
+باقی‌مانده که به وجود یک Checkout واقعی وابسته‌اند).
+
+**⚠️ به‌روزرسانی (تصمیم صریح کارفرما): کل کار Storefront UI مرحله ۱
+حذف شد.** به دستور کارفرما، قبل از شروع واقعی توسعه Storefront، تمام
+موارد زیر به‌طور کامل از پروژه حذف شدند:
+
+- Route Group `(storefront)` (`layout.tsx` + `page.tsx` — Header +
+  SearchBar)
+- `src/components/storefront/` (StorefrontHeader, StorefrontSearchBar)
+- `src/lib/storefront/product-summary.ts` و تست آن
+  (`buildPublicProductSummary`)
+- `src/lib/validations/storefront-products.ts` و تست آن
+- چهار Route عمومی محصول Storefront: `GET /api/v1/products/latest`،
+  `GET /api/v1/products/best-selling`، `GET
+  /api/v1/products/best-discounts`، `GET /api/v1/products/amazing-offers`
+  (این‌ها هم حذف شدند — کارفرما صریحاً تأیید کرد که API‌ها هم حذف
+  شوند، نه فقط UI)
+- Token های رنگی مستقل Storefront (`--sf-*` داخل کلاس `.storefront`
+  در `src/app/globals.css`)
+
+`src/app/page.tsx` (صفحه Placeholder «در حال ساخت») به حالت قبل از
+شروع Storefront بازگردانده شد چون Route Group `(storefront)` که
+جایگزینش کرده بود دیگر وجود ندارد.
+
+**نتیجه:** Storefront از صفر و با معماری/تصمیمات جدید ساخته خواهد
+شد. مرحله بعدی طبیعی: شروع واقعی توسعه صفحات Storefront (سند بررسی
+Backend همچنان به‌عنوان پیش‌نیاز Backend معتبر است، اما پیاده‌سازی
+UI مرحله ۱ آن Discard شد).
 
 ## 5. Planned (به ترتیب)
 
-**Storefront — در حال ساخت (Sequential Workflow، یک مرحله در هر تأیید):**
+**Storefront — شروع مجدد از صفر (کل کار مرحله ۱ حذف شد، نگاه کنید
+بخش «In Progress»؛ Sequential Workflow، یک مرحله در هر تأیید):**
 
-- [x] مرحله ۱: Layout + Header + SearchBar
+- [ ] مرحله ۱: Layout + Header + SearchBar (نسخه قبلی حذف شد — باید
+  دوباره از صفر طراحی/تأیید شود)
 - [ ] مرحله ۲: HeroSlider (نیاز به مدل Banner — هنوز وجود ندارد)
 - [ ] مرحله ۳: PromoSlider + CategorySection
 - [ ] مرحله ۴: ProductCard مشترک
@@ -796,9 +828,7 @@ src/
       amazing-offers/  page.tsx + new/ + [id]/edit/
       coupons/  page.tsx + new/ + [id]/edit/
       customers/  page.tsx + [id]/page.tsx
-    (storefront)/
-      layout.tsx                - Scope کلاس `.storefront` (Token های navy/blue)
-      page.tsx                  - صفحه اصلی؛ فعلاً فقط Header + SearchBar (مرحله ۱)
+    (storefront)/               - حذف شد (نگاه کنید بخش «In Progress»)؛ از صفر ساخته می‌شود
     payment/result/page.tsx    - نتیجه پرداخت، Public (بدون Layout Dashboard)
     api/v1/
       auth/  otp/{request,verify}/route.ts, logout/route.ts
@@ -841,7 +871,7 @@ src/
                   coupons-page-client
     customers/  - customers-page-client, CustomerDetailCard, WalletManager
     auth/       - OtpLoginForm
-    storefront/ - StorefrontHeader, StorefrontSearchBar
+    storefront/ - حذف شد (StorefrontHeader/StorefrontSearchBar قبلی)
   config/env.ts
   fonts/index.ts
   lib/
@@ -860,7 +890,6 @@ src/
                 cart-service.ts (recalculateCart, applyCouponToCart, serializeCart)
     wallet/     check-wallet-adjustment.ts (تابع خالص), wallet-service.ts
                 (adjustWalletBalance — Atomic با findOneAndUpdate+$inc)
-    storefront/ product-summary.ts (buildPublicProductSummary — خروجی مشترک ۴ API عمومی محصول)
     products/   resolve-categories.ts (resolveProductCategories — جایگزین امن populate("category")
                 در برابر category خراب در DB؛ نگاه کنید Known Issues)
     import/     parse-excel.ts, validate-province-city-rows.ts (تابع خالص),
@@ -871,7 +900,7 @@ src/
     validations/ auth.ts, users.ts, categories.ts, category-depth.ts, products.ts,
                 amazing-offers.ts, customers.ts, payments.ts, coupons.ts,
                 discount-settings.ts, social-links.ts, cart.ts, wallet.ts,
-                storefront-products.ts, about-us.ts, contact-us.ts, faqs.ts
+                about-us.ts, contact-us.ts, faqs.ts
     mock/       dashboard.ts (فقط همین باقی مانده Mock)
   models/       SocialLinks.ts, Province.ts, City.ts, Cart.ts, Wallet.ts,
                 WalletTransaction.ts, WalletTopup.ts, WithdrawalRequest.ts,
