@@ -27,6 +27,14 @@ const NAV_ITEMS: NavItem[] = [
  * `itemCount` سبد خرید فعلاً همیشه صفر است چون این مرحله فقط
  * Navigation را می‌سازد، نه اتصال به Cart واقعی (که نیاز به Login
  * دارد) — یک صفر واقعی، نه یک عدد ساختگی.
+ *
+ * استایل بر اساس رفرنس تأییدشده کارفرما:
+ * - Backdrop شیشه‌ای/شفاف (`backdrop-blur` + پس‌زمینه نیمه‌شفاف)
+ * - آیکون/متن غیرفعال خاکستری، بدون Label
+ * - فقط زیر آیکون فعال Label نوشته می‌شود
+ * - رنگ آیتم فعال فعلاً Indigo همان Token دشبورد (`--color-primary`)
+ *   است — پالت مستقل `--sf-*` بعداً روی این بخش اعمال خواهد شد
+ * - سایه محو دورتادور آیکون فعال (Glow)
  */
 export function MobileBottomBar() {
   const pathname = usePathname();
@@ -37,7 +45,7 @@ export function MobileBottomBar() {
       aria-label="ناوبری اصلی"
       className={cn(
         "fixed inset-x-0 bottom-0 z-40 sm:hidden",
-        "border-t border-[var(--sf-accent-soft)] bg-white/95 backdrop-blur",
+        "border-t border-black/5 bg-white/75 backdrop-blur-xl",
         "pb-[env(safe-area-inset-bottom)]",
       )}
     >
@@ -50,26 +58,31 @@ export function MobileBottomBar() {
               <Link
                 href={href}
                 aria-current={isActive ? "page" : undefined}
-                className={cn(
-                  "flex min-h-14 flex-col items-center justify-center gap-1 py-1.5 text-[11px] font-medium transition-colors",
-                  isActive
-                    ? "text-[var(--sf-accent)]"
-                    : "text-[var(--sf-ink)]/50 active:text-[var(--sf-accent)]",
-                )}
+                aria-label={label}
+                className="flex h-[68px] flex-col items-center justify-center gap-1"
               >
-                <span className="relative">
+                <span className="relative flex items-center justify-center">
                   <Icon
-                    className="h-6 w-6"
+                    className={cn(
+                      "h-6 w-6 transition-colors",
+                      isActive
+                        ? "text-[var(--color-primary)] drop-shadow-[0_0_10px_rgba(79,70,229,0.45)]"
+                        : "text-gray-400",
+                    )}
                     strokeWidth={isActive ? 2.25 : 1.75}
                     aria-hidden="true"
                   />
                   {href === "/cart" && cartItemCount > 0 && (
-                    <span className="absolute -end-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--sf-accent)] px-1 text-[9px] font-bold leading-none text-white">
+                    <span className="absolute -end-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-primary)] px-1 text-[9px] font-bold leading-none text-white">
                       {cartItemCount > 99 ? "99+" : cartItemCount}
                     </span>
                   )}
                 </span>
-                {label}
+                {isActive && (
+                  <span className="text-[11px] font-medium text-[var(--color-primary)]">
+                    {label}
+                  </span>
+                )}
               </Link>
             </li>
           );
