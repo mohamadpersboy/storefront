@@ -71,9 +71,23 @@ Restyle کامل `MobileBottomBar` طبق رفرنس دقیق کارفرما —
 `drop-shadow` رنگ Indigo اضافه شد. تست‌ها دوباره اجرا و سبز شدند
 (۲۷۷ تست، Build موفق).
 
+**ماژول جدید (خارج از ترتیب مستند Phaseهای قبلی، به درخواست صریح
+کارفرما بعد از تأیید Bottom Bar): Mobile Top Bar.** پس‌زمینه رنگی
+Indigo (`var(--color-primary)`, هماهنگ با تصمیم موقت Bottom Bar)،
+دکمه جستجو (راست/start) و اعلان (چپ/end) به شکل دایره شیشه‌ای روی
+پس‌زمینه، عنوان فروشگاه وسط، `pt-[env(safe-area-inset-top)]` برای
+Status Bar. برخلاف رفرنس کارفرما (که پایینش صاف/تیز بود)، اینجا طبق
+درخواست صریح، پایین پس‌زمینه منحنی است (`border-bottom-radius: 28px`
+دو طرف). فایل: `src/components/storefront/mobile-top-bar.tsx`،
+به `(storefront)/page.tsx` اضافه شد (فقط موبایل، `sm:hidden`؛ در
+Desktop معادلش Phase «Desktop Header» جداگانه خواهد بود). لینک‌های
+`/search` و `/notifications` هنوز صفحه ندارند — فقط Placeholder
+Navigation هستند، مثل الگوی Bottom Bar. تست‌ها: TS/ESLint/Vitest
+(۲۷۷)/Build همه سبز.
+
 **Branch فعلی:** `main`
-**Feature بعدی:** Phase 2 (Desktop Header) — منتظر تأیید کاربر برای
-ادامه (طبق قانون اصلی: بدون تأیید صریح، ماژول بعدی شروع نمی‌شود).
+**Feature بعدی:** منتظر تأیید کاربر برای ماژول بعدی (Phase 2:
+Desktop Header یا هر چیز دیگری که کاربر مشخص کند).
 
 ## 3. Completed Features
 
