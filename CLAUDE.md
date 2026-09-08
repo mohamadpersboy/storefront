@@ -72,22 +72,39 @@ Restyle کامل `MobileBottomBar` طبق رفرنس دقیق کارفرما —
 (۲۷۷ تست، Build موفق).
 
 **ماژول جدید (خارج از ترتیب مستند Phaseهای قبلی، به درخواست صریح
-کارفرما بعد از تأیید Bottom Bar): Mobile Top Bar.** پس‌زمینه رنگی
-Indigo (`var(--color-primary)`, هماهنگ با تصمیم موقت Bottom Bar)،
-دکمه جستجو (راست/start) و اعلان (چپ/end) به شکل دایره شیشه‌ای روی
-پس‌زمینه، عنوان فروشگاه وسط، `pt-[env(safe-area-inset-top)]` برای
-Status Bar. برخلاف رفرنس کارفرما (که پایینش صاف/تیز بود)، اینجا طبق
-درخواست صریح، پایین پس‌زمینه منحنی است (`border-bottom-radius: 28px`
-دو طرف). فایل: `src/components/storefront/mobile-top-bar.tsx`،
-به `(storefront)/page.tsx` اضافه شد (فقط موبایل، `sm:hidden`؛ در
-Desktop معادلش Phase «Desktop Header» جداگانه خواهد بود). لینک‌های
-`/search` و `/notifications` هنوز صفحه ندارند — فقط Placeholder
-Navigation هستند، مثل الگوی Bottom Bar. تست‌ها: TS/ESLint/Vitest
-(۲۷۷)/Build همه سبز.
+کارفرما بعد از تأیید Bottom Bar): Mobile Top Bar.** بعد از یک دور
+اصلاح طبق بازخورد دقیق کارفرما، نسخه نهایی:
+
+- پس‌زمینه رنگی Indigo (`var(--color-primary)`) با ارتفاع کل حدود
+  ۳۰٪ صفحه (ردیف آیکون + `h-[18vh]` فضای خالی + شکم پایین).
+- **لبه پایین به‌جای گوشه‌های گرد، یک «شکم» واقعی به سمت پایین دارد**
+  — پیاده‌سازی با یک `<svg>` (`viewBox 0 0 400 80`,
+  `preserveAspectRatio="none"`) و مسیر Bezier
+  `M0,0 L400,0 Q200,80 0,0 Z`: لبه‌ها صاف/چسبیده به بدنه رنگی، وسط
+  منحنی به‌سمت پایین کشیده می‌شود. **این یک تصمیم عمداً متفاوت از
+  اولین تلاش (که فقط گوشه‌ها گرد شده بودند) است** — کارفرما صراحتاً
+  گفت منظورش گوشه نبود، شکل شکم‌مانند در وسط لبه پایین بود.
+- آیکون سمت راست (start): **Wallet** (قابلیت واقعی موجود در Backend،
+  نه Placeholder دلبخواه) → لینک به `/wallet` (صفحه هنوز ساخته نشده).
+- آیکون سمت چپ (end): **Headphones** (پشتیبانی) → لینک به `/support`
+  (صفحه هنوز ساخته نشده). جایگزین Bell قبلی شد.
+- زیر ردیف آیکون‌ها، یک باکس جستجوی مستقل (`<form method="GET"
+  action="/search">`) اضافه شد که با `-mt-8` روی شکم پایین Overlap
+  می‌کند — بدون هیچ Client JS (طبق اصل Performance: ترجیح
+  Server Component). **نکته مهم مستندشده:** این باکس فعلاً فقط
+  Navigation ساده به `/search?q=...` است، نه جستجوی واقعاً Live
+  (Typeahead) — چون هیچ API جستجوی محصول در Backend وجود ندارد؛
+  افزودن آن یک تصمیم معماری جداست و نیاز به تأیید مجزا دارد.
+
+فایل: `src/components/storefront/mobile-top-bar.tsx`، در
+`(storefront)/page.tsx` استفاده می‌شود (فقط موبایل، `sm:hidden`؛ در
+Desktop معادلش Phase «Desktop Header» جداگانه خواهد بود). تست‌ها:
+TS/ESLint/Vitest (۲۷۷)/Build همه سبز، هر دو بار (نسخه اول و اصلاحی).
 
 **Branch فعلی:** `main`
 **Feature بعدی:** منتظر تأیید کاربر برای ماژول بعدی (Phase 2:
-Desktop Header یا هر چیز دیگری که کاربر مشخص کند).
+Desktop Header، یا API جستجوی محصول اگر بخواهد Live Search واقعی
+راه بیفتد، یا هر چیز دیگری که کاربر مشخص کند).
 
 ## 3. Completed Features
 
