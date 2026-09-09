@@ -1,3 +1,4 @@
+import type { Viewport } from "next";
 import { MobileBottomBar } from "@/components/storefront/mobile-bottom-bar";
 
 /**
@@ -8,14 +9,31 @@ import { MobileBottomBar } from "@/components/storefront/mobile-bottom-bar";
  * ۶۸px + کمی حاشیه برای Safe Area) را رزرو می‌کند تا محتوای صفحه
  * زیر آن پنهان نشود؛ روی `sm` به بالا صفر می‌شود چون Bottom Bar
  * آنجا نمایش داده نمی‌شود.
+ *
+ * `bg-gray-100`: بک‌گراند کل صفحات Storefront خاکستری کم‌رنگ است
+ * (طبق درخواست کارفرما) — نه سفید. کارت‌ها/بخش‌های سفید (مثل خود
+ * Top/Bottom Bar) روی همین پس‌زمینه Contrast خودشان را می‌گیرند.
+ * این تغییر فقط داخل `.storefront` است و روی Dashboard اثر ندارد.
+ *
+ * `viewport` این Layout — نه Layout ریشه — override می‌شود تا Zoom
+ * روی موبایل فقط در Storefront غیرفعال شود (طبق درخواست کارفرما:
+ * حس یک اپ موبایل، نه یک صفحه وب معمولی) و Dashboard (که برای
+ * Accessibility بهتر است Zoom را اجازه بدهد) دست‌نخورده بماند.
  */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function StorefrontLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="storefront min-h-screen bg-white">
+    <div className="storefront min-h-screen bg-gray-100">
       <div className="pb-[76px] sm:pb-0">{children}</div>
       <MobileBottomBar />
     </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Search, Bell, Headphones } from "lucide-react";
+import { Search, Headphones } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { NotificationBell } from "@/components/storefront/notification-bell";
 
 /**
  * Top Bar موبایل Storefront.
@@ -30,22 +31,25 @@ import { cn } from "@/lib/utils/cn";
  *   غیرفعال آیکون‌های Bottom Bar یکسان باشد (قبلاً `--sf-ink` تیره
  *   بود). ضخامت (`strokeWidth={1.75}`) از قبل هم با حالت غیرفعال
  *   Bottom Bar یکی بود.
- * - نقطه Badge اعلان روی آیکون Bell اضافه شد، رنگ Indigo
- *   (`var(--color-primary)`, هم‌رنگ حالت فعال Bottom Bar). طبق
- *   بازخورد کارفرما رنگش مشخص شد، اما **نمایشش شرطی و پیش‌فرض
- *   خاموش است** (`hasUnreadNotifications = false`) — دقیقاً مثل
- *   الگوی تأییدشده بج سبد خرید در Bottom Bar: تا وقتی داده واقعی
- *   اعلان از Backend وصل نشده، صفر/عدم‌نمایش واقعی است، نه
- *   ساختگی. به‌محض اتصال به API واقعی اعلان‌ها، فقط این یک Boolean
- *   باید به مقدار واقعی وصل شود.
+ *
+ * `sticky top-0 z-40`: طبق درخواست صریح «هر دو بار رو فیکس کن»،
+ * Top Bar هم مثل Bottom Bar حین اسکرول ثابت می‌ماند. عمداً از
+ * `sticky` به‌جای `fixed` استفاده شد — از نظر بصری دقیقاً همان
+ * «چسبیده به بالا حین اسکرول» را می‌دهد، اما چون فضای خودش را در
+ * Flow صفحه حفظ می‌کند نیازی به محاسبه دستی Padding جبرانی روی
+ * محتوای زیرش ندارد (برخلاف Bottom Bar که چون `fixed` است باید
+ * `pb-[76px]` در Layout جبران شود).
+ *
+ * آیکون Notification از یک Link ساده به کامپوننت مستقل
+ * `NotificationBell` (پاپ‌آپ کامل با بستن با کلیک بیرون/Escape)
+ * تغییر کرد — نگاه کنید `notification-bell.tsx`.
  */
 export function MobileTopBar() {
-  const hasUnreadNotifications = false;
-
   return (
     <div
       className={cn(
         "sm:hidden",
+        "sticky top-0 z-40",
         "border-b border-black/5 bg-white/75 backdrop-blur-xl",
         "px-4 pb-3 pt-[calc(env(safe-area-inset-top)+12px)]",
       )}
@@ -68,16 +72,7 @@ export function MobileTopBar() {
             <Search className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
           </Link>
 
-          <Link
-            href="/notifications"
-            aria-label="اعلان‌ها"
-            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-400 active:bg-gray-200"
-          >
-            <Bell className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
-            {hasUnreadNotifications && (
-              <span className="absolute end-2.5 top-2.5 h-2 w-2 rounded-full bg-[var(--color-primary)] ring-2 ring-white" />
-            )}
-          </Link>
+          <NotificationBell />
 
           <Link
             href="/support"
