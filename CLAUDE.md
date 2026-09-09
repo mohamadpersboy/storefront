@@ -131,10 +131,45 @@ Full-Page کروم است که عناصر `position: fixed` (مثل Bottom Bar �
 را در هر بخش از تصویر ترکیبی تکرار می‌کند. توضیح داده شد، نیازی به
 تغییر کد نبود.
 
+**Top/Bottom Bar تأیید شد (نسخه هماهنگ‌شده). ماژول Polish بعدی —
+پنج درخواست مجزا در یک پیام:**
+
+- **بک‌گراند صفحات Storefront** از سفید به `bg-gray-100` (خاکستری
+  کم‌رنگ) تغییر کرد — فقط داخل `.storefront` (Dashboard اثر
+  نگرفت)، در `(storefront)/layout.tsx`.
+- **غیرفعال‌سازی Zoom موبایل** با `export const viewport: Viewport`
+  (`maximumScale: 1, userScalable: false`) — این Export فقط در
+  `(storefront)/layout.tsx` است (نه Layout ریشه)، پس فقط روی
+  Storefront اثر دارد؛ Dashboard همچنان Zoom عادی دارد (بهتر برای
+  Accessibility ادمین).
+- **Top Bar و Bottom Bar هر دو «فیکس» شدند طبق درخواست صریح.**
+  Bottom Bar از قبل `fixed` بود. Top Bar از `sticky top-0 z-40`
+  استفاده می‌کند نه `fixed` خالص — از نظر بصری همان رفتار «چسبیده
+  به بالا حین اسکرول» را می‌دهد، اما چون فضای خودش را در Flow صفحه
+  حفظ می‌کند، نیازی به Padding جبرانی دستی روی محتوای زیرش نیست
+  (برخلاف Bottom Bar). این یک تصمیم فنی آگاهانه بود، نه انحراف از
+  خواسته کارفرما.
+- **پاپ‌آپ نوتیفیکیشن تکمیل شد:** کامپوننت مستقل
+  `src/components/storefront/notification-bell.tsx` (Client
+  Component) — کلیک روی آیکون Bell پاپ‌آپ را باز/بسته می‌کند، کلیک
+  بیرون از پاپ‌آپ (`pointerdown` روی `document`، برای پشتیبانی
+  درست تاچ) و کلید Escape هم آن را می‌بندند. محتوای پاپ‌آپ یک Empty
+  State واقعی است («اعلانی برای نمایش وجود ندارد») — چون هنوز API
+  واقعی اعلان‌ها در Backend وجود ندارد؛ `hasUnread` هم‌چنان `false`
+  است (هم‌الگو با بج سبد خرید). به‌محض اتصال API واقعی، فقط باید
+  `hasUnread` و لیست اعلان‌ها به داده واقعی وصل شوند، ساختار پاپ‌آپ
+  از قبل آماده است.
+
+فایل‌ها: `(storefront)/layout.tsx`،
+`components/storefront/mobile-top-bar.tsx`،
+`components/storefront/notification-bell.tsx` (جدید). تست‌ها:
+TS/ESLint/Vitest (۲۷۷)/Build همه سبز، بدون هیچ Warning جدید
+(از‌جمله Viewport).
+
 **Branch فعلی:** `main`
 **Feature بعدی:** منتظر تأیید کاربر برای ماژول بعدی (Phase 2:
-Desktop Header، یک لوگوی واقعی برای جایگزینی Badge «فس»، یا هر چیز
-دیگری که کاربر مشخص کند).
+Desktop Header، یک لوگوی واقعی برای جایگزینی Badge «فس»، اتصال
+واقعی API اعلان‌ها، یا هر چیز دیگری که کاربر مشخص کند).
 
 ## 3. Completed Features
 
