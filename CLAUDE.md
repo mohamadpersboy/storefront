@@ -189,11 +189,26 @@ Mock **مختص مشتری Storefront** (ارسال سفارش، کد تخفیف
 وسط Search/Support — محاسبه بر اساس موقعیت واقعی گروه آیکون‌ها
 (نگاه کنید کامنت بالای `notification-bell.tsx` برای فرمول کامل).
 
+**Phase 3: Hero Slider انجام شد** (کاربر بین Desktop Header و Hero
+Slider، Hero Slider را انتخاب کرد — جای Phase 2/3 عملاً جابه‌جا
+شد). کامپوننت `src/components/storefront/hero-slider.tsx` (Client
+Component — Autoplay + Swipe لمسی + Dot Indicator واقعاً نیاز به
+State/Interactivity دارند). داده Mock (۳ اسلاید، Gradient رنگی
+به‌جای عکس واقعی چون هنوز Asset ای آپلود نشده و مدل Banner در
+Backend وجود ندارد — طبق تصمیم ثبت‌شده در بخش ۵). روی همه
+Breakpoint‌ها نمایش داده می‌شود (برخلاف Top/Bottom Bar که فقط
+موبایل بودند). **نکته فنی مهم:** ردیف اسلایدها عمداً `dir="ltr"`
+دارد (Override نسبت به بقیه سایت) تا محاسبه `translateX` در تداخل
+با ترتیب برعکس Flex در RTL گم نشود؛ محتوای هر اسلاید دوباره
+`dir="rtl"` می‌گیرد. چون Fetch واقعی/Async هنوز در کار نیست،
+`loading.tsx` برای این بخش فعلاً لازم نبود (وقتی API واقعی Banner
+وصل شد، طبق بند ۲۱-۲۲ باید HeroSkeleton واقعی اضافه شود). تست‌ها:
+TS/ESLint/Vitest (۲۷۷)/Build همه سبز.
+
 **Branch فعلی:** `main`
-**Feature بعدی:** منتظر تأیید کاربر برای ماژول بعدی (Phase 2:
-Desktop Header، یک لوگوی واقعی برای جایگزینی Badge «فس»، اتصال
-واقعی API اعلان‌ها (جایگزینی Mock)، یا هر چیز دیگری که کاربر مشخص
-کند).
+**Feature بعدی:** منتظر تأیید کاربر برای ماژول بعدی (Desktop
+Header، Phase 4 Special Offers Carousel، مدل واقعی Banner در
+Backend، یا هر چیز دیگری که کاربر مشخص کند).
 
 ## 3. Completed Features
 
@@ -888,7 +903,8 @@ UI مرحله ۱ آن Discard شد).
 
 - [x] Phase 1: Mobile Bottom Bar — انجام شد (نگاه کنید بخش ۲)
 - [ ] Phase 2: Desktop Header
-- [ ] Phase 3: Hero Slider (نیاز به مدل Banner — هنوز وجود ندارد)
+- [x] Phase 3: Hero Slider — انجام شد با داده Mock (نگاه کنید بخش
+  ۲)؛ مدل Banner واقعی در Backend هنوز ساخته نشده — TODO
 - [ ] Phase 4: Special Offers Carousel
 - [ ] Phase 5: Latest Products Carousel
 - [ ] Phase 6: Most Discounted Products Carousel
