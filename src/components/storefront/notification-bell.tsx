@@ -82,7 +82,16 @@ const MOCK_NOTIFICATIONS: MockNotification[] = [
  * باعث می‌شد خیلی به لبه چپ نزدیک نباشد)، `fixed` نسبت به کل صفحه
  * است و با `left-4` دقیقاً هم‌راستا با Padding افقی بقیه صفحه
  * (۱۶px) به حاشیه سمت چپ چسبانده شده — طبق درخواست صریح کارفرما.
- * یک فلش/مثلث کوچک بالای پاپ‌آپ رو به دکمه Bell اشاره می‌کند.
+ * فاصله بالای پاپ‌آپ با Top Bar عمداً صفر است (`top: safe-area +
+ * 68px`، دقیقاً ارتفاع خود Top Bar) تا مماس با لبه پایین آن باشد —
+ * طبق بازخورد «فاصله خیلی زیاده، مماس بردر بشه». یک فلش/مثلث کوچک
+ * CSS با `left:66px` دقیقاً زیر دکمه Bell (نه Search یا Support)
+ * قرار گرفته تا مشخص باشد این پاپ‌آپ مال کدام دکمه است؛ این عدد از
+ * محاسبه موقعیت واقعی دکمه Bell داخل گروه آیکون‌ها به‌دست آمده
+ * (نه حدسی): گروه آیکون‌ها از `px-4` (۱۶px) شروع می‌شود و چون در
+ * RTL ترتیب بصری برعکس DOM است، دکمه Bell (دومین در DOM) در وسط
+ * گروه سه‌تایی قرار می‌گیرد — مرکز آن ≈۹۰px از لبه چپ صفحه، یعنی
+ * ≈۷۴px نسبت به لبه چپ پاپ‌آپ (که خودش در `left-4`=۱۶px است).
  */
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
@@ -140,89 +149,94 @@ export function NotificationBell() {
         <div
           role="dialog"
           aria-label="اعلان‌ها"
-          className="fixed left-4 z-50 w-[min(340px,calc(100vw-32px))] overflow-hidden rounded-2xl border border-black/5 bg-white shadow-[0_16px_40px_rgba(3,23,37,0.18)]"
-          style={{ top: "calc(env(safe-area-inset-top) + 84px)" }}
+          className="fixed left-4 z-50 w-[min(340px,calc(100vw-32px))] overflow-visible rounded-2xl border border-black/5 bg-white shadow-[0_16px_40px_rgba(3,23,37,0.18)]"
+          style={{ top: "calc(env(safe-area-inset-top) + 68px)" }}
         >
-          {/* فلش کوچک رو به دکمه Bell */}
+          {/* فلش کوچک — دقیقاً زیر دکمه Bell (نه Search/Support)،
+              مماس با لبه پایین Top Bar، تا مشخص باشد این پاپ‌آپ
+              مال کدام دکمه است. */}
           <span
             aria-hidden="true"
-            className="absolute -top-2 left-7 h-0 w-0 border-x-8 border-b-8 border-x-transparent border-b-white"
+            className="absolute -top-2 h-0 w-0 border-x-8 border-b-8 border-x-transparent border-b-white"
+            style={{ left: 66 }}
           />
 
-          <div className="flex items-center justify-between border-b border-black/5 px-4 py-3">
-            <p className="text-sm font-semibold text-[var(--sf-ink)]">
-              اعلان‌ها
-            </p>
-            {hasUnread && (
-              <button
-                type="button"
-                onClick={markAllAsRead}
-                className="text-xs font-medium text-[var(--color-primary)]"
-              >
-                علامت‌گذاری همه
-              </button>
-            )}
-          </div>
-
-          {notifications.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
-              <Bell
-                className="h-8 w-8 text-gray-300"
-                strokeWidth={1.5}
-                aria-hidden="true"
-              />
-              <p className="text-sm text-gray-400">
-                اعلانی برای نمایش وجود ندارد
+          <div className="overflow-hidden rounded-2xl">
+            <div className="flex items-center justify-between border-b border-black/5 px-4 py-3">
+              <p className="text-sm font-semibold text-[var(--sf-ink)]">
+                اعلان‌ها
               </p>
+              {hasUnread && (
+                <button
+                  type="button"
+                  onClick={markAllAsRead}
+                  className="text-xs font-medium text-[var(--color-primary)]"
+                >
+                  علامت‌گذاری همه
+                </button>
+              )}
             </div>
-          ) : (
-            <ul className="max-h-[60vh] overflow-y-auto">
-              {notifications.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <li
-                    key={item.id}
-                    className={cn(
-                      "flex gap-3 border-b border-black/5 px-4 py-3 last:border-b-0",
-                      !item.read && "bg-[var(--color-primary-soft)]/40",
-                    )}
-                  >
-                    <span
+
+            {notifications.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
+                <Bell
+                  className="h-8 w-8 text-gray-300"
+                  strokeWidth={1.5}
+                  aria-hidden="true"
+                />
+                <p className="text-sm text-gray-400">
+                  اعلانی برای نمایش وجود ندارد
+                </p>
+              </div>
+            ) : (
+              <ul className="max-h-[60vh] overflow-y-auto">
+                {notifications.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <li
+                      key={item.id}
                       className={cn(
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
-                        item.iconBg,
-                        item.iconColor,
+                        "flex gap-3 border-b border-black/5 px-4 py-3 last:border-b-0",
+                        !item.read && "bg-[var(--color-primary-soft)]/40",
                       )}
                     >
-                      <Icon className="h-4.5 w-4.5" strokeWidth={2} aria-hidden="true" />
-                    </span>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium text-[var(--sf-ink)]">
-                          {item.title}
-                        </p>
-                        {!item.read && (
-                          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-primary)]" />
+                      <span
+                        className={cn(
+                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+                          item.iconBg,
+                          item.iconColor,
                         )}
-                      </div>
-                      <p className="mt-0.5 truncate text-xs text-gray-500">
-                        {item.description}
-                      </p>
-                      <p className="mt-1 text-[11px] text-gray-400">{item.time}</p>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+                      >
+                        <Icon className="h-4.5 w-4.5" strokeWidth={2} aria-hidden="true" />
+                      </span>
 
-          <Link
-            href="/notifications"
-            className="block border-t border-black/5 px-4 py-3 text-center text-sm font-medium text-[var(--color-primary)]"
-          >
-            مشاهده همه اعلان‌ها
-          </Link>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-medium text-[var(--sf-ink)]">
+                            {item.title}
+                          </p>
+                          {!item.read && (
+                            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-primary)]" />
+                          )}
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-gray-500">
+                          {item.description}
+                        </p>
+                        <p className="mt-1 text-[11px] text-gray-400">{item.time}</p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+
+            <Link
+              href="/notifications"
+              className="block border-t border-black/5 px-4 py-3 text-center text-sm font-medium text-[var(--color-primary)]"
+            >
+              مشاهده همه اعلان‌ها
+            </Link>
+          </div>
         </div>
       )}
     </div>
