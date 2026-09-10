@@ -49,11 +49,6 @@ const SWIPE_THRESHOLD_PX = 40;
  *
  * Dot Indicator: پایین و خارج از خود تصاویر قرار دارد (نه Overlay
  * روی تصویر) — طبق بازخورد صریح کارفرما.
- *
- * رفلکس: یک بازتاب بسیار محو و کاملاً نامحسوس از تصویر جاری، زیر
- * و خارج از قاب اسلایدر (نه داخلش) — تصویر وارونه‌شده با Blur و
- * Opacity خیلی پایین + Mask محوشونده، صرفاً یک جلوه اتمسفریک است،
- * `aria-hidden` (تزئینی، بدون معنای محتوایی).
  */
 export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
   const [index, setIndex] = useState(0);
@@ -90,88 +85,57 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
     }
   }
 
-  const current = banners[index];
-
   return (
     <section className="relative px-4 pt-4 sm:px-6 sm:pt-6">
-      <div className="relative">
+      <div
+        className="relative overflow-hidden rounded-2xl"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <div
-          className="relative overflow-hidden rounded-2xl"
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
+          dir="ltr"
+          className="flex transition-transform duration-500 ease-out"
+          style={{ transform: `translateX(${-index * 100}%)` }}
         >
-          <div
-            dir="ltr"
-            className="flex transition-transform duration-500 ease-out"
-            style={{ transform: `translateX(${-index * 100}%)` }}
-          >
-            {banners.map((slide, slideIndex) => (
-              <Link
-                key={slide.id}
-                href={slide.href}
-                dir="rtl"
-                className="relative aspect-[16/9] w-full shrink-0 sm:aspect-[21/9]"
-              >
-                <Image
-                  src={slide.imageUrl}
-                  alt={slide.title}
-                  fill
-                  priority={slideIndex === 0}
-                  className="object-cover"
-                  placeholder={slide.imageBlurDataUrl ? "blur" : "empty"}
-                  blurDataURL={slide.imageBlurDataUrl ?? undefined}
-                  sizes="100vw"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-                <div className="absolute inset-0 flex flex-col items-start justify-end gap-2 p-5 sm:p-8">
-                  <h2 className="text-xl font-bold text-white sm:text-2xl">
-                    {slide.title}
-                  </h2>
-                  {slide.subtitle && (
-                    <p className="max-w-xs text-sm text-white/85 sm:text-base">
-                      {slide.subtitle}
-                    </p>
-                  )}
-                  {slide.ctaLabel && (
-                    <span className="mt-1 rounded-full bg-white px-4 py-2 text-xs font-semibold text-[var(--sf-ink)] sm:text-sm">
-                      {slide.ctaLabel}
-                    </span>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
+          {banners.map((slide, slideIndex) => (
+            <Link
+              key={slide.id}
+              href={slide.href}
+              dir="rtl"
+              className="relative aspect-[16/9] w-full shrink-0 sm:aspect-[21/9]"
+            >
+              <Image
+                src={slide.imageUrl}
+                alt={slide.title}
+                fill
+                priority={slideIndex === 0}
+                className="object-cover"
+                placeholder={slide.imageBlurDataUrl ? "blur" : "empty"}
+                blurDataURL={slide.imageBlurDataUrl ?? undefined}
+                sizes="100vw"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+              <div className="absolute inset-0 flex flex-col items-start justify-end gap-2 p-5 sm:p-8">
+                <h2 className="text-xl font-bold text-white sm:text-2xl">
+                  {slide.title}
+                </h2>
+                {slide.subtitle && (
+                  <p className="max-w-xs text-sm text-white/85 sm:text-base">
+                    {slide.subtitle}
+                  </p>
+                )}
+                {slide.ctaLabel && (
+                  <span className="mt-1 rounded-full bg-white px-4 py-2 text-xs font-semibold text-[var(--sf-ink)] sm:text-sm">
+                    {slide.ctaLabel}
+                  </span>
+                )}
+              </div>
+            </Link>
+          ))}
         </div>
-
-        {/* رفلکس محو — این‌بار عمداً بیرون از خودِ باکس
-            `overflow-hidden rounded-2xl` (به‌عنوان Sibling، نه
-            Child آن) قرار گرفته؛ چون `overflow-hidden` هر چیزی که
-            بیرون از محدوده خودش باشد را Clip می‌کند، حتی اگر با
-            `top-full` بیرون آن Position گرفته باشد — این دقیقاً
-            دلیل نمایش‌داده‌نشدنِ رفلکس در تلاش قبلی بود.
-            ارتفاع کم (~۲۰px)، Blur ملایم‌تر و Opacity کمی بیشتر
-            (نسخه قبلی آن‌قدر محو بود که کارفرما گفت «کلاً محو شده،
-            چیزی دیده نمی‌شه»)، و Mask بیضی‌شکل
-            (نه فقط عمودی) برای گوشه‌های گرد و پخش‌شده به‌جای یک
-            نوار مستطیلی با لبه‌های تیز — طبق بازخورد دوم کارفرما. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-8 top-full h-5 rounded-full opacity-35 blur-md sm:inset-x-12 sm:h-6"
-          style={{
-            transform: "scaleY(-1)",
-            backgroundImage: `url(${current.imageUrl})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            WebkitMaskImage:
-              "radial-gradient(ellipse 70% 100% at center, black 0%, transparent 75%)",
-            maskImage:
-              "radial-gradient(ellipse 70% 100% at center, black 0%, transparent 75%)",
-          }}
-        />
       </div>
 
-      {/* Dot Indicator — پایین و خارج از تصاویر، اما نزدیک‌تر از
-          تلاش قبلی (طبق بازخورد «خیلی پایینه») */}
+      {/* Dot Indicator — پایین و خارج از تصاویر */}
       {banners.length > 1 && (
         <div className="mt-2 flex items-center justify-center gap-1.5 sm:mt-3">
           {banners.map((slide, slideIndex) => (
