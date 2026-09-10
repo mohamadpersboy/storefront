@@ -27,6 +27,9 @@ export interface ApiCategory {
   parentId: string | null;
   isActive: boolean;
   sortOrder: number;
+  imageUrl: string | null;
+  imageBlurDataUrl: string | null;
+  showOnHomepage: boolean;
 }
 
 export function CategoriesTree() {

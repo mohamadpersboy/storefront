@@ -20,6 +20,7 @@ export interface CategoryFormInitial {
   slug: string;
   parentId: string | null;
   isActive: boolean;
+  sortOrder?: number;
   imageUrl?: string | null;
   imageBlurDataUrl?: string | null;
   showOnHomepage?: boolean;
@@ -44,6 +45,7 @@ export function CategoryForm({
     imageBlurDataUrl: initial?.imageBlurDataUrl ?? null,
   });
   const [showOnHomepage, setShowOnHomepage] = useState(initial?.showOnHomepage ?? false);
+  const [sortOrder, setSortOrder] = useState(initial?.sortOrder ?? 0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,6 +111,7 @@ export function CategoryForm({
               ...(image.imagePublicId ? { imagePublicId: image.imagePublicId } : {}),
               imageBlurDataUrl: image.imageBlurDataUrl,
               showOnHomepage,
+              sortOrder,
             }
           : {}),
       };
@@ -216,6 +219,24 @@ export function CategoryForm({
                 />
                 نمایش در صفحه اصلی فروشگاه (فقط دسته‌بندی سطح اول)
               </label>
+
+              {showOnHomepage ? (
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-foreground/80">
+                    اولویت نمایش در صفحه اصلی
+                  </label>
+                  <Input
+                    type="number"
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(Number(e.target.value) || 0)}
+                    className="max-w-32"
+                  />
+                  <p className="mt-1 text-xs text-muted">
+                    عدد کوچک‌تر زودتر (سمت راست‌تر) در ردیف دسته‌بندی‌های
+                    صفحه اصلی نمایش داده می‌شود.
+                  </p>
+                </div>
+              ) : null}
             </>
           ) : null}
 

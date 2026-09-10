@@ -36,6 +36,10 @@ export default async function EditCategoryPage({
           slug: category.slug,
           parentId: category.parentId ? String(category.parentId) : null,
           isActive: category.isActive,
+          sortOrder: category.sortOrder,
+          imageUrl: category.imageUrl,
+          imageBlurDataUrl: category.imageBlurDataUrl,
+          showOnHomepage: category.showOnHomepage,
         }}
       />
     </div>
