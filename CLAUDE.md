@@ -258,6 +258,16 @@ Next.js Image استفاده شد. `imageBlurDataUrl` هنگام آپلود در
 تست‌ها: TS/ESLint/Vitest (۲۸۶ تست، ۹ تست جدید Validation
 Banner)/Build همه سبز.
 
+**رفع باگ واقعی (کارفرما با تست روی موبایل واقعی گزارش داد):** بعد
+از افزودن اولین بنر واقعی، «هیچ رفلکسی وجود نداره». علت: Div رفلکس
+داخل همان باکس `overflow-hidden rounded-2xl` اسلایدها بود —
+`overflow-hidden` هر چیزی بیرون از محدوده خودش را Clip می‌کند، حتی
+اگر با `top-full` بیرون آن Position گرفته باشد؛ رفلکس هیچ‌وقت اصلاً
+دیده نمی‌شد. رفلکس به یک Sibling بیرون از آن باکس منتقل شد (هردو
+داخل یک `relative` مشترک). همچنین فاصله Dot Indicator تا تصویر از
+`mt-5/mt-6` به `mt-2/mt-3` کم شد (طبق بازخورد «خیلی پایینه»).
+تست‌ها: TS/ESLint/Vitest (۲۸۶)/Build همه سبز.
+
 **Branch فعلی:** `main`
 **Feature بعدی:** منتظر تأیید کاربر برای ماژول بعدی (Desktop
 Header، Phase 4 Special Offers Carousel، یا هر چیز دیگری که کاربر
