@@ -28,6 +28,9 @@ export async function GET(
     parentId: category.parentId ? String(category.parentId) : null,
     isActive: category.isActive,
     sortOrder: category.sortOrder,
+    imageUrl: category.imageUrl,
+    imageBlurDataUrl: category.imageBlurDataUrl,
+    showOnHomepage: category.showOnHomepage,
   });
 }
 
@@ -88,6 +91,16 @@ export async function PATCH(
       ? { parentId: parsed.data.parentId || null }
       : {}),
   });
+
+  // تصویر و «نمایش در صفحه اصلی» فقط برای دسته‌بندی سطح اول معنا
+  // دارد. وضعیت نهایی `parentId` (چه از این درخواست، چه از قبل در
+  // DB) تعیین‌کننده است، نه فقط مقدار ارسالی همین درخواست.
+  if (category.parentId) {
+    category.imageUrl = null;
+    category.imagePublicId = null;
+    category.imageBlurDataUrl = null;
+    category.showOnHomepage = false;
+  }
 
   try {
     await category.save();

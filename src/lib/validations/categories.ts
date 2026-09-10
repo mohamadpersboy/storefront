@@ -16,6 +16,10 @@ export const createCategorySchema = z.object({
     .optional(),
   isActive: z.boolean().optional().default(true),
   sortOrder: z.number().int().optional().default(0),
+  imageUrl: z.string().trim().url("آدرس تصویر معتبر نیست").nullable().optional(),
+  imagePublicId: z.string().trim().nullable().optional(),
+  imageBlurDataUrl: z.string().trim().nullable().optional(),
+  showOnHomepage: z.boolean().optional(),
 });
 
 export const updateCategorySchema = createCategorySchema.partial();

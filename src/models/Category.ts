@@ -6,6 +6,10 @@ export interface ICategory {
   parentId: Types.ObjectId | null;
   isActive: boolean;
   sortOrder: number;
+  imageUrl: string | null;
+  imagePublicId: string | null;
+  imageBlurDataUrl: string | null;
+  showOnHomepage: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,6 +35,15 @@ const CategorySchema = new Schema<ICategory>(
     },
     isActive: { type: Boolean, default: true },
     sortOrder: { type: Number, default: 0 },
+    // فقط برای دسته‌بندی سطح اول معنا دارد (parentId === null)؛ در
+    // زیردسته‌ها همیشه باید null/false بماند — این قانون در لایه
+    // API اجرا می‌شود (نگاه کنید src/app/api/v1/categories)، نه در
+    // خود Schema، چون Mongoose validator بومی برای Cross-field
+    // Conditional به این سادگی ندارد.
+    imageUrl: { type: String, default: null },
+    imagePublicId: { type: String, default: null },
+    imageBlurDataUrl: { type: String, default: null },
+    showOnHomepage: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

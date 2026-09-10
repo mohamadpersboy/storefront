@@ -7,10 +7,14 @@ import { getCroppedImageBlob } from "@/lib/utils/image-crop";
 
 export function ImageCropModal({
   imageSrc,
+  aspect = 3 / 4,
+  aspectLabel = "۳:۴",
   onCancel,
   onCropped,
 }: {
   imageSrc: string;
+  aspect?: number;
+  aspectLabel?: string;
   onCancel: () => void;
   onCropped: (blob: Blob) => void;
 }) {
@@ -39,7 +43,7 @@ export function ImageCropModal({
       <div className="absolute inset-0 bg-black/60" onClick={onCancel} />
       <div className="relative flex w-full max-w-md flex-col gap-4 rounded-[var(--radius-lg)] border border-border bg-surface p-4">
         <h2 className="text-sm font-semibold text-foreground">
-          برش تصویر (نسبت ۳:۴)
+          برش تصویر (نسبت {aspectLabel})
         </h2>
 
         <div className="relative h-80 w-full overflow-hidden rounded-[var(--radius-md)] bg-black">
@@ -47,7 +51,7 @@ export function ImageCropModal({
             image={imageSrc}
             crop={crop}
             zoom={zoom}
-            aspect={3 / 4}
+            aspect={aspect}
             onCropChange={setCrop}
             onZoomChange={setZoom}
             onCropComplete={handleCropComplete}

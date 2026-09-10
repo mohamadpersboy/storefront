@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { buildBlurDataUrl } from "@/lib/utils/build-blur-data-url";
 
 export interface BannerFormValues {
   id?: string;
@@ -14,35 +15,6 @@ export interface BannerFormValues {
   href: string;
   imageUrl: string;
   imageBlurDataUrl: string | null;
-}
-
-/**
- * از همان تصویر Cloudinary آپلودشده یک نسخه خیلی کوچک و کاملاً تار
- * می‌سازد (با Transformation آنی Cloudinary: عرض ۲۴px + Blur شدید +
- * کیفیت خیلی پایین)، آن را Fetch کرده و به Base64 Data URL تبدیل
- * می‌کند. همین مقدار در `imageBlurDataUrl` ذخیره می‌شود و بعداً در
- * Storefront به‌عنوان Placeholder محو (Mesh Blur) واقعیِ رنگ‌های
- * همان تصویر (نه یک Placeholder خاکستری Generic) استفاده می‌شود —
- * طبق بند ۲۷-۳۰ Master Workflow.
- */
-async function buildBlurDataUrl(secureUrl: string): Promise<string | null> {
-  try {
-    const blurredUrl = secureUrl.replace(
-      "/upload/",
-      "/upload/w_24,e_blur:1000,q_1,f_jpg/",
-    );
-    const res = await fetch(blurredUrl);
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error("blur read failed"));
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
 }
 
 export function BannerFormModal({

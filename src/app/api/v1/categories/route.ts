@@ -23,6 +23,9 @@ export async function GET() {
       parentId: c.parentId ? String(c.parentId) : null,
       isActive: c.isActive,
       sortOrder: c.sortOrder,
+      imageUrl: c.imageUrl,
+      imageBlurDataUrl: c.imageBlurDataUrl,
+      showOnHomepage: c.showOnHomepage,
     })),
   );
 }
@@ -59,10 +62,25 @@ export async function POST(request: Request) {
     });
   }
 
+  const isRoot = !parsed.data.parentId;
+  // تصویر و «نمایش در صفحه اصلی» فقط برای دسته‌بندی سطح اول معنا
+  // دارد — طبق درخواست صریح کارفرما. اگر زیردسته‌ای این مقادیر را
+  // ارسال کرده باشد (مثلاً از یک Client قدیمی/دستکاری‌شده)، در
+  // API نادیده گرفته می‌شود، نه فقط در UI مخفی.
+  const imageFields = isRoot
+    ? {
+        imageUrl: parsed.data.imageUrl ?? null,
+        imagePublicId: parsed.data.imagePublicId ?? null,
+        imageBlurDataUrl: parsed.data.imageBlurDataUrl ?? null,
+        showOnHomepage: parsed.data.showOnHomepage ?? false,
+      }
+    : { imageUrl: null, imagePublicId: null, imageBlurDataUrl: null, showOnHomepage: false };
+
   try {
     const category = await Category.create({
       ...parsed.data,
       parentId: parsed.data.parentId || null,
+      ...imageFields,
     });
 
     return apiSuccess(

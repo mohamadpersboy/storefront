@@ -1,7 +1,12 @@
 import { MobileTopBar } from "@/components/storefront/mobile-top-bar";
 import { HeroSlider, type HeroBannerSlide } from "@/components/storefront/hero-slider";
+import {
+  CategoryShortcuts,
+  type HomepageCategory,
+} from "@/components/storefront/category-shortcuts";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Banner } from "@/models/Banner";
+import { Category } from "@/models/Category";
 
 /**
  * بنرها مستقیماً از DB خوانده می‌شوند (نه یک Fetch HTTP به
@@ -46,13 +51,40 @@ async function getActiveBanners(): Promise<HeroBannerSlide[]> {
   }
 }
 
+async function getHomepageCategories(): Promise<HomepageCategory[]> {
+  try {
+    await connectToDatabase();
+    const categories = await Category.find({
+      parentId: null,
+      isActive: true,
+      showOnHomepage: true,
+    })
+      .sort({ sortOrder: 1, createdAt: 1 })
+      .lean();
+
+    return categories.map((c) => ({
+      id: String(c._id),
+      name: c.name,
+      slug: c.slug,
+      imageUrl: c.imageUrl,
+      imageBlurDataUrl: c.imageBlurDataUrl,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export default async function StorefrontHomePage() {
-  const banners = await getActiveBanners();
+  const [banners, categories] = await Promise.all([
+    getActiveBanners(),
+    getHomepageCategories(),
+  ]);
 
   return (
     <>
       <MobileTopBar />
       <HeroSlider banners={banners} />
+      <CategoryShortcuts categories={categories} />
       <main className="flex min-h-[40vh] items-center justify-center p-8">
         <div className="text-center">
           <p className="text-sm text-[var(--sf-ink)]/60">

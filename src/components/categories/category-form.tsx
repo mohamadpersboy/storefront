@@ -8,6 +8,10 @@ import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { slugify } from "@/lib/utils/slugify";
+import {
+  CategoryImageUploader,
+  type CategoryImageValue,
+} from "@/components/categories/category-image-uploader";
 import type { ApiCategory } from "@/components/categories/categories-tree";
 
 export interface CategoryFormInitial {
@@ -16,6 +20,9 @@ export interface CategoryFormInitial {
   slug: string;
   parentId: string | null;
   isActive: boolean;
+  imageUrl?: string | null;
+  imageBlurDataUrl?: string | null;
+  showOnHomepage?: boolean;
 }
 
 export function CategoryForm({
@@ -31,8 +38,16 @@ export function CategoryForm({
   const [slugTouched, setSlugTouched] = useState(Boolean(initial));
   const [parentId, setParentId] = useState(initial?.parentId ?? "");
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
+  const [image, setImage] = useState<CategoryImageValue>({
+    imageUrl: initial?.imageUrl ?? null,
+    imagePublicId: null,
+    imageBlurDataUrl: initial?.imageBlurDataUrl ?? null,
+  });
+  const [showOnHomepage, setShowOnHomepage] = useState(initial?.showOnHomepage ?? false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isRootCategory = parentId === "";
 
   const [allCategories, setAllCategories] = useState<ApiCategory[] | null>(null);
   const [hasChildren, setHasChildren] = useState(false);
@@ -83,7 +98,20 @@ export function CategoryForm({
 
     setSaving(true);
     try {
-      const payload = { name, slug, parentId: parentId || null, isActive };
+      const payload = {
+        name,
+        slug,
+        parentId: parentId || null,
+        isActive,
+        ...(isRootCategory
+          ? {
+              imageUrl: image.imageUrl,
+              ...(image.imagePublicId ? { imagePublicId: image.imagePublicId } : {}),
+              imageBlurDataUrl: image.imageBlurDataUrl,
+              showOnHomepage,
+            }
+          : {}),
+      };
       const url =
         mode === "create"
           ? "/api/v1/categories"
@@ -169,6 +197,27 @@ export function CategoryForm({
               </p>
             ) : null}
           </div>
+
+          {isRootCategory ? (
+            <>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-foreground/80">
+                  تصویر دسته‌بندی (اختیاری، مربعی — فقط برای دسته‌بندی سطح اول)
+                </label>
+                <CategoryImageUploader value={image} onChange={setImage} />
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-foreground/80">
+                <input
+                  type="checkbox"
+                  checked={showOnHomepage}
+                  onChange={(e) => setShowOnHomepage(e.target.checked)}
+                  className="size-4 rounded border-border accent-primary"
+                />
+                نمایش در صفحه اصلی فروشگاه (فقط دسته‌بندی سطح اول)
+              </label>
+            </>
+          ) : null}
 
           <label className="flex items-center gap-2 text-sm text-foreground/80">
             <input
