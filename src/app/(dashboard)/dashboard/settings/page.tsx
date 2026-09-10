@@ -12,10 +12,17 @@ import {
   Landmark,
   CreditCard,
   Terminal,
+  GalleryHorizontal,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 const settingsSections = [
+  {
+    href: "/dashboard/settings/banners",
+    icon: GalleryHorizontal,
+    title: "اسلایدر صفحه اصلی",
+    description: "مدیریت بنرهای Hero Slider صفحه اصلی فروشگاه",
+  },
   {
     href: "/dashboard/settings/colors",
     icon: Palette,
