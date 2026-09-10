@@ -205,10 +205,63 @@ Breakpoint‌ها نمایش داده می‌شود (برخلاف Top/Bottom Bar
 وصل شد، طبق بند ۲۱-۲۲ باید HeroSkeleton واقعی اضافه شود). تست‌ها:
 TS/ESLint/Vitest (۲۷۷)/Build همه سبز.
 
+**مدل واقعی Banner ساخته شد — Hero Slider دیگر Mock نیست.** طبق
+درخواست صریح کارفرما («فیچر افزودن اسلایدر رو فراموش کردیم») +
+«mesh blur رو در لحظه لودینگ اضافه کن» + بازخورد بعدی (دات‌ها
+پایین/خارج تصویر، رفلکس محو خارج اسلایدر):
+
+**Backend:**
+- `src/models/Banner.ts` — هم‌الگو با `Bank` (لیست ساده، Toggle
+  فعال/غیرفعال، بدون DELETE سخت). فیلد `imageBlurDataUrl` مخصوص
+  Mesh Blur.
+- `src/lib/validations/banners.ts` (+ تست Validation کامل).
+- `src/app/api/v1/banners/route.ts` (GET عمومی بدون Auth — هم
+  Dashboard هم Storefront از همین یک منبع می‌خوانند، هم‌الگو با
+  Social Links؛ POST با `SETTINGS_MANAGE`) و
+  `src/app/api/v1/banners/[id]/route.ts` (PATCH با
+  `SETTINGS_MANAGE`) — **بدون Permission جدید**، از `SETTINGS_MANAGE`
+  موجود استفاده شد (طبق اصل «RBAC موجود را هرجا ممکن است دوباره
+  استفاده کن»).
+- `BANNER_IMAGES_FOLDER` در `cloudinary/config.ts` + `target:
+  "banner-image"` جدید در `/api/v1/uploads/sign`.
+
+**Mesh Blur (بند ۲۷-۳۰ Master Workflow):** به‌جای ساخت یک
+Component سفارشی، از قابلیت بومی `placeholder="blur"` خود
+Next.js Image استفاده شد. `imageBlurDataUrl` هنگام آپلود در
+`banner-form-modal.tsx` تولید می‌شود: از همان تصویر Cloudinary
+آپلودشده یک نسخه ۲۴px کاملاً تار با Transformation آنی Cloudinary
+(`w_24,e_blur:1000,q_1,f_jpg`) گرفته می‌شود، Fetch و به Base64
+تبدیل و در DB ذخیره می‌شود — یعنی Placeholder واقعاً رنگ‌های همان
+تصویر است، نه یک خاکستری Generic.
+
+**Dashboard:** صفحه جدید `/dashboard/settings/banners`
+(`BannersManager` + `BannerFormModal`، هم‌الگو با Banks) — لیست،
+افزودن/ویرایش با آپلود تصویر، Toggle فعال/غیرفعال، و دکمه بالا/پایین
+برای جابه‌جایی `sortOrder` (Swap با آیتم مجاور). لینک از صفحه اصلی
+تنظیمات اضافه شد.
+
+**Storefront (`hero-slider.tsx`، بازطراحی کامل):**
+- دیگر Mock ندارد — `banners` از Props می‌آید که `page.tsx` مستقیماً
+  از DB می‌خواند (نه HTTP Fetch به API خودش — الگوی متداول Server
+  Component). اگر هیچ بنر فعالی نباشد، چیزی رندر نمی‌شود
+  (`return null`) — Empty State صادقانه.
+- **`export const revalidate = 60`** روی `page.tsx` — بدون این،
+  چون هیچ API پویا استفاده نمی‌شد، Next.js صفحه را کاملاً Static در
+  زمان Build می‌ساخت و تغییرات Dashboard بدون Deploy مجدد دیده
+  نمی‌شد. این یک Bug واقعی بود که قبل از Commit پیدا و رفع شد.
+- Dot Indicator از حالت Overlay روی تصویر به یک ردیف مجزا **پایین و
+  خارج از قاب تصاویر** منتقل شد (طبق بازخورد صریح).
+- یک «رفلکس» بسیار محو (`opacity-[0.12] blur-xl`، تصویر وارونه با
+  Mask محوشونده) بلافاصله **زیر و خارج از قاب اسلایدر** اضافه شد —
+  صرفاً تزئینی/اتمسفریک، `aria-hidden`.
+
+تست‌ها: TS/ESLint/Vitest (۲۸۶ تست، ۹ تست جدید Validation
+Banner)/Build همه سبز.
+
 **Branch فعلی:** `main`
 **Feature بعدی:** منتظر تأیید کاربر برای ماژول بعدی (Desktop
-Header، Phase 4 Special Offers Carousel، مدل واقعی Banner در
-Backend، یا هر چیز دیگری که کاربر مشخص کند).
+Header، Phase 4 Special Offers Carousel، یا هر چیز دیگری که کاربر
+مشخص کند).
 
 ## 3. Completed Features
 
@@ -903,8 +956,9 @@ UI مرحله ۱ آن Discard شد).
 
 - [x] Phase 1: Mobile Bottom Bar — انجام شد (نگاه کنید بخش ۲)
 - [ ] Phase 2: Desktop Header
-- [x] Phase 3: Hero Slider — انجام شد با داده Mock (نگاه کنید بخش
-  ۲)؛ مدل Banner واقعی در Backend هنوز ساخته نشده — TODO
+- [x] Phase 3: Hero Slider — انجام شد، دیگر Mock نیست؛ مدل واقعی
+  `Banner` + مدیریت کامل در Dashboard → تنظیمات → اسلایدر (نگاه
+  کنید بخش ۲)
 - [ ] Phase 4: Special Offers Carousel
 - [ ] Phase 5: Latest Products Carousel
 - [ ] Phase 6: Most Discounted Products Carousel
@@ -1263,6 +1317,14 @@ Verify همیشه از رکورد ذخیره‌شده `Payment.amount` خوان�
 `logoPublicId` (اختیاری، Cloudinary)، `isActive`، `sortOrder`. بدون
 DELETE — چک‌های قدیمی ممکن است به یک بانک ارجاع داشته باشند؛
 غیرفعال‌سازی جایگزین حذف است.
+
+### Banner
+بنرهای Hero Slider صفحه اصلی Storefront (Settings → اسلایدر):
+`title`، `subtitle?`، `ctaLabel?`، `href`، `imageUrl`/`imagePublicId`
+(Cloudinary)، `imageBlurDataUrl?` (Base64 تولیدشده هنگام آپلود —
+مصرف در Storefront با `placeholder="blur"` خود Next.js Image، طبق
+بند ۲۷-۳۰ Master Workflow برای Mesh Blur)، `isActive`، `sortOrder`.
+هم‌الگو با `Bank` — بدون DELETE سخت، فقط Toggle فعال/غیرفعال.
 
 ### Check
 `bank` (ref Bank)، `issuer` (نام/نام‌خانوادگی/کدملی — Subdocument
