@@ -276,6 +276,74 @@ Banner)/Build همه سبز.
 پخش‌شده باشند، نه یک نوار مستطیلی با گوشه‌های تیز — طبق بازخورد
 دقیق کارفرما. تست‌ها: TS/ESLint/Vitest (۲۸۶)/Build همه سبز.
 
+**اصلاح ظرافت رفلکس (دور سوم — این‌بار خیلی کم شده بود):** کارفرما
+گزارش داد «کلاً محو شده، چیزی دیده نمی‌شه». نسخه قبلی (`h-2.5`,
+`opacity-20`, `blur-2xl`) بیش‌ازحد تنظیم شده بود. مقادیر جدید:
+ارتفاع `h-5`/`h-6` (~۲۰-۲۴px)، `opacity-35`، `blur-md` (به‌جای
+`blur-2xl`) — دیده می‌شود ولی همچنان ظریف است. تست‌ها سبز، Commit
+مجزا و Push شد.
+
+**دسته‌بندی‌های صفحه اصلی — فیچر کامل (Dashboard + Storefront):**
+طبق درخواست کارفرما («تصویر مربعی اختیاری فقط سطح اول + تیک نمایش
+در صفحه اصلی» + «ردیف دکمه‌های دسته‌بندی زیر Hero Slider، مثل
+رفرنس اپ میوه/سبزیجات، با Auto-Scroll آرام اگر بیش از ۴ تا بود»):
+
+- **مدل `Category`:** فیلدهای جدید `imageUrl`/`imagePublicId`/
+  `imageBlurDataUrl` (هر سه اختیاری، Nullable) + `showOnHomepage`
+  (Boolean، پیش‌فرض false). طبق کامنت داخل مدل، این فیلدها فقط
+  برای دسته سطح اول (`parentId === null`) معنا دارند؛ این قانون در
+  Mongoose Schema اجرا نمی‌شود (Cross-field Conditional Validator
+  بومی ندارد) بلکه در لایه API.
+- **اجرای قانون «فقط سطح اول» در API، نه فقط UI:** در
+  `POST /api/v1/categories` اگر `parentId` ست شده باشد، این
+  فیلدها همیشه `null`/`false` ذخیره می‌شوند صرف‌نظر از چیزی که
+  Client فرستاده. در `PATCH /api/v1/categories/[id]` هم بعد از
+  Merge نهایی، اگر `category.parentId` مقدار داشته باشد (چه از
+  قبل در DB، چه از همین درخواست)، این فیلدها Force به `null`/
+  `false` می‌شوند. یعنی حتی یک Client دستکاری‌شده هم نمی‌تواند این
+  قانون را دور بزند.
+- **`buildBlurDataUrl` به یک Util مشترک منتقل شد**
+  (`src/lib/utils/build-blur-data-url.ts`) — قبلاً فقط داخل
+  `banner-form-modal.tsx` بود؛ حالا هم Banner هم Category Image
+  Uploader از همین یک تابع استفاده می‌کنند (بدون Duplicate Code).
+- **`ImageCropModal` نسبت Aspect را Configurable شد** (Prop
+  `aspect`/`aspectLabel`، پیش‌فرض همان ۳:۴ قبلی برای محصولات) — تا
+  بدون Duplicate کردن کل Modal، برای تصویر مربعی (۱:۱) دسته‌بندی
+  هم استفاده شود.
+- **`CATEGORY_IMAGES_FOLDER`** در `cloudinary/config.ts` + هدف
+  جدید `"category-image"` در `/api/v1/uploads/sign` (Permission:
+  `CATEGORIES_CREATE`، از Permission موجود استفاده شد).
+- **`category-form.tsx`:** بخش آپلود تصویر مربعی
+  (`CategoryImageUploader`، کامپوننت جدید) + چک‌باکس «نمایش در
+  صفحه اصلی» — هر دو فقط وقتی رندر می‌شوند که `parentId` خالی باشد
+  (یعنی خودِ دسته‌بندی در حال ساخت/ویرایش سطح اول است)؛ اگر کاربر
+  یک والد انتخاب کند، این بخش از UI ناپدید می‌شود (و در Submit هم
+  اصلاً ارسال نمی‌شود).
+- **API عمومی جدید `GET /api/v1/categories/homepage`:** بدون Auth
+  (هم‌الگو با Banners/Social Links) — فقط دسته‌های سطح اول، فعال، و
+  `showOnHomepage: true`، مرتب‌شده با `sortOrder`. جدا از
+  `/api/v1/categories` موجود (که برای مدیریت کامل Dashboard است و
+  عمداً دست‌نخورده و همچنان `CATEGORIES_READ` می‌خواهد).
+- **`CategoryShortcuts` (Storefront):** کارت مربعی سفید + عنوان
+  زیرش (طبق تصویر رفرنس میوه/سبزیجات کارفرما). اگر تعداد دسته‌ها
+  صفر باشد، چیزی رندر نمی‌شود. اگر ≥۵ دسته باشد (یعنی «بیشتر از
+  ۴»)، یک Auto-Scroll خیلی آرام با `requestAnimationFrame` فعال
+  می‌شود که در برخورد به دو انتهای Scroll جهتش را برعکس می‌کند
+  (رفت‌وبرگشتی، نه پرش ناگهانی به ابتدا). با `onPointerDown` کاربر
+  Auto-Scroll موقت متوقف و با تأخیر ۲.۵ ثانیه بعد از رها کردن دوباره
+  شروع می‌شود؛ Scroll دستی خودش از طریق Overflow بومی مرورگر (بدون
+  کد اضافه) کار می‌کند. **نکته فنی RTL:** ظرف Scroll عمداً
+  `dir="ltr"` است (رفتار `scrollLeft` در RTL بین مرورگرها ناهماهنگ
+  است — همان مشکلی که در `HeroSlider` هم داشتیم)؛ آرایه دسته‌ها قبل
+  از رندر Reverse می‌شود تا ترتیب بصری RTL طبیعی حفظ شود.
+- **`page.tsx`:** دسته‌های صفحه اصلی مستقیماً از DB خوانده می‌شوند
+  (هم‌الگو با Banners، نه HTTP Fetch به API خودش)، موازی با Banners
+  (`Promise.all`)، و زیر `HeroSlider` رندر می‌شوند.
+
+تست‌ها: TS/ESLint/Vitest (۲۹۲ تست، ۱۵ تست جدید Validation
+Category)/Build همه سبز. دو Commit مجزا (رفلکس، فیچر دسته‌بندی)
+Push شدند.
+
 **Branch فعلی:** `main`
 **Feature بعدی:** منتظر تأیید کاربر برای ماژول بعدی (Desktop
 Header، Phase 4 Special Offers Carousel، یا هر چیز دیگری که کاربر
@@ -1221,7 +1289,11 @@ scripts/vercel-env-sync.sh
 `name`, `slug` (unique, lowercase, `[a-z0-9-]+`), `parentId` (ref
 Category | null — حداکثر عمق ۲ سطح، Validate شده در
 `src/lib/validations/category-depth.ts` نه در خود Model)، `isActive`,
-`sortOrder`, timestamps.
+`sortOrder`, timestamps. + `imageUrl`/`imagePublicId`/
+`imageBlurDataUrl` (اختیاری، Cloudinary + Mesh Blur) و
+`showOnHomepage` (Boolean) — این چهار فیلد **فقط برای دسته سطح اول
+معنا دارند**؛ اجرای این قانون در API است (نگاه کنید
+`src/app/api/v1/categories`)، نه در خود Schema.
 
 ### Color
 `name` (unique)، `hexCode` (`#RRGGBB`، Uppercase)، `isActive`،
