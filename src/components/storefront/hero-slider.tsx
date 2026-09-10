@@ -149,12 +149,14 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
             بیرون از محدوده خودش باشد را Clip می‌کند، حتی اگر با
             `top-full` بیرون آن Position گرفته باشد — این دقیقاً
             دلیل نمایش‌داده‌نشدنِ رفلکس در تلاش قبلی بود.
-            ارتفاع خیلی کم (۱۰px)، Blur قوی، و Mask بیضی‌شکل
+            ارتفاع کم (~۲۰px)، Blur ملایم‌تر و Opacity کمی بیشتر
+            (نسخه قبلی آن‌قدر محو بود که کارفرما گفت «کلاً محو شده،
+            چیزی دیده نمی‌شه»)، و Mask بیضی‌شکل
             (نه فقط عمودی) برای گوشه‌های گرد و پخش‌شده به‌جای یک
             نوار مستطیلی با لبه‌های تیز — طبق بازخورد دوم کارفرما. */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-10 top-full h-2.5 rounded-full opacity-20 blur-2xl sm:inset-x-16 sm:h-3"
+          className="pointer-events-none absolute inset-x-8 top-full h-5 rounded-full opacity-35 blur-md sm:inset-x-12 sm:h-6"
           style={{
             transform: "scaleY(-1)",
             backgroundImage: `url(${current.imageUrl})`,
