@@ -94,54 +94,61 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
 
   return (
     <section className="relative px-4 pt-4 sm:px-6 sm:pt-6">
-      <div
-        className="relative overflow-hidden rounded-2xl"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
+      <div className="relative">
         <div
-          dir="ltr"
-          className="flex transition-transform duration-500 ease-out"
-          style={{ transform: `translateX(${-index * 100}%)` }}
+          className="relative overflow-hidden rounded-2xl"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
         >
-          {banners.map((slide, slideIndex) => (
-            <Link
-              key={slide.id}
-              href={slide.href}
-              dir="rtl"
-              className="relative aspect-[16/9] w-full shrink-0 sm:aspect-[21/9]"
-            >
-              <Image
-                src={slide.imageUrl}
-                alt={slide.title}
-                fill
-                priority={slideIndex === 0}
-                className="object-cover"
-                placeholder={slide.imageBlurDataUrl ? "blur" : "empty"}
-                blurDataURL={slide.imageBlurDataUrl ?? undefined}
-                sizes="100vw"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-              <div className="absolute inset-0 flex flex-col items-start justify-end gap-2 p-5 sm:p-8">
-                <h2 className="text-xl font-bold text-white sm:text-2xl">
-                  {slide.title}
-                </h2>
-                {slide.subtitle && (
-                  <p className="max-w-xs text-sm text-white/85 sm:text-base">
-                    {slide.subtitle}
-                  </p>
-                )}
-                {slide.ctaLabel && (
-                  <span className="mt-1 rounded-full bg-white px-4 py-2 text-xs font-semibold text-[var(--sf-ink)] sm:text-sm">
-                    {slide.ctaLabel}
-                  </span>
-                )}
-              </div>
-            </Link>
-          ))}
+          <div
+            dir="ltr"
+            className="flex transition-transform duration-500 ease-out"
+            style={{ transform: `translateX(${-index * 100}%)` }}
+          >
+            {banners.map((slide, slideIndex) => (
+              <Link
+                key={slide.id}
+                href={slide.href}
+                dir="rtl"
+                className="relative aspect-[16/9] w-full shrink-0 sm:aspect-[21/9]"
+              >
+                <Image
+                  src={slide.imageUrl}
+                  alt={slide.title}
+                  fill
+                  priority={slideIndex === 0}
+                  className="object-cover"
+                  placeholder={slide.imageBlurDataUrl ? "blur" : "empty"}
+                  blurDataURL={slide.imageBlurDataUrl ?? undefined}
+                  sizes="100vw"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                <div className="absolute inset-0 flex flex-col items-start justify-end gap-2 p-5 sm:p-8">
+                  <h2 className="text-xl font-bold text-white sm:text-2xl">
+                    {slide.title}
+                  </h2>
+                  {slide.subtitle && (
+                    <p className="max-w-xs text-sm text-white/85 sm:text-base">
+                      {slide.subtitle}
+                    </p>
+                  )}
+                  {slide.ctaLabel && (
+                    <span className="mt-1 rounded-full bg-white px-4 py-2 text-xs font-semibold text-[var(--sf-ink)] sm:text-sm">
+                      {slide.ctaLabel}
+                    </span>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
 
-        {/* رفلکس محو — خارج از قاب، بلافاصله زیر آن */}
+        {/* رفلکس محو — این‌بار عمداً بیرون از خودِ باکس
+            `overflow-hidden rounded-2xl` (به‌عنوان Sibling، نه
+            Child آن) قرار گرفته؛ چون `overflow-hidden` هر چیزی که
+            بیرون از محدوده خودش باشد را Clip می‌کند، حتی اگر با
+            `top-full` بیرون آن Position گرفته باشد — این دقیقاً
+            دلیل نمایش‌داده‌نشدنِ رفلکس در تلاش قبلی بود. */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 top-full h-10 opacity-[0.12] blur-xl sm:h-14"
@@ -156,9 +163,10 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
         />
       </div>
 
-      {/* Dot Indicator — پایین و خارج از تصاویر */}
+      {/* Dot Indicator — پایین و خارج از تصاویر، اما نزدیک‌تر از
+          تلاش قبلی (طبق بازخورد «خیلی پایینه») */}
       {banners.length > 1 && (
-        <div className="mt-5 flex items-center justify-center gap-1.5 sm:mt-6">
+        <div className="mt-2 flex items-center justify-center gap-1.5 sm:mt-3">
           {banners.map((slide, slideIndex) => (
             <button
               key={slide.id}
