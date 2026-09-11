@@ -15,7 +15,6 @@ export type HomepageCategory = {
 
 const AUTO_SCROLL_PX_PER_FRAME = 0.15;
 const RESUME_DELAY_MS = 2500;
-const AUTO_SCROLL_MIN_ITEMS = 5; // یعنی «بیشتر از ۴ عدد» طبق درخواست کارفرما
 
 /**
  * ردیف دکمه‌های میان‌بر دسته‌بندی زیر Hero Slider — کارت مربعی +
@@ -23,13 +22,21 @@ const AUTO_SCROLL_MIN_ITEMS = 5; // یعنی «بیشتر از ۴ عدد» طب�
  * دسته‌بندی‌هایی که در Dashboard «نمایش در صفحه اصلی» تیک خورده‌اند
  * (و سطح اول هستند) اینجا می‌آیند.
  *
- * اگر تعداد از ۴ بیشتر باشد (طبق درخواست صریح)، یک Auto-Scroll
- * بسیار آرام با `requestAnimationFrame` فعال می‌شود که در برخورد به
- * دو انتها جهتش را برعکس می‌کند (رفت‌وبرگشتی، نه یک پرش ناگهانی به
- * ابتدا). لمس/کلیک کاربر (`onPointerDown`) Auto-Scroll را موقت
- * متوقف می‌کند و ~۲.۵ ثانیه بعد از رها کردن دوباره از سر گرفته
- * می‌شود؛ خودِ Scroll دستی همیشه از طریق Overflow بومی مرورگر کار
- * می‌کند (بدون هیچ کد اضافه).
+ * Auto-Scroll بسیار آرام با `requestAnimationFrame`، رفت‌وبرگشتی
+ * (نه پرش ناگهانی به ابتدا). **به‌جای شرط تعداد ثابت («اگر بیش از
+ * ۴ تا»)، از Overflow واقعی مرورگر استفاده می‌شود** (`scrollWidth
+ * > clientWidth`) — چون تعداد آیتم به‌تنهایی تضمین نمی‌کند در همه
+ * عرض صفحه Overflow واقعی رخ بدهد یا نه (روی صفحه‌های بزرگ‌تر ۵ آیتم
+ * ممکن است جا شود، روی صفحه‌های کوچک‌تر ۴ آیتم ممکن است Overflow
+ * شود). Loop همیشه اجرا می‌شود؛ بررسی داخلی `maxScroll > 1` خودش
+ * تضمین می‌کند وقتی واقعاً چیزی برای Scroll نیست، هیچ حرکتی هم رخ
+ * ندهد — این دقیقاً همان رفتار مطلوب («اگر بیشتر از ۴ تا بود
+ * پیمایش داشته باشند») را با معیار درست‌تری تأمین می‌کند.
+ *
+ * لمس/کلیک کاربر (`onPointerDown`) Auto-Scroll را موقت متوقف
+ * می‌کند و ~۲.۵ ثانیه بعد از رها کردن دوباره از سر گرفته می‌شود؛
+ * خودِ Scroll دستی همیشه از طریق Overflow بومی مرورگر کار می‌کند
+ * (بدون هیچ کد اضافه).
  *
  * نکته فنی RTL: ظرف Scroll عمداً `dir="ltr"` است تا رفتار
  * `scrollLeft` بین مرورگرها یکسان/قابل‌پیش‌بینی بماند (در RTL این
@@ -43,10 +50,7 @@ export function CategoryShortcuts({ categories }: { categories: HomepageCategory
   const pausedRef = useRef(false);
   const resumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const shouldAutoScroll = categories.length >= AUTO_SCROLL_MIN_ITEMS;
-
   useEffect(() => {
-    if (!shouldAutoScroll) return;
     let rafId: number;
 
     function tick() {
@@ -64,7 +68,7 @@ export function CategoryShortcuts({ categories }: { categories: HomepageCategory
 
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [shouldAutoScroll]);
+  }, [categories.length]);
 
   function pause() {
     pausedRef.current = true;
@@ -100,15 +104,17 @@ export function CategoryShortcuts({ categories }: { categories: HomepageCategory
           >
             <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-black/5 bg-white shadow-[0_2px_8px_rgba(3,23,37,0.06)]">
               {category.imageUrl ? (
-                <Image
-                  src={category.imageUrl}
-                  alt={category.name}
-                  fill
-                  className="object-cover"
-                  placeholder={category.imageBlurDataUrl ? "blur" : "empty"}
-                  blurDataURL={category.imageBlurDataUrl ?? undefined}
-                  sizes="96px"
-                />
+                <div className="absolute inset-1.5 overflow-hidden rounded-xl">
+                  <Image
+                    src={category.imageUrl}
+                    alt={category.name}
+                    fill
+                    className="object-cover"
+                    placeholder={category.imageBlurDataUrl ? "blur" : "empty"}
+                    blurDataURL={category.imageBlurDataUrl ?? undefined}
+                    sizes="96px"
+                  />
+                </div>
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-gray-300">
                   <LayoutGrid className="h-7 w-7" strokeWidth={1.5} aria-hidden="true" />
