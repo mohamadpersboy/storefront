@@ -349,6 +349,50 @@ Push شدند.
 موجود روی خود کارت (از قبل بود) Crop می‌شود. تست‌ها:
 TS/ESLint/Vitest (۲۹۲)/Build همه سبز.
 
+**اصلاح دوم CategoryShortcuts:** طبق بازخورد کارفرما، تصاویر
+«خیلی بزرگ» به‌نظر می‌رسیدند (نسخه قبلی بدون Padding بود، طبق
+درخواست دور قبل). این‌بار: یک Inset ۶پیکسلی (`inset-1.5`) روی یک
+Wrapper داخلی اضافه شد که خودش `rounded-xl overflow-hidden` است —
+یعنی هم فاصله ۶px هم گوشه‌های گرد خودِ تصویر (نه فقط کارت بیرونی)
+تأمین شد. **همچنین:** کارفرما گزارش داد Auto-Scroll «دیگه اصلاً
+حرکت نمی‌کنه» با اینکه فقط خواسته بود «سرعتش کم بشه نه متوقف بشه».
+علت را بررسی کردیم: شرط قبلی `categories.length >= 5` بود (برای
+اجرای «اگر بیشتر از ۴ تا») — یک معیار Item-Count ثابت که به عرض
+واقعی صفحه حساس نیست (در یک عرض، ۴ آیتم Overflow می‌شود؛ در عرضی
+دیگر، ۵ آیتم جا می‌شود). این منطق با معیار درست‌تری جایگزین شد:
+Loop همیشه اجرا می‌شود و فقط با Overflow واقعی مرورگر
+(`scrollWidth > clientWidth`) حرکت می‌کند — دقیق‌تر از حدس‌زدن با
+تعداد ثابت، و رفتار مطلوب («وقتی جا نمی‌شوند حرکت کن») را در همه
+عرض‌ها به‌درستی تأمین می‌کند.
+
+**فیچر جدید: تنظیمات ارسال + بنر ارسال رایگان صفحه اصلی.** طبق
+درخواست صریح کارفرما («مثل تصویر فروشگاه میوه/سبزیجات یه بنر ارسال
+رایگان بساز؛ اگه در دشبورد تعیین نکردیم، تو حتماً اضافه کن»):
+
+- **مدل Singleton جدید `ShippingSettings`** (هم‌الگو دقیق با
+  `DiscountSettings`): `freeShippingEnabled` (پیش‌فرض **false** —
+  عمداً، تا Storefront هرگز بدون تصمیم صریح کارفرما یک وعده «ارسال
+  رایگان» ساختگی نشان ندهد) + `freeShippingThreshold` (تومان،
+  پیش‌فرض ۵۰۰,۰۰۰ فقط به‌عنوان مقدار شروع پیشنهادی در فرم، نه یک
+  تصمیم کسب‌وکار واقعی از طرف من).
+- API `GET`/`PATCH /api/v1/shipping-settings` (`SETTINGS_MANAGE`) +
+  `logActivity` (هم‌الگو با DiscountSettings، چون این هم یک تنظیم
+  مالی‌محور صفحه اصلی است).
+- صفحه Dashboard جدید `/dashboard/settings/shipping` + لینک از
+  ایندکس تنظیمات.
+- Storefront: `FreeShippingBanner` — فقط وقتی رندر می‌شود که
+  `freeShippingEnabled === true` باشد؛ زیر `CategoryShortcuts` در
+  `page.tsx` (مقدار مستقیماً از DB خوانده می‌شود، هم‌الگو با
+  Banner/Category، نه HTTP Fetch). رنگ عمداً Indigo برند (نه سبز
+  رفرنس) برای هماهنگی بصری با بقیه Storefront.
+- **نکته مهم مستندشده در خود فرم Dashboard:** این بنر فقط یک پیام
+  تبلیغاتی است؛ محاسبه واقعی هزینه ارسال در Checkout مستقل و دستی
+  می‌ماند (موتور محاسبه خودکار هنوز در Known Issues است) — این
+  فیچر آن مشکل را حل نمی‌کند، فقط یک ادعای بازاریابی صفحه اصلی است.
+
+تست‌ها: TS/ESLint/Vitest (۲۹۶ تست، ۴ تست جدید Validation
+ShippingSettings)/Build همه سبز. دو Commit مجزا Push شدند.
+
 **Branch فعلی:** `main`
 **Feature بعدی:** منتظر تأیید کاربر برای ماژول بعدی (Desktop
 Header، Phase 4 Special Offers Carousel، یا هر چیز دیگری که کاربر
@@ -1498,6 +1542,14 @@ Master Prompt بند ۲۵). `code` (یکتا، همیشه Uppercase ذخیره �
 find-then-create، تا دو درخواست همزمان اول هرگز دو سند نسازند).
 فیلدها: `onlinePaymentRewardEnabled/Percentage`،
 `mixedPaymentRewardEnabled/Percentage` (بند ۳۸).
+
+### ShippingSettings (Singleton)
+هم‌الگو دقیق با `DiscountSettings` (`_id: "shipping-settings"`,
+`getShippingSettings()` با upsert Atomic). فیلدها:
+`freeShippingEnabled` (پیش‌فرض false)، `freeShippingThreshold`
+(تومان، پیش‌فرض ۵۰۰۰۰۰ فقط به‌عنوان مقدار پیشنهادی اولیه). مصرف در
+Storefront: `FreeShippingBanner` روی صفحه اصلی، فقط اگر
+`freeShippingEnabled === true`.
 
 ### Order.discount (Snapshot)
 `source` (`"coupon"` | `"payment_reward"`)، `amount`،
