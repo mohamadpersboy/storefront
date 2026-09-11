@@ -340,6 +340,15 @@ Category)/Build همه سبز. دو Commit مجزا Push شدند.
 تست‌ها: TS/ESLint/Vitest (۲۹۲)/Build همه سبز. دو Commit مجزا
 Push شدند.
 
+**اصلاح جزئی CategoryShortcuts (کارفرما تأیید کرد باگ رفع شده،
+بعد این دو مورد را دید):** سرعت Auto-Scroll از `0.4px`/Frame به
+`0.15px`/Frame کم شد (آرام‌تر). تصویر داخل کارت‌ها از
+`object-contain p-3` (که برای عکس‌های غیرمربعی مثل منظره/ساحل
+حاشیه سفید ایجاد می‌کرد) به `object-cover` بدون Padding تغییر کرد
+— تصویر کل کارت مربعی را پر می‌کند و اضافی‌اش با `overflow-hidden`
+موجود روی خود کارت (از قبل بود) Crop می‌شود. تست‌ها:
+TS/ESLint/Vitest (۲۹۲)/Build همه سبز.
+
 **Branch فعلی:** `main`
 **Feature بعدی:** منتظر تأیید کاربر برای ماژول بعدی (Desktop
 Header، Phase 4 Special Offers Carousel، یا هر چیز دیگری که کاربر
