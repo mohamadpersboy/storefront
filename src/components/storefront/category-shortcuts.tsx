@@ -38,15 +38,23 @@ const RESUME_DELAY_MS = 2500;
  * خودِ Scroll دستی همیشه از طریق Overflow بومی مرورگر کار می‌کند
  * (بدون هیچ کد اضافه).
  *
- * نکته فنی RTL: ظرف Scroll عمداً `dir="ltr"` است تا رفتار
- * `scrollLeft` بین مرورگرها یکسان/قابل‌پیش‌بینی بماند (در RTL این
- * مقدار بین مرورگرها ناهماهنگ است). برای حفظ ترتیب خواندن راست‌به‌
- * چپ، آرایه دسته‌ها قبل از رندر برعکس می‌شود؛ نتیجه بصری همان
- * ترتیب RTL طبیعی است.
+ * نکته فنی RTL (اصلاح‌شده — تلاش قبلی اشتباه بود): ظرف Scroll حالا
+ * `dir="rtl"` طبیعی دارد (مثل بقیه صفحه)، بدون Reverse کردن آرایه.
+ * تلاش قبلی (`dir="ltr"` اجباری + Reverse آرایه) باعث دو باگ واقعی
+ * می‌شد: (۱) اولین دسته‌بندی‌ها به‌جای راست، در انتهای Scroll
+ * (نیازمند اسکرول به چپ) قرار می‌گرفتند، و (۲) جهت Auto-Scroll هم
+ * به‌خاطر مبنای اشتباه هرگز واقعاً حرکت نمی‌کرد. طبق مشخصات
+ * استاندارد CSSOM View برای `dir="rtl"`: `scrollLeft` از ۰ (لبه
+ * راست/شروع محتوا) تا `-(scrollWidth - clientWidth)` (لبه چپ/پایان
+ * محتوا) منفی می‌شود — یعنی با مقدار پیش‌فرض ۰، دسته‌بندی اول
+ * دقیقاً در راست‌ترین جای دیده می‌شود (بدون نیاز به هیچ Reverse ای)
+ * و Auto-Scroll باید به سمت منفی حرکت کند تا دسته‌های بعدی را نشان
+ * دهد. مرورگرهای هدف این پروژه (Chrome/Safari موبایل مدرن) این
+ * استاندارد را به‌درستی پیاده‌سازی می‌کنند.
  */
 export function CategoryShortcuts({ categories }: { categories: HomepageCategory[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const directionRef = useRef(1);
+  const directionRef = useRef(-1);
   const pausedRef = useRef(false);
   const resumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -59,8 +67,8 @@ export function CategoryShortcuts({ categories }: { categories: HomepageCategory
         const maxScroll = el.scrollWidth - el.clientWidth;
         if (maxScroll > 1) {
           el.scrollLeft += directionRef.current * AUTO_SCROLL_PX_PER_FRAME;
-          if (el.scrollLeft >= maxScroll) directionRef.current = -1;
-          else if (el.scrollLeft <= 0) directionRef.current = 1;
+          if (el.scrollLeft <= -maxScroll) directionRef.current = 1;
+          else if (el.scrollLeft >= 0) directionRef.current = -1;
         }
       }
       rafId = requestAnimationFrame(tick);
@@ -83,23 +91,20 @@ export function CategoryShortcuts({ categories }: { categories: HomepageCategory
 
   if (categories.length === 0) return null;
 
-  const orderedForLtrScroll = [...categories].reverse();
-
   return (
     <section className="px-4 pt-4 sm:px-6">
       <div
         ref={scrollRef}
-        dir="ltr"
+        dir="rtl"
         onPointerDown={pause}
         onPointerUp={resumeAfterDelay}
         onPointerCancel={resumeAfterDelay}
         className="flex gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {orderedForLtrScroll.map((category) => (
+        {categories.map((category) => (
           <Link
             key={category.id}
             href={`/categories/${category.slug}`}
-            dir="rtl"
             className="flex w-20 shrink-0 flex-col items-center gap-1.5 sm:w-24"
           >
             <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-black/5 bg-white shadow-[0_2px_8px_rgba(3,23,37,0.06)]">
