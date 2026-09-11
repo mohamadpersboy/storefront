@@ -13,6 +13,7 @@ import {
   CreditCard,
   Terminal,
   GalleryHorizontal,
+  Truck,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
@@ -22,6 +23,12 @@ const settingsSections = [
     icon: GalleryHorizontal,
     title: "اسلایدر صفحه اصلی",
     description: "مدیریت بنرهای Hero Slider صفحه اصلی فروشگاه",
+  },
+  {
+    href: "/dashboard/settings/shipping",
+    icon: Truck,
+    title: "ارسال",
+    description: "آستانه ارسال رایگان (نمایش در بنر صفحه اصلی)",
   },
   {
     href: "/dashboard/settings/colors",

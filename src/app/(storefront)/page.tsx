@@ -4,9 +4,11 @@ import {
   CategoryShortcuts,
   type HomepageCategory,
 } from "@/components/storefront/category-shortcuts";
+import { FreeShippingBanner } from "@/components/storefront/free-shipping-banner";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Banner } from "@/models/Banner";
 import { Category } from "@/models/Category";
+import { getShippingSettings } from "@/models/ShippingSettings";
 
 /**
  * بنرها مستقیماً از DB خوانده می‌شوند (نه یک Fetch HTTP به
@@ -74,10 +76,29 @@ async function getHomepageCategories(): Promise<HomepageCategory[]> {
   }
 }
 
+/**
+ * اگر تنظیمات ارسال هنوز در Dashboard مشخص/فعال نشده باشد،
+ * `null` برمی‌گردد — طبق درخواست صریح کارفرما («اگه در دشبورد
+ * تعیین نکردیم، تو حتماً اضافه کن») این قابلیت به‌صورت Singleton
+ * Settings (هم‌الگو با `DiscountSettings`) اضافه شد، اما پیش‌فرض
+ * غیرفعال است تا Storefront هرگز یک وعده «ارسال رایگان» ساختگی
+ * نشان ندهد.
+ */
+async function getFreeShippingThreshold(): Promise<number | null> {
+  try {
+    await connectToDatabase();
+    const settings = await getShippingSettings();
+    return settings.freeShippingEnabled ? settings.freeShippingThreshold : null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function StorefrontHomePage() {
-  const [banners, categories] = await Promise.all([
+  const [banners, categories, freeShippingThreshold] = await Promise.all([
     getActiveBanners(),
     getHomepageCategories(),
+    getFreeShippingThreshold(),
   ]);
 
   return (
@@ -85,6 +106,9 @@ export default async function StorefrontHomePage() {
       <MobileTopBar />
       <HeroSlider banners={banners} />
       <CategoryShortcuts categories={categories} />
+      {freeShippingThreshold !== null ? (
+        <FreeShippingBanner threshold={freeShippingThreshold} />
+      ) : null}
       <main className="flex min-h-[40vh] items-center justify-center p-8">
         <div className="text-center">
           <p className="text-sm text-[var(--sf-ink)]/60">
