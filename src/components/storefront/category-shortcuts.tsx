@@ -13,7 +13,7 @@ export type HomepageCategory = {
   imageBlurDataUrl: string | null;
 };
 
-const AUTO_SCROLL_PX_PER_FRAME = 0.4;
+const AUTO_SCROLL_PX_PER_FRAME = 0.15;
 const RESUME_DELAY_MS = 2500;
 const AUTO_SCROLL_MIN_ITEMS = 5; // یعنی «بیشتر از ۴ عدد» طبق درخواست کارفرما
 
@@ -104,7 +104,7 @@ export function CategoryShortcuts({ categories }: { categories: HomepageCategory
                   src={category.imageUrl}
                   alt={category.name}
                   fill
-                  className="object-contain p-3"
+                  className="object-cover"
                   placeholder={category.imageBlurDataUrl ? "blur" : "empty"}
                   blurDataURL={category.imageBlurDataUrl ?? undefined}
                   sizes="96px"
