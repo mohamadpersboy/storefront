@@ -18,13 +18,21 @@ export type FreeShippingBannerProps = {
  * فرزند در یک ردیف Flex در سمت راست قرار می‌گیرد — یعنی آیکون
  * راست، متن چپ (طبق بازخورد صریح کارفرما). فونت‌ها هم کوچک‌تر و
  * Padding کمتر شد تا ارتفاع بنر زیاد نشود.
+ *
+ * آیکون Truck خودش (پیش‌فرض Lucide) رو به چپ طراحی شده؛ با
+ * `-scale-x-100` افقی Mirror شد تا رو به راست باشد (طبق بازخورد
+ * صریح کارفرما).
  */
 export function FreeShippingBanner({ threshold }: FreeShippingBannerProps) {
   return (
     <section className="px-4 pt-4 sm:px-6">
       <div className="flex items-center gap-3 rounded-2xl bg-[var(--color-primary)] p-3.5">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15">
-          <Truck className="h-4.5 w-4.5 text-white" strokeWidth={1.75} aria-hidden="true" />
+          <Truck
+            className="h-4.5 w-4.5 -scale-x-100 text-white"
+            strokeWidth={1.75}
+            aria-hidden="true"
+          />
         </div>
         <div className="flex-1">
           <p className="text-xs font-bold text-white sm:text-sm">

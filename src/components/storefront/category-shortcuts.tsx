@@ -38,37 +38,73 @@ const RESUME_DELAY_MS = 2500;
  * خودِ Scroll دستی همیشه از طریق Overflow بومی مرورگر کار می‌کند
  * (بدون هیچ کد اضافه).
  *
- * نکته فنی RTL (اصلاح‌شده — تلاش قبلی اشتباه بود): ظرف Scroll حالا
- * `dir="rtl"` طبیعی دارد (مثل بقیه صفحه)، بدون Reverse کردن آرایه.
- * تلاش قبلی (`dir="ltr"` اجباری + Reverse آرایه) باعث دو باگ واقعی
- * می‌شد: (۱) اولین دسته‌بندی‌ها به‌جای راست، در انتهای Scroll
- * (نیازمند اسکرول به چپ) قرار می‌گرفتند، و (۲) جهت Auto-Scroll هم
- * به‌خاطر مبنای اشتباه هرگز واقعاً حرکت نمی‌کرد. طبق مشخصات
- * استاندارد CSSOM View برای `dir="rtl"`: `scrollLeft` از ۰ (لبه
- * راست/شروع محتوا) تا `-(scrollWidth - clientWidth)` (لبه چپ/پایان
- * محتوا) منفی می‌شود — یعنی با مقدار پیش‌فرض ۰، دسته‌بندی اول
- * دقیقاً در راست‌ترین جای دیده می‌شود (بدون نیاز به هیچ Reverse ای)
- * و Auto-Scroll باید به سمت منفی حرکت کند تا دسته‌های بعدی را نشان
- * دهد. مرورگرهای هدف این پروژه (Chrome/Safari موبایل مدرن) این
- * استاندارد را به‌درستی پیاده‌سازی می‌کنند.
+ * نکته فنی RTL (اصلاح نهایی — دو تلاش قبلی هر دو روی حدس اشتباه از
+ * رفتار `scrollLeft` در RTL بنا شده بودند و هر دو در عمل شکست
+ * خوردند): ظرف Scroll `dir="rtl"` طبیعی دارد (مثل بقیه صفحه)، بدون
+ * Reverse کردن آرایه — این بخش (که در تلاش اول اشتباه بود) درست
+ * است و کارفرما هم تأیید کرد اولین دسته درست از راست نشان داده
+ * می‌شود. مشکل فقط در جهت حرکت Auto-Scroll بود: مشخصات استاندارد
+ * CSSOM View می‌گوید `scrollLeft` باید منفی شود، اما در عمل این
+ * رفتار بین مرورگرها/نسخه‌ها به‌طرز مستندی متفاوت پیاده‌سازی شده
+ * (بعضی مرورگرها بازه `[0, +max]` را نگه می‌دارند، نه `[-max, 0]`)
+ * — همان چیزی که باعث شد فرض «باید منفی برود» در تلاش قبلی کاملاً
+ * متوقفش کند (مقدار منفی Clamp به ۰ می‌شد).
+ *
+ * **راه‌حل نهایی: به‌جای حدس زدن، بازه معتبر در Runtime تشخیص داده
+ * می‌شود** (`detectRangeSign`) — دقیقاً همان تکنیک استاندارد صنعتی
+ * که کتابخانه‌هایی مثل Bootstrap RTL/jQuery برای همین مشکل مستند
+ * استفاده می‌کنند: یک‌بار امتحان می‌کنیم `scrollLeft` را با ۲۰+
+ * افزایش دهیم؛ اگر واقعاً تغییر کرد (Clamp نشد)، یعنی بازه معتبر
+ * `[0,+max]` است؛ در غیر این صورت `[-max,0]` امتحان و استفاده
+ * می‌شود. این تشخیص فقط یک‌بار (هنگام Mount) اجرا می‌شود، نه هر
+ * Frame؛ رفت‌وبرگشت Auto-Scroll هم با همین بازه تشخیص‌داده‌شده
+ * (نه یک فرض ثابت) محاسبه می‌شود.
  */
 export function CategoryShortcuts({ categories }: { categories: HomepageCategory[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const directionRef = useRef(-1);
+  // rangeSignRef: تشخیص یک‌بارهٔ این‌که در این مرورگر خاص، بازه
+  // معتبر scrollLeft برای RTL چیست — `1` یعنی `[0, +max]` (رایج در
+  // برخی پیاده‌سازی‌ها)، `-1` یعنی `[-max, 0]` (طبق مشخصات استاندارد
+  // CSSOM View). velocityRef جهت لحظه‌به‌لحظه حرکت است که برای
+  // رفت‌وبرگشت بین این دو مرز عوض می‌شود.
+  const rangeSignRef = useRef<1 | -1>(1);
+  const velocityRef = useRef<1 | -1>(1);
   const pausedRef = useRef(false);
   const resumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    function detectRangeSign(node: HTMLDivElement): 1 | -1 {
+      const start = node.scrollLeft;
+
+      node.scrollLeft = start + 20;
+      const positiveWorked = node.scrollLeft !== start;
+      node.scrollLeft = start;
+      if (positiveWorked) return 1;
+
+      node.scrollLeft = start - 20;
+      const negativeWorked = node.scrollLeft !== start;
+      node.scrollLeft = start;
+      return negativeWorked ? -1 : 1;
+    }
+
+    rangeSignRef.current = detectRangeSign(el);
+    velocityRef.current = rangeSignRef.current;
+
     let rafId: number;
 
     function tick() {
-      const el = scrollRef.current;
       if (el && !pausedRef.current) {
         const maxScroll = el.scrollWidth - el.clientWidth;
         if (maxScroll > 1) {
-          el.scrollLeft += directionRef.current * AUTO_SCROLL_PX_PER_FRAME;
-          if (el.scrollLeft <= -maxScroll) directionRef.current = 1;
-          else if (el.scrollLeft >= 0) directionRef.current = -1;
+          const low = rangeSignRef.current === 1 ? 0 : -maxScroll;
+          const high = rangeSignRef.current === 1 ? maxScroll : 0;
+
+          el.scrollLeft += velocityRef.current * AUTO_SCROLL_PX_PER_FRAME;
+          if (el.scrollLeft >= high) velocityRef.current = -1;
+          else if (el.scrollLeft <= low) velocityRef.current = 1;
         }
       }
       rafId = requestAnimationFrame(tick);
