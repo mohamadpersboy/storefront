@@ -15,6 +15,13 @@ import { MobileBottomBar } from "@/components/storefront/mobile-bottom-bar";
  * Top/Bottom Bar) روی همین پس‌زمینه Contrast خودشان را می‌گیرند.
  * این تغییر فقط داخل `.storefront` است و روی Dashboard اثر ندارد.
  *
+ * `min-h-dvh` (نه `min-h-screen`/`100vh`): موبایل هنگام Scroll نوار
+ * آدرس مرورگر را جمع/باز می‌کند و ارتفاع واقعی Viewport تغییر
+ * می‌کند؛ `dvh` این تغییر را دنبال می‌کند و به همراه Selector
+ * `body:has(> .storefront)` در globals.css (که پس‌زمینهٔ خودِ
+ * <body> را هم با همین خاکستری هماهنگ می‌کند) از فلاش کوتاه نوار
+ * سفید در پایین صفحه هنگام Scroll جلوگیری می‌کند.
+ *
  * `viewport` این Layout — نه Layout ریشه — override می‌شود تا Zoom
  * روی موبایل فقط در Storefront غیرفعال شود (طبق درخواست کارفرما:
  * حس یک اپ موبایل، نه یک صفحه وب معمولی) و Dashboard (که برای
@@ -33,7 +40,7 @@ export default function StorefrontLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="storefront min-h-screen bg-gray-100">
+    <div className="storefront min-h-dvh bg-gray-100">
       <div className="pb-[76px] sm:pb-0">{children}</div>
       <MobileBottomBar />
     </div>

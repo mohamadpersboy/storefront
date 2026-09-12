@@ -121,6 +121,7 @@ export function AmazingOffersSection() {
           titleColorClassName="text-[var(--sf-cherry)]"
           seeAllHref="/products/amazing-offers"
           seeAllLabel="مشاهده بیشتر"
+          seeAllClassName="text-[var(--sf-cherry)] text-xs"
         />
       </div>
 

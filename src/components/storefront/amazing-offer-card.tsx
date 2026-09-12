@@ -25,7 +25,7 @@ export type AmazingOfferCardData = {
 };
 
 /** فقط برای Progress Bar/Countdown — تشخیص نهایی وضعیت Offer همیشه با Backend است (`getAmazingOfferStatus`). */
-function useRemainingTime(startAt: string, endAt: string) {
+function useOfferTimer(startAt: string, endAt: string) {
   const start = new Date(startAt).getTime();
   const end = new Date(endAt).getTime();
   const [now, setNow] = useState<number | null>(null);
@@ -41,7 +41,9 @@ function useRemainingTime(startAt: string, endAt: string) {
 
   const total = Math.max(1, end - start);
   const remainingMs = now === null ? total : Math.max(0, end - now);
-  const remainingPercent = Math.min(100, Math.max(0, (remainingMs / total) * 100));
+  // طبق درخواست کارفرما، نوار Progress برعکسِ زمان باقی‌مانده است:
+  // با گذشت زمان به‌مرور پر می‌شود (نسبت زمان سپری‌شده)، نه خالی.
+  const elapsedPercent = Math.min(100, Math.max(0, 100 - (remainingMs / total) * 100));
 
   const totalSeconds = Math.floor(remainingMs / 1000);
   const hours = Math.floor(totalSeconds / 3600);
@@ -51,7 +53,7 @@ function useRemainingTime(startAt: string, endAt: string) {
   // فاصله دور «:» طبق درخواست کارفرما (قبلاً به هم چسبیده به‌نظر می‌رسید).
   const label = now === null ? "-- : -- : --" : `${pad(hours)} : ${pad(minutes)} : ${pad(seconds)}`;
 
-  return { remainingPercent, label };
+  return { elapsedPercent, label };
 }
 
 /**
@@ -69,7 +71,7 @@ function useRemainingTime(startAt: string, endAt: string) {
  * Style/متغیرهای مخصوص Dashboard استفاده می‌کند).
  */
 export function AmazingOfferCard({ offer }: { offer: AmazingOfferCardData }) {
-  const { remainingPercent, label } = useRemainingTime(offer.startAt, offer.endAt);
+  const { elapsedPercent, label } = useOfferTimer(offer.startAt, offer.endAt);
   const finalPrice = computeAmazingOfferPrice(
     offer.variant.basePrice,
     offer.discountType,
@@ -84,17 +86,21 @@ export function AmazingOfferCard({ offer }: { offer: AmazingOfferCardData }) {
   return (
     <Link
       href={`/products/${offer.product.slug}`}
-      className="block w-[152px] shrink-0 border-e border-gray-200 px-3 first:ps-0 last:border-e-0 sm:w-[168px]"
+      className="block w-[152px] shrink-0 border-e border-gray-200 px-3 last:border-e-0 sm:w-[168px]"
     >
       <p className="mb-2 text-center text-[11px] font-bold text-[var(--sf-cherry)]">
         پیشنهاد شگفت‌انگیز
       </p>
 
-      {/* ابعاد تصویر با Aspect Ratio روی خود ظرف ثابت نگه داشته می‌شود
-          (مستقل از ابعاد اصلی فایل تصویر)؛ اگر یک تصویر Placeholder
-          حاشیهٔ خالی زیاد داشته باشد همچنان کوچک‌تر به‌نظر می‌رسد —
-          علت مشکل قبلی انتخاب تصویر Mock بود، نه چیدمان. */}
-      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-gray-100">
+      {/* عرض/ارتفاع تصویر عمداً پیکسل ثابت است، نه فقط `aspect-ratio`
+          روی `w-full`: باگ واقعی راند قبل این بود که `first:ps-0`
+          روی کارت اول Padding داخلی‌اش را کم می‌کرد، عرض محتوای آن
+          کارت را بیشتر از بقیه می‌کرد و در نتیجه (چون Aspect Ratio
+          به عرض وابسته است) فقط تصویر همان یک کارت بلندتر از همه
+          دیده می‌شد. حالا هر دو کارت پدینگ یکسان دارند و اندازهٔ
+          تصویر با عدد قطعی (نه نسبی) مشخص شده تا دیگر به هیچ
+          Padding/عرض اطراف وابسته نباشد. */}
+      <div className="relative h-[171px] w-[128px] overflow-hidden rounded-lg bg-gray-100 sm:h-[192px] sm:w-[144px]">
         <Image
           src={offer.product.imageUrl}
           alt={offer.product.title}
@@ -144,13 +150,24 @@ export function AmazingOfferCard({ offer }: { offer: AmazingOfferCardData }) {
         </div>
       </div>
 
-      <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-gray-100">
+      {/* پس‌زمینهٔ نوار عمداً یک رنگ صورتی‌کم‌رنگِ قابل‌دیدن است (نه
+          خاکستری هم‌رنگ بک‌گراند صفحه) تا طول کامل مسیر همیشه
+          مشخص باشد؛ فقط بخش پرشده (سپری‌شده از زمان Offer) با
+          رنگ اصلی Cherry به‌مرور رشد می‌کند. */}
+      <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-[var(--sf-cherry-soft)]">
         <div
           className="h-full rounded-full bg-[var(--sf-cherry)] transition-[width]"
-          style={{ width: `${remainingPercent}%` }}
+          style={{ width: `${elapsedPercent}%` }}
         />
       </div>
-      <p className="mt-1 text-center text-xs font-semibold tracking-widest tabular-nums text-[var(--sf-ink)]">
+      {/* شمارش معکوس عمداً LTR است (حتی داخل صفحهٔ RTL): تایمرهای
+          عددی طبق قرارداد رایج همیشه چپ‌به‌راست خوانده می‌شوند، وگرنه
+          ترتیب ساعت/دقیقه/ثانیه برعکس می‌شود. چپ‌چین هم طبق درخواست
+          کارفرما. */}
+      <p
+        dir="ltr"
+        className="mt-1 text-left text-xs font-semibold tracking-widest tabular-nums text-[var(--sf-cherry)]"
+      >
         {label}
       </p>
     </Link>

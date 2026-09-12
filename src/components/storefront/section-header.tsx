@@ -15,6 +15,8 @@ type SectionHeaderProps = {
   seeAllHref?: string;
   /** پیش‌فرض «مشاهده همه» */
   seeAllLabel?: string;
+  /** پیش‌فرض `text-[var(--sf-accent)] text-sm` — رنگ+سایز فونت لینک «مشاهده همه/بیشتر» */
+  seeAllClassName?: string;
 };
 
 /**
@@ -33,6 +35,7 @@ export function SectionHeader({
   titleColorClassName = "text-[var(--sf-ink)]",
   seeAllHref,
   seeAllLabel = "مشاهده همه",
+  seeAllClassName = "text-[var(--sf-accent)] text-sm",
 }: SectionHeaderProps) {
   return (
     <div className="flex items-center justify-between">
@@ -46,10 +49,7 @@ export function SectionHeader({
       </div>
 
       {seeAllHref ? (
-        <Link
-          href={seeAllHref}
-          className="flex items-center gap-0.5 text-sm font-medium text-[var(--sf-accent)]"
-        >
+        <Link href={seeAllHref} className={`flex items-center gap-0.5 font-medium ${seeAllClassName}`}>
           <span>{seeAllLabel}</span>
           <ChevronLeft className="size-4" />
         </Link>
