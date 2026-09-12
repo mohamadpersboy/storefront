@@ -440,10 +440,53 @@ Clamp به صفر می‌کرد، یعنی هیچ حرکتی هرگز ثبت ن�
 
 تست‌ها: TS/ESLint/Vitest (۲۹۶)/Build همه سبز.
 
+**Phase 4: Special Offers Carousel («شگفت‌انگیزها») — شروع شد (هدر
++ کارت‌ها، هنوز Mock).**
+
+- `SectionHeader` (`src/components/storefront/section-header.tsx`)
+  — کامپوننت عمومی و قابل استفاده مجدد برای هدر همه ردیف‌های آینده
+  (جدیدترین‌ها، پرتخفیف‌ترین‌ها، پرفروش‌ترین‌ها): دایره آیکون رنگی +
+  عنوان سمت راست، «مشاهده همه ‹» سمت چپ (اگر `seeAllHref` داده شود).
+- `AmazingOffersSection` از این هدر با آیکون `Sparkles` (هم‌آیکون
+  Dashboard برای هماهنگی برندینگ) + رنگ Amber استفاده می‌کند.
+- `AmazingOfferCard` (`amazing-offer-card.tsx`): تصویر ۳:۴، نوار
+  عمودی سفید بلورشده (`backdrop-blur-md bg-white/50`) گوشهٔ تصویر با
+  نقطه‌های رنگی برای رنگ‌های دیگر همان طرح، عنوان دو‌خطی ثابت
+  (`line-clamp-2` + `min-h`، طول عنوان روی ارتفاع کارت اثر ندارد)،
+  قیمت نهایی + قیمت خط‌خورده، بج درصد تخفیف، Progress Bar زمان
+  باقی‌مانده (نه موجودی — بر اساس نسبت `endAt-now` به `endAt-startAt`)
+  + شمارش معکوس وسط‌چین. کارت‌ها بدون بک‌گراند/سایه‌اند؛ فقط یک خط
+  ۱px خاکستری (`border-e`) از هم جدا می‌شوند، طبق درخواست صریح
+  کارفرما.
+- **گلیف اختصاصی «تومان» فونت IRANYekanX Pro:** تابع جدید
+  `formatTomanGlyph` در `format.ts`. با بررسی مستقیم جدول GSUB فایل
+  فونت (`fonttools`) پیدا شد که نوشتن دقیقاً کلمهٔ «تومان» و بلافاصله
+  بعدش نویسهٔ «ء» (Arabic Hamza، U+0621) با Ligature همیشه‌فعال
+  `rlig` فونت به یک گلیف واحد (نماد تومان) جایگزین می‌شود — بدون این
+  نویسه، فقط کلمهٔ معمولی «تومان» نمایش داده می‌شود. این تکنیک فقط
+  برای قیمت این کارت استفاده شده؛ `formatToman` قدیمی (کلمهٔ معمولی)
+  در بقیهٔ پروژه دست‌نخورده ماند.
+- **داده Mock:** چون API عمومی `GET /api/v1/products/amazing-offers`
+  هنوز ساخته نشده (نسخهٔ فعلی `GET /api/v1/amazing-offers` ادمین‌محور
+  است و نیاز به Permission `DISCOUNTS_READ` دارد — برای مصرف عمومی
+  Storefront مناسب نیست)، یک آرایهٔ Mock در خود
+  `amazing-offers-section.tsx` تعریف شد با نام فیلدهای دقیقاً هماهنگ
+  با Modelهای واقعی (`variant.basePrice` = `IProductVariant.price`،
+  `discountType`/`discountValue`/`startAt`/`endAt` = فیلدهای مستقیم
+  `AmazingOffer`، `colors[].hexCode` = `IColor.hexCode`) تا بعداً
+  فقط منبع داده عوض شود، نه شکل داده. تصاویر فعلاً نمونه‌های عمومی
+  Cloudinary هستند (دامنهٔ از قبل مجاز در `next.config.ts`)، نه
+  تصویر واقعی فرش.
+- «مشاهده همه» این بخش عمداً بدون لینک است — صفحهٔ مقصد هنوز طراحی
+  نشده.
+
+تست‌ها: TS/ESLint/Vitest (۲۹۷ تست، ۱ تست جدید `formatTomanGlyph`)/
+Build همه سبز.
+
 **Branch فعلی:** `main`
-**Feature بعدی:** منتظر تأیید کاربر برای ماژول بعدی (Desktop
-Header، Phase 4 Special Offers Carousel، یا هر چیز دیگری که کاربر
-مشخص کند).
+**Feature بعدی:** منتظر تأیید کاربر — تکمیل باقیمانده Phase ۴ (اتصال
+داده واقعی/ساخت API عمومی، صفحهٔ «مشاهده همه») یا ماژول بعدی
+(Desktop Header، Phase 5 و بعد).
 
 ## 3. Completed Features
 

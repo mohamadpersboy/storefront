@@ -5,6 +5,7 @@ import {
   type HomepageCategory,
 } from "@/components/storefront/category-shortcuts";
 import { FreeShippingBanner } from "@/components/storefront/free-shipping-banner";
+import { AmazingOffersSection } from "@/components/storefront/amazing-offers-section";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Banner } from "@/models/Banner";
 import { Category } from "@/models/Category";
@@ -109,6 +110,7 @@ export default async function StorefrontHomePage() {
       {freeShippingThreshold !== null ? (
         <FreeShippingBanner threshold={freeShippingThreshold} />
       ) : null}
+      <AmazingOffersSection />
       <main className="flex min-h-[40vh] items-center justify-center p-8">
         <div className="text-center">
           <p className="text-sm text-[var(--sf-ink)]/60">

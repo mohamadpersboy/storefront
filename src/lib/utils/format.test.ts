@@ -4,6 +4,7 @@ import {
   toEnglishDigits,
   digitsOnly,
   formatPersonWithPhone,
+  formatTomanGlyph,
 } from "@/lib/utils/format";
 
 describe("toPersianDigits", () => {
@@ -63,5 +64,14 @@ describe("formatPersonWithPhone", () => {
 
   it("falls back to just the phone number when name is undefined", () => {
     expect(formatPersonWithPhone(undefined, "09121234567")).toBe("۰۹۱۲۱۲۳۴۵۶۷");
+  });
+});
+
+describe("formatTomanGlyph", () => {
+  it("appends the Arabic Hamza right after تومان with no separating space", () => {
+    // این نویسه («ء»، U+0621) دقیقاً باید بلافاصله بعد از «تومان»
+    // بیاید تا Ligature `rlig` فونت IRANYekanX فعال شود؛ اگر این
+    // تست خراب شود، گلیف اختصاصی تومان دیگر رندر نمی‌شود.
+    expect(formatTomanGlyph(1500000)).toBe("۱٬۵۰۰٬۰۰۰ تومان\u0621");
   });
 });

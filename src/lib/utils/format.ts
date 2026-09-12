@@ -33,6 +33,24 @@ export function formatToman(amount: number): string {
   return `${tomanFormatter.format(amount)} تومان`;
 }
 
+/**
+ * فونت IRANYekanX Pro یک گلیف اختصاصی برای نماد «تومان» دارد که با
+ * قانون Ligature داخل خود فونت (Feature `rlig` — که همیشه در مرورگر
+ * فعال است و برخلاف `liga` قابل خاموش‌کردن نیست) فعال می‌شود: وقتی
+ * متن دقیقاً کلمه «تومان» و بلافاصله بعدش نویسه «ء» (Arabic Letter
+ * Hamza، U+0621) بیاید، فونت این دنباله را با یک گلیف واحد (نماد
+ * تومان) جایگزین می‌کند. این با بررسی مستقیم جدول GSUB فایل فونت
+ * تأیید شده — نویسه «ء» نباید در جای دیگری از پروژه (مثلاً
+ * `formatToman` بالا که کلمه معمولی «تومان» را نشان می‌دهد) استفاده
+ * شود، فقط همین‌جا.
+ */
+const TOMAN_GLYPH_SUFFIX = "\u0621";
+
+/** مثل `formatToman` ولی به‌جای کلمه «تومان»، گلیف اختصاصی فونت را نمایش می‌دهد. */
+export function formatTomanGlyph(amount: number): string {
+  return `${tomanFormatter.format(amount)} تومان${TOMAN_GLYPH_SUFFIX}`;
+}
+
 export function formatNumber(value: number): string {
   return tomanFormatter.format(value);
 }
