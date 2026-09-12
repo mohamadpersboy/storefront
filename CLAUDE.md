@@ -478,10 +478,39 @@ Clamp به صفر می‌کرد، یعنی هیچ حرکتی هرگز ثبت ن�
 
 تست‌ها: TS/ESLint/Vitest (۲۹۸ تست)/Build همه سبز.
 
+**Phase 4 تأیید شد ✅ → شروع Phase 5: Latest Products Carousel
+(«جدیدترین محصولات»).**
+
+- **Refactor مهم:** `AmazingOfferCard` حذف شد و به یک کامپوننت
+  عمومی‌تر تبدیل شد: `ProductCard` (`product-card.tsx`) — کارت
+  مشترک برای همهٔ ردیف‌های محصول صفحه اصلی (بند ۷/۱۶ Master
+  Workflow: از Duplicate خودداری کن). فیلد قیمت هم دیگر
+  `discountType`/`discountValue` نیست؛ مستقیم `basePrice`/
+  `finalPrice` (دقیقاً هم‌شکل با چیزی که Route فعلی ادمین هم
+  Serialize می‌کند).
+- `ProductCardData.amazingOffer?: { startAt; endAt } | null` —
+  اختیاری. وقتی پر باشد برچسب «پیشنهاد شگفت‌انگیز» + Progress Bar +
+  تایمر نمایش داده می‌شوند؛ وقتی نباشد، همان سه عنصر با کلاس
+  Tailwind `invisible` (نه `hidden`) پنهان می‌شوند — یعنی فضایشان
+  همچنان رزرو می‌ماند و ارتفاع کارت‌ها هیچ‌وقت به‌هم نمی‌خورد، حتی
+  در ردیفی که بعضی محصولات هم‌زمان شگفت‌انگیز هستند و بعضی نه (طبق
+  درخواست صریح کارفرما). `AmazingOffersSection` هم به همین
+  `ProductCard` سوییچ شد (`amazingOffer` همیشه پر).
+- `LatestProductsSection` (`latest-products-section.tsx`): هدر با
+  آیکون `Clock` (رنگ آبی `--sf-accent`) ولی طبق درخواست صریح
+  کارفرما فونت‌های هدر (عنوان + «مشاهده بیشتر») مشکی‌اند
+  (`text-black`) — بر خلاف «شگفت‌انگیزها» که کاملاً Cherry است.
+  داده Mock عمداً یک آیتم (`mock-l2`) هم‌زمان `amazingOffer` دارد تا
+  سناریوی محصول «هم جدید هم شگفت‌انگیز» را نشان دهد؛ بقیه ندارند.
+  `seeAllHref` موقتاً به `/products/latest` اشاره می‌کند (صفحه هنوز
+  طراحی نشده).
+
+تست‌ها: TS/ESLint/Vitest (۲۹۸ تست)/Build همه سبز.
+
 **Branch فعلی:** `main`
-**Feature بعدی:** منتظر تأیید کاربر — تکمیل باقیمانده Phase ۴ (اتصال
-داده واقعی/ساخت API عمومی، صفحهٔ «مشاهده بیشتر») یا ماژول بعدی
-(Desktop Header، Phase 5 و بعد).
+**Feature بعدی:** منتظر تأیید کاربر برای ماژول بعدی (Phase 6: Most
+Discounted Products Carousel، Phase 7: Best Sellers، یا Desktop
+Header).
 
 ## 3. Completed Features
 
@@ -1179,8 +1208,8 @@ UI مرحله ۱ آن Discard شد).
 - [x] Phase 3: Hero Slider — انجام شد، دیگر Mock نیست؛ مدل واقعی
   `Banner` + مدیریت کامل در Dashboard → تنظیمات → اسلایدر (نگاه
   کنید بخش ۲)
-- [ ] Phase 4: Special Offers Carousel
-- [ ] Phase 5: Latest Products Carousel
+- [x] Phase 4: Special Offers Carousel — انجام شد (نگاه کنید بخش ۲)
+- [x] Phase 5: Latest Products Carousel — انجام شد (نگاه کنید بخش ۲)
 - [ ] Phase 6: Most Discounted Products Carousel
 - [ ] Phase 7: Best Sellers Carousel
 - [ ] Phase 8: سایر بخش‌های موردنیاز Homepage (در صورت نیاز)
