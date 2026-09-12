@@ -9,14 +9,18 @@ type SectionHeaderProps = {
   iconBgClassName: string;
   /** کلاس رنگ خود آیکون، مثلاً "text-amber-600" */
   iconColorClassName: string;
-  /** اگر صفحه «مشاهده همه» هنوز آماده نباشد، این Prop را ندهید. */
+  /** پیش‌فرض `text-[var(--sf-ink)]` — برای هماهنگی با رنگ برند همان بخش قابل بازنویسی است. */
+  titleColorClassName?: string;
+  /** اگر صفحه «مشاهده همه/بیشتر» هنوز آماده نباشد، این Prop را ندهید. */
   seeAllHref?: string;
+  /** پیش‌فرض «مشاهده همه» */
+  seeAllLabel?: string;
 };
 
 /**
  * هدر مشترک ردیف‌های محصول در صفحه اصلی (شگفت‌انگیزها، جدیدترین‌ها،
  * پرتخفیف‌ترین‌ها، پرفروش‌ترین‌ها و...) — طبق رفرنس بصری کارفرما:
- * سمت راست دایره آیکون رنگی + عنوان بخش، سمت چپ «مشاهده همه» +
+ * سمت راست دایره آیکون رنگی + عنوان بخش، سمت چپ «مشاهده همه/بیشتر» +
  * فلش. یک‌بار اینجا ساخته شده تا هر ردیف بعدی همین کامپوننت را
  * دوباره استفاده کند و کد تکراری نداشته باشیم (بند ۷ و ۱۶ Master
  * Workflow).
@@ -26,7 +30,9 @@ export function SectionHeader({
   icon: Icon,
   iconBgClassName,
   iconColorClassName,
+  titleColorClassName = "text-[var(--sf-ink)]",
   seeAllHref,
+  seeAllLabel = "مشاهده همه",
 }: SectionHeaderProps) {
   return (
     <div className="flex items-center justify-between">
@@ -36,9 +42,7 @@ export function SectionHeader({
         >
           <Icon className={`size-4 ${iconColorClassName}`} />
         </span>
-        <h2 className="text-base font-bold text-[var(--sf-ink)] sm:text-lg">
-          {title}
-        </h2>
+        <h2 className={`text-base font-bold sm:text-lg ${titleColorClassName}`}>{title}</h2>
       </div>
 
       {seeAllHref ? (
@@ -46,7 +50,7 @@ export function SectionHeader({
           href={seeAllHref}
           className="flex items-center gap-0.5 text-sm font-medium text-[var(--sf-accent)]"
         >
-          <span>مشاهده همه</span>
+          <span>{seeAllLabel}</span>
           <ChevronLeft className="size-4" />
         </Link>
       ) : null}

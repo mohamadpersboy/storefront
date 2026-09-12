@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { toPersianDigits, formatTomanGlyph } from "@/lib/utils/format";
+import { toPersianDigits, formatNumber, TOMAN_GLYPH } from "@/lib/utils/format";
 import { computeAmazingOfferPrice } from "@/lib/utils/amazing-offer";
 import type { AmazingOfferDiscountType } from "@/models/AmazingOffer";
 
@@ -48,7 +48,8 @@ function useRemainingTime(startAt: string, endAt: string) {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   const pad = (n: number) => toPersianDigits(String(n).padStart(2, "0"));
-  const label = now === null ? "--:--:--" : `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  // فاصله دور «:» طبق درخواست کارفرما (قبلاً به هم چسبیده به‌نظر می‌رسید).
+  const label = now === null ? "-- : -- : --" : `${pad(hours)} : ${pad(minutes)} : ${pad(seconds)}`;
 
   return { remainingPercent, label };
 }
@@ -56,7 +57,8 @@ function useRemainingTime(startAt: string, endAt: string) {
 /**
  * کارت محصول در ردیف «شگفت‌انگیزها». طبق دستور مستقیم کارفرما،
  * بدون بک‌گراند/سایه/Border روی خود کارت — کارت‌ها فقط با یک خط
- * ۱px خاکستری (`border-e`) از هم جدا می‌شوند.
+ * ۱px خاکستری (`border-e`) از هم جدا می‌شوند. رنگ برند این بخش
+ * قرمز آلبالویی (`--sf-cherry`) است: برچسب بالای کارت و Progress Bar.
  *
  * نکته Reusability: خواندن Countdown اینجا نسخهٔ ساده‌شدهٔ همان
  * منطق `AmazingOfferCountdown` در Dashboard است (بند ۷ Master
@@ -84,8 +86,14 @@ export function AmazingOfferCard({ offer }: { offer: AmazingOfferCardData }) {
       href={`/products/${offer.product.slug}`}
       className="block w-[152px] shrink-0 border-e border-gray-200 px-3 first:ps-0 last:border-e-0 sm:w-[168px]"
     >
-      <p className="mb-2 text-[11px] font-bold text-[var(--sf-accent)]">پیشنهاد شگفت‌انگیز</p>
+      <p className="mb-2 text-center text-[11px] font-bold text-[var(--sf-cherry)]">
+        پیشنهاد شگفت‌انگیز
+      </p>
 
+      {/* ابعاد تصویر با Aspect Ratio روی خود ظرف ثابت نگه داشته می‌شود
+          (مستقل از ابعاد اصلی فایل تصویر)؛ اگر یک تصویر Placeholder
+          حاشیهٔ خالی زیاد داشته باشد همچنان کوچک‌تر به‌نظر می‌رسد —
+          علت مشکل قبلی انتخاب تصویر Mock بود، نه چیدمان. */}
       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-gray-100">
         <Image
           src={offer.product.imageUrl}
@@ -114,29 +122,35 @@ export function AmazingOfferCard({ offer }: { offer: AmazingOfferCardData }) {
         {offer.product.title}
       </h3>
 
+      {/* ترتیب DOM عمداً برعکسِ ترتیب دیداری متن فارسی است: چون
+          Container راست‌به‌چپ است، اولین فرزند سمت راست و آخرین
+          فرزند سمت چپ قرار می‌گیرد. طبق درخواست کارفرما: درصد
+          تخفیف → راست، قیمت → چپ. */}
       <div className="mt-1.5 flex items-end justify-between gap-1">
-        <div>
-          <p className="text-sm font-bold text-[var(--sf-ink)]">{formatTomanGlyph(finalPrice)}</p>
-          {hasRealDiscount ? (
-            <p className="text-[11px] text-gray-400 line-through">
-              {formatTomanGlyph(offer.variant.basePrice)}
-            </p>
-          ) : null}
-        </div>
         {hasRealDiscount ? (
           <span className="mb-0.5 shrink-0 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
             ٪{toPersianDigits(discountPercent)}
           </span>
         ) : null}
+        <div className="text-left">
+          <p className="whitespace-nowrap text-xs font-bold text-[var(--sf-ink)]">
+            {formatNumber(finalPrice)} <span className="relative -top-0.5 text-[9px] font-medium">{TOMAN_GLYPH}</span>
+          </p>
+          {hasRealDiscount ? (
+            <p className="text-[10px] text-gray-400 line-through">
+              {formatNumber(offer.variant.basePrice)}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-gray-100">
         <div
-          className="h-full rounded-full bg-[var(--sf-accent)] transition-[width]"
+          className="h-full rounded-full bg-[var(--sf-cherry)] transition-[width]"
           style={{ width: `${remainingPercent}%` }}
         />
       </div>
-      <p className="mt-1 text-center text-[11px] font-medium tabular-nums text-[var(--sf-ink)]">
+      <p className="mt-1 text-center text-xs font-semibold tracking-widest tabular-nums text-[var(--sf-ink)]">
         {label}
       </p>
     </Link>

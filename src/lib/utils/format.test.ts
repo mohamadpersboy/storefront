@@ -5,6 +5,7 @@ import {
   digitsOnly,
   formatPersonWithPhone,
   formatTomanGlyph,
+  TOMAN_GLYPH,
 } from "@/lib/utils/format";
 
 describe("toPersianDigits", () => {
@@ -68,10 +69,15 @@ describe("formatPersonWithPhone", () => {
 });
 
 describe("formatTomanGlyph", () => {
-  it("appends the Arabic Hamza right after تومان with no separating space", () => {
-    // این نویسه («ء»، U+0621) دقیقاً باید بلافاصله بعد از «تومان»
-    // بیاید تا Ligature `rlig` فونت IRANYekanX فعال شود؛ اگر این
-    // تست خراب شود، گلیف اختصاصی تومان دیگر رندر نمی‌شود.
-    expect(formatTomanGlyph(1500000)).toBe("۱٬۵۰۰٬۰۰۰ تومان\u0621");
+  it("appends two Arabic Hamza right after تومان with no separating space", () => {
+    // این دو نویسه («ء»×۲، U+0621) دقیقاً باید بلافاصله بعد از
+    // «تومان» بیایند تا Ligature `rlig` فونت IRANYekanX واریانت
+    // `tomaan.001` (نزدیک خط پایه، مناسب هم‌ردیفی با عدد) را فعال
+    // کند؛ اگر این تست خراب شود، گلیف اختصاصی تومان دیگر رندر نمی‌شود.
+    expect(formatTomanGlyph(1500000)).toBe("۱٬۵۰۰٬۰۰۰ تومان\u0621\u0621");
+  });
+
+  it("exports the raw glyph text for independent styling next to the price", () => {
+    expect(TOMAN_GLYPH).toBe("تومان\u0621\u0621");
   });
 });

@@ -15,7 +15,13 @@ import { AmazingOfferCard, type AmazingOfferCardData } from "@/components/storef
  *
  * تصاویر فعلاً از نمونه‌های عمومی Cloudinary (دامنه‌ای که در
  * `next.config.ts` از قبل مجاز است) هستند — تصویر واقعی فرش نیست،
- * فقط Placeholder تا API/تصاویر واقعی محصولات وصل شود.
+ * فقط Placeholder تا API/تصاویر واقعی محصولات وصل شود. عمداً فقط
+ * از دو نمونه (`leather-bag-gray`, `analog-classic`) به‌صورت
+ * تکراری استفاده شده: چند نمونهٔ دیگر Cloudinary (مثل `shoes.png`
+ * یا `car.jpg`) حاشیهٔ خالی زیادی داخل خود عکس دارند و باعث می‌شد
+ * محصول داخل کادر ۳:۴ کوچک‌تر از بقیه به‌نظر برسد — با اینکه خودِ
+ * کادر همیشه ابعاد ثابت دارد، این دو تصویر Full-Bleed هستند و ابعاد
+ * یکسان می‌مانند.
  */
 const MOCK_AMAZING_OFFERS: AmazingOfferCardData[] = [
   {
@@ -60,7 +66,7 @@ const MOCK_AMAZING_OFFERS: AmazingOfferCardData[] = [
     product: {
       title: "فرش مدرن طرح انتزاعی خاکستری ۶ متری",
       slug: "carpet-modern-abstract-gray",
-      imageUrl: "https://res.cloudinary.com/demo/image/upload/samples/ecommerce/shoes.png",
+      imageUrl: "https://res.cloudinary.com/demo/image/upload/samples/ecommerce/leather-bag-gray.jpg",
       imageBlurDataUrl: null,
     },
     colors: [{ id: "c6", hexCode: "#4B5563" }],
@@ -75,7 +81,7 @@ const MOCK_AMAZING_OFFERS: AmazingOfferCardData[] = [
     product: {
       title: "فرش ۶ متری گل‌برجسته اصفهان",
       slug: "carpet-golbarjaste-isfahan",
-      imageUrl: "https://res.cloudinary.com/demo/image/upload/samples/ecommerce/car.jpg",
+      imageUrl: "https://res.cloudinary.com/demo/image/upload/samples/ecommerce/analog-classic.jpg",
       imageBlurDataUrl: null,
     },
     colors: [
@@ -95,10 +101,11 @@ const MOCK_AMAZING_OFFERS: AmazingOfferCardData[] = [
 /**
  * بخش «شگفت‌انگیزها» در صفحه اصلی — هدر (بند ۱ ماژول قبلی) + ردیف
  * کارت‌های محصول. آیکون Sparkles همان آیکونی است که Dashboard برای
- * «تخفیف‌های شگفت‌انگیز» استفاده می‌کند تا برندینگ هماهنگ بماند.
+ * «تخفیف‌های شگفت‌انگیز» استفاده می‌کند تا برندینگ هماهنگ بماند؛
+ * رنگ برند این بخش (آیکون + عنوان) قرمز آلبالویی است.
  *
- * `seeAllHref` عمداً ست نشده — صفحه/مسیر «مشاهده همه» هنوز طراحی
- * نشده است.
+ * `seeAllHref` به‌صورت موقت به همان مسیر آیندهٔ API عمومی اشاره
+ * می‌کند؛ صفحهٔ مقصد («مشاهده بیشتر») هنوز طراحی نشده است.
  */
 export function AmazingOffersSection() {
   if (MOCK_AMAZING_OFFERS.length === 0) return null;
@@ -109,8 +116,11 @@ export function AmazingOffersSection() {
         <SectionHeader
           title="شگفت‌انگیزها"
           icon={Sparkles}
-          iconBgClassName="bg-amber-50"
-          iconColorClassName="text-amber-600"
+          iconBgClassName="bg-[var(--sf-cherry-soft)]"
+          iconColorClassName="text-[var(--sf-cherry)]"
+          titleColorClassName="text-[var(--sf-cherry)]"
+          seeAllHref="/products/amazing-offers"
+          seeAllLabel="مشاهده بیشتر"
         />
       </div>
 

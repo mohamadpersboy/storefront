@@ -75,6 +75,9 @@ html {
   --sf-accent-light: #a1c6f6;
   --sf-ink: #031725;
   --sf-ink-soft: #022e5b;
+  /* رنگ اختصاصی برندینگ «شگفت‌انگیزها» (فوریت/تخفیف آنی) — قرمز آلبالویی. */
+  --sf-cherry: #7a1b34;
+  --sf-cherry-soft: #fbe9ee;
 }
 
 body {
