@@ -8,10 +8,12 @@ import { FreeShippingBanner } from "@/components/storefront/free-shipping-banner
 import { AmazingOffersSection } from "@/components/storefront/amazing-offers-section";
 import { BestSellersSection } from "@/components/storefront/best-sellers-section";
 import { LatestProductsSection } from "@/components/storefront/latest-products-section";
+import { Footer, type FooterSocialLink } from "@/components/storefront/footer";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Banner } from "@/models/Banner";
 import { Category } from "@/models/Category";
 import { getShippingSettings } from "@/models/ShippingSettings";
+import { getSocialLinks } from "@/models/SocialLinks";
 
 /**
  * بنرها مستقیماً از DB خوانده می‌شوند (نه یک Fetch HTTP به
@@ -97,11 +99,24 @@ async function getFreeShippingThreshold(): Promise<number | null> {
   }
 }
 
+async function getActiveSocialLinks(): Promise<FooterSocialLink[]> {
+  try {
+    await connectToDatabase();
+    const settings = await getSocialLinks();
+    return settings.links
+      .filter((link) => link.isActive && link.url.trim().length > 0)
+      .map((link) => ({ platform: link.platform, url: link.url }));
+  } catch {
+    return [];
+  }
+}
+
 export default async function StorefrontHomePage() {
-  const [banners, categories, freeShippingThreshold] = await Promise.all([
+  const [banners, categories, freeShippingThreshold, socialLinks] = await Promise.all([
     getActiveBanners(),
     getHomepageCategories(),
     getFreeShippingThreshold(),
+    getActiveSocialLinks(),
   ]);
 
   return (
@@ -115,13 +130,7 @@ export default async function StorefrontHomePage() {
       <AmazingOffersSection />
       <BestSellersSection />
       <LatestProductsSection />
-      <main className="flex min-h-[40vh] items-center justify-center p-8">
-        <div className="text-center">
-          <p className="text-sm text-[var(--sf-ink)]/60">
-            فروشگاه اینترنتی تخصصی فرش — در حال ساخت
-          </p>
-        </div>
-      </main>
+      <Footer socialLinks={socialLinks} />
     </>
   );
 }
