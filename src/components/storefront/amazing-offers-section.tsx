@@ -102,7 +102,7 @@ export function AmazingOffersSection() {
   if (MOCK_AMAZING_OFFERS.length === 0) return null;
 
   return (
-    <section className="pt-5">
+    <section className="pt-8">
       <div className="px-4 sm:px-6">
         <SectionHeader
           title="شگفت‌انگیزها"

@@ -80,7 +80,7 @@ const MOCK_LATEST_PRODUCTS: ProductCardData[] = [
 ];
 
 /**
- * بخش «جدیدترین محصولات» در صفحه اصلی. برخلاف «شگفت‌انگیزها»، رنگ
+ * بخش «جدیدترین‌ها» در صفحه اصلی. برخلاف «شگفت‌انگیزها»، رنگ
  * برند این بخش رنگی/Cherry نیست — طبق درخواست صریح کارفرما فقط
  * فونت‌های هدر (عنوان + «مشاهده بیشتر») مشکی‌اند. کارت‌ها همان
  * `ProductCard` مشترک هستند؛ برچسب/Progress Bar/تایمر شگفت‌انگیز
@@ -94,10 +94,10 @@ export function LatestProductsSection() {
   if (MOCK_LATEST_PRODUCTS.length === 0) return null;
 
   return (
-    <section className="pt-5">
+    <section className="pt-8">
       <div className="px-4 sm:px-6">
         <SectionHeader
-          title="جدیدترین محصولات"
+          title="جدیدترین‌ها"
           icon={Clock}
           iconBgClassName="bg-[var(--sf-accent-soft)]"
           iconColorClassName="text-[var(--sf-accent)]"

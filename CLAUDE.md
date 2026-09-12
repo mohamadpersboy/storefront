@@ -507,10 +507,33 @@ Clamp به صفر می‌کرد، یعنی هیچ حرکتی هرگز ثبت ن�
 
 تست‌ها: TS/ESLint/Vitest (۲۹۸ تست)/Build همه سبز.
 
+**Phase 5 تأیید شد ✅ → یک دور بازخورد + اضافه‌شدن Phase 7: Best
+Sellers Carousel («پرفروش‌ترین‌ها») زودتر از ترتیب اصلی برنامه
+(طبق دستور صریح کارفرما).**
+
+- `ProductCard`: بج درصد تخفیف حالا همیشه در DOM هست (حتی وقتی
+  تخفیفی نیست، با `invisible` پنهان) — قبلاً وقتی تخفیف نبود این
+  بج اصلاً Render نمی‌شد، ردیف قیمت تک‌فرزند می‌شد و
+  `justify-between` دیگر قیمت را به چپ نمی‌چسباند (قیمت به‌جای چپ،
+  راست می‌افتاد). این باگ روی همهٔ کارت‌های «ساده» (بدون تخفیف) در
+  ردیف‌های جدیدترین‌ها/پرفروش‌ترین‌ها دیده می‌شد.
+- عنوان بخش «جدیدترین محصولات» → «جدیدترین‌ها».
+- فاصلهٔ بالای دو بخش «شگفت‌انگیزها» و «جدیدترین‌ها» (و حالا
+  «پرفروش‌ترین‌ها») از عنصر بالایی ۱۲px بیشتر شد: `pt-5` (۲۰px) →
+  `pt-8` (۳۲px).
+- `BestSellersSection` (`best-sellers-section.tsx`): دقیقاً هم‌شکل
+  `LatestProductsSection` (همان `ProductCard`، هدر مشکی، فقط آیکون
+  `TrendingUp` به‌جای `Clock`). `seeAllHref` موقتاً به
+  `/products/best-selling` اشاره می‌کند.
+- **ترتیب صفحه اصلی** طبق درخواست صریح کارفرما عوض شد: شگفت‌انگیزها
+  → پرفروش‌ترین‌ها → جدیدترین‌ها (پرفروش‌ترین‌ها زودتر از
+  جدیدترین‌ها می‌آید، برخلاف ترتیب اولیهٔ برنامه‌ریزی‌شده در بخش ۵).
+
+تست‌ها: TS/ESLint/Vitest (۲۹۸ تست)/Build همه سبز.
+
 **Branch فعلی:** `main`
 **Feature بعدی:** منتظر تأیید کاربر برای ماژول بعدی (Phase 6: Most
-Discounted Products Carousel، Phase 7: Best Sellers، یا Desktop
-Header).
+Discounted Products Carousel، یا Desktop Header).
 
 ## 3. Completed Features
 
@@ -1211,7 +1234,8 @@ UI مرحله ۱ آن Discard شد).
 - [x] Phase 4: Special Offers Carousel — انجام شد (نگاه کنید بخش ۲)
 - [x] Phase 5: Latest Products Carousel — انجام شد (نگاه کنید بخش ۲)
 - [ ] Phase 6: Most Discounted Products Carousel
-- [ ] Phase 7: Best Sellers Carousel
+- [x] Phase 7: Best Sellers Carousel — انجام شد، زودتر از Phase 6
+  (طبق دستور صریح کارفرما؛ در صفحه اصلی قبل از «جدیدترین‌ها» می‌آید — نگاه کنید بخش ۲)
 - [ ] Phase 8: سایر بخش‌های موردنیاز Homepage (در صورت نیاز)
 - [ ] Phase 9: Footer + شبکه‌های اجتماعی (فعلاً Placeholder — کاربر
   گفته لینک‌ها بعداً از طریق پنل Dashboard مدیریت می‌شوند؛ یک بخش

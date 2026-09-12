@@ -138,13 +138,17 @@ export function ProductCard({ item }: { item: ProductCardData }) {
 
       {/* ترتیب DOM عمداً برعکسِ ترتیب دیداری متن فارسی است: چون
           Container راست‌به‌چپ است، اولین فرزند سمت راست و آخرین
-          فرزند سمت چپ قرار می‌گیرد: درصد تخفیف → راست، قیمت → چپ. */}
+          فرزند سمت چپ قرار می‌گیرد: درصد تخفیف → راست، قیمت → چپ.
+          بج تخفیف حتی وقتی تخفیفی نیست هم رندر می‌شود (با `invisible`
+          پنهان) — وگرنه با تک‌فرزند شدن این ردیف، `justify-between`
+          دیگر قیمت را به چپ نمی‌چسباند و قیمت به‌جای چپ در راست
+          (نقطهٔ شروع RTL) می‌افتد. */}
       <div className="mt-1.5 flex items-end justify-between gap-1">
-        {hasRealDiscount ? (
-          <span className="mb-0.5 shrink-0 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
-            ٪{toPersianDigits(discountPercent)}
-          </span>
-        ) : null}
+        <span
+          className={`mb-0.5 shrink-0 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white ${hasRealDiscount ? "" : "invisible"}`}
+        >
+          ٪{toPersianDigits(discountPercent)}
+        </span>
         <div className="text-left">
           <p className="whitespace-nowrap text-xs font-bold text-[var(--sf-ink)]">
             {formatNumber(item.finalPrice)}{" "}
