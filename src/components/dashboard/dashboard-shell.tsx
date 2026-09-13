@@ -7,15 +7,9 @@ import { Menu, X, LogOut, ChevronDown } from "lucide-react";
 import { dashboardNav } from "@/lib/constants/dashboard-nav";
 import { cn } from "@/lib/utils/cn";
 import type { Role } from "@/lib/constants/rbac";
+import { ROLE_LABELS as roleLabels } from "@/lib/constants/role-labels";
 
 const DRAWER_TRANSITION_MS = 250;
-
-const roleLabels: Record<Role, string> = {
-  super_admin: "مدیر کل",
-  admin: "مدیر",
-  staff: "کارمند",
-  customer: "مشتری",
-};
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();

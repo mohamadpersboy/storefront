@@ -1269,6 +1269,53 @@ Desktop Header، یا Phase 6: Most Discounted Products Carousel).
   showOnHomepage`). ۹ تست Unit جدید برای Validation برند — ۳۰۷ تست
   کل، همه سبز. Build/TypeScript/ESLint هر سه سبز.
 
+- ✅ **صفحه Storefront «حساب من» (`/account`) — اولین صفحهٔ داخلی
+  Storefront بعد از Homepage.** Server Component، مرز Authorization
+  واقعی دارد (`getCurrentUser()` + `redirect("/login?redirect=/account")`
+  اگر Login نباشد — هم‌الگو با `(dashboard)/dashboard/layout.tsx`).
+
+  **فایل‌های جدید:**
+  - `src/app/(storefront)/account/page.tsx`
+  - `src/components/storefront/page-header.tsx` — هدر مشترک صفحات
+    داخلی Storefront (دکمه بازگشت + عنوان، `router.back()`) —
+    اولین مصرف‌کننده همین صفحه حساب است؛ صفحات بعدی (سفارش‌ها،
+    کیف پول، …) هم از همین کامپوننت استفاده خواهند کرد.
+  - `src/components/storefront/account-nav-row.tsx` — ردیف مشترک
+    (آیکون رنگی + عنوان/توضیح + Badge اختیاری + فلش).
+  - `src/components/storefront/account-logout-button.tsx` — همان
+    Endpoint/الگوی `handleLogout` دشبورد، فقط مقصد بعد از خروج
+    صفحه لاگین Storefront است.
+  - `src/lib/constants/role-labels.ts` — برچسب فارسی نقش‌ها، از
+    `dashboard-shell.tsx` استخراج شد (بدون Duplicate Code)؛
+    `dashboard-shell.tsx` هم به همین فایل مشترک ارجاع داده شد.
+
+  **داده‌های واقعی نمایش‌داده‌شده (بدون هیچ Mock/Badge ساختگی):**
+  نام/موبایل/Badge نقش (فقط اگر نقش `customer` نباشد)، تعداد
+  سفارش‌ها (`Order.countDocuments({ customer })`)، تعداد کدهای
+  تخفیف استفاده‌شده (`CouponRedemption.countDocuments({ user })`)،
+  موجودی کیف پول (`Wallet.findOne({ user })`، فرمت با
+  `formatTomanGlyph`)، تعداد درخواست‌های برداشت در حال بررسی
+  (`WithdrawalRequest.countDocuments({ user, status: "pending" })`
+  — فقط اگر > ۰ باشد Badge قرمز نشان داده می‌شود، وگرنه اصلاً Badge
+  رندر نمی‌شود).
+
+  **آنچه از رفرنس بصری کارفرما عمداً پیاده‌سازی نشد** (چون پشت هیچ
+  Model/Feature واقعی نیستند؛ هرکدام یک تصمیم معماری/Task جداست):
+  - «آدرس‌های من» — Address Book مستقل مشتری هنوز طراحی نشده
+    (نگاه کنید بخش ۱۴، ردیف Address).
+  - «اطلاعات بانکی» — شماره کارت/شبا به‌صورت پروفایل دائمی کاربر
+    ذخیره نمی‌شود؛ فقط per-درخواست داخل خود
+    `WithdrawalRequest.destination` گرفته می‌شود.
+  - بنر دعوت‌دوستان/Referral — چنین سیستمی اصلاً در پروژه وجود ندارد.
+
+  لینک‌های `/orders`، `/account/coupons`، `/wallet`،
+  `/wallet/withdrawals` هنوز صفحه ندارند — هم‌الگو با
+  `/search`/`/notifications`/`/support` در Top Bar (لینک از قبل
+  ساخته می‌شود، صفحه مقصد در ماژول بعدی اضافه خواهد شد).
+
+  تست‌ها: TS/ESLint/Vitest (۳۰۷ تست، بدون تست جدید چون هیچ تابع
+  Pure جدیدی اضافه نشد)/Build همه سبز.
+
 ## 4. In Progress
 
 **مدیریت مالی — Phase ۱ و Phase ۲ (Master Prompt — Financial
