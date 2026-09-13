@@ -558,6 +558,21 @@ Sellers Carousel («پرفروش‌ترین‌ها») زودتر از ترتیب
 
 تست‌ها: TS/ESLint/Vitest (۲۹۸ تست)/Build همه سبز.
 
+**دور بازخورد Footer:**
+
+- `social-icons.tsx`: کارفرما فایل SVG رسمی Instagram/Telegram/
+  WhatsApp/Eitaa را فرستاد (svgrepo.com) — جایگزین نسخهٔ دستی قبلی
+  شد (مسیرهای دقیق همان فایل‌ها، فقط رنگ ثابت با `currentColor`
+  عوض شد). Rubika چون فایل رسمی نداشت همچنان بازسازی ساده‌شدهٔ
+  خودمان است.
+- عنوان Footer: «فرش سقطچی» → «فروشگاه اینترنتی فرش سَقَطچی».
+- مارجین بالای Footer (`mt-8` → `mt-3`، یعنی ۳۲px → ۱۲px).
+- عنوان/زیرعنوان راست‌چین شدند (`text-center` → `text-right`)؛
+  سایز زیرعنوان (`text-sm` → `text-xs`) و سایز لینک‌های سریع
+  (`text-sm` → `text-xs`) کوچک‌تر شدند.
+
+تست‌ها: TS/ESLint/Vitest (۲۹۸ تست)/Build همه سبز.
+
 **Branch فعلی:** `main`
 **Feature بعدی:** منتظر تأیید کاربر برای ماژول بعدی (Phase 2:
 Desktop Header، Phase 6: Most Discounted Products Carousel، یا

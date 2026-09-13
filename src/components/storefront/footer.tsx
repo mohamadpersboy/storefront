@@ -48,10 +48,10 @@ const CURRENT_JALALI_YEAR = "۱۴۰۵";
  */
 export function Footer({ socialLinks }: { socialLinks: FooterSocialLink[] }) {
   return (
-    <footer className="mt-8 bg-white px-4 pb-6 pt-8 sm:px-6">
-      <div className="text-center">
-        <h2 className="text-lg font-bold text-[var(--sf-ink)]">فرش سقطچی</h2>
-        <p className="mt-1 text-sm text-[var(--sf-ink)]/60">
+    <footer className="mt-3 bg-white px-4 pb-6 pt-8 sm:px-6">
+      <div className="text-right">
+        <h2 className="text-lg font-bold text-[var(--sf-ink)]">فروشگاه اینترنتی فرش سَقَطچی</h2>
+        <p className="mt-1 text-xs text-[var(--sf-ink)]/60">
           فروشگاه اینترنتی تخصصی فرش، تحویل درب منزل در سراسر کشور
         </p>
       </div>
@@ -78,7 +78,7 @@ export function Footer({ socialLinks }: { socialLinks: FooterSocialLink[] }) {
 
       <nav className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
         {QUICK_LINKS.map((link) => (
-          <Link key={link.href} href={link.href} className="text-sm text-[var(--sf-ink)]/70">
+          <Link key={link.href} href={link.href} className="text-xs text-[var(--sf-ink)]/70">
             {link.label}
           </Link>
         ))}
