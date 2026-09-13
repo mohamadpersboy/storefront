@@ -8,12 +8,15 @@ import { FreeShippingBanner } from "@/components/storefront/free-shipping-banner
 import { AmazingOffersSection } from "@/components/storefront/amazing-offers-section";
 import { BestSellersSection } from "@/components/storefront/best-sellers-section";
 import { LatestProductsSection } from "@/components/storefront/latest-products-section";
+import { FeaturesRow } from "@/components/storefront/features-row";
+import { AboutUsCard } from "@/components/storefront/about-us-card";
 import { Footer, type FooterSocialLink } from "@/components/storefront/footer";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Banner } from "@/models/Banner";
 import { Category } from "@/models/Category";
 import { getShippingSettings } from "@/models/ShippingSettings";
 import { getSocialLinks } from "@/models/SocialLinks";
+import { getAboutUs } from "@/models/AboutUs";
 
 /**
  * بنرها مستقیماً از DB خوانده می‌شوند (نه یک Fetch HTTP به
@@ -111,12 +114,23 @@ async function getActiveSocialLinks(): Promise<FooterSocialLink[]> {
   }
 }
 
+async function getAboutUsContent(): Promise<{ title: string; content: string }> {
+  try {
+    await connectToDatabase();
+    const about = await getAboutUs();
+    return { title: about.title, content: about.content };
+  } catch {
+    return { title: "", content: "" };
+  }
+}
+
 export default async function StorefrontHomePage() {
-  const [banners, categories, freeShippingThreshold, socialLinks] = await Promise.all([
+  const [banners, categories, freeShippingThreshold, socialLinks, aboutUs] = await Promise.all([
     getActiveBanners(),
     getHomepageCategories(),
     getFreeShippingThreshold(),
     getActiveSocialLinks(),
+    getAboutUsContent(),
   ]);
 
   return (
@@ -130,6 +144,8 @@ export default async function StorefrontHomePage() {
       <AmazingOffersSection />
       <BestSellersSection />
       <LatestProductsSection />
+      <FeaturesRow />
+      <AboutUsCard title={aboutUs.title} content={aboutUs.content} />
       <Footer socialLinks={socialLinks} />
     </>
   );

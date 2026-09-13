@@ -48,7 +48,7 @@ const CURRENT_JALALI_YEAR = "۱۴۰۵";
  */
 export function Footer({ socialLinks }: { socialLinks: FooterSocialLink[] }) {
   return (
-    <footer className="mt-3 bg-white px-4 pb-6 pt-8 sm:px-6">
+    <footer className="mt-6 bg-white px-4 pb-6 pt-8 sm:px-6">
       <div className="text-right">
         <h2 className="text-lg font-bold text-[var(--sf-ink)]">فروشگاه اینترنتی فرش سَقَطچی</h2>
         <p className="mt-1 text-xs text-[var(--sf-ink)]/60">
