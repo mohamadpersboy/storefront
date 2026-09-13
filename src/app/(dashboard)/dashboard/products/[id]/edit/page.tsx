@@ -38,6 +38,7 @@ export default async function EditProductPage({
           technicalDescription: product.technicalDescription ?? "",
           technicalSpecifications: product.technicalSpecifications,
           category: String(product.category),
+          brand: product.brand ? String(product.brand) : "",
           images: product.images,
           variants: product.variants.map((v) => ({
             id: String(v._id),

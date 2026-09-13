@@ -31,6 +31,11 @@ interface CategoryOption {
   parentId: string | null;
 }
 
+interface BrandOption {
+  id: string;
+  name: string;
+}
+
 export interface ProductFormInitial {
   id: string;
   title: string;
@@ -39,6 +44,8 @@ export interface ProductFormInitial {
   technicalDescription: string;
   technicalSpecifications: TechSpecForm[];
   category: string;
+  /** برند — مستقل از دسته‌بندی، اختیاری (رشته خالی یعنی بدون برند). */
+  brand: string;
   images: ProductImage[];
   variants: Array<Omit<VariantForm, "id" | "price" | "discountPercent" | "discountAmount" | "stock"> & {
     id: string;
@@ -74,6 +81,7 @@ export function ProductForm({
     initial?.technicalDescription ?? "",
   );
   const [category, setCategory] = useState(initial?.category ?? "");
+  const [brand, setBrand] = useState(initial?.brand ?? "");
   const [images, setImages] = useState<ProductImage[]>(initial?.images ?? []);
   const [variants, setVariants] = useState<VariantForm[]>(
     initial?.variants.map((v) => ({
@@ -94,6 +102,7 @@ export function ProductForm({
   );
 
   const [categories, setCategories] = useState<CategoryOption[] | null>(null);
+  const [brands, setBrands] = useState<BrandOption[] | null>(null);
   const [colors, setColors] = useState<ColorOption[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,6 +123,15 @@ export function ProductForm({
         if (body.success) setCategories(body.data);
       })
       .catch(() => setCategories([]));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/v1/brands")
+      .then((res) => res.json())
+      .then((body) => {
+        if (body.success) setBrands(body.data);
+      })
+      .catch(() => setBrands([]));
   }, []);
 
   function handleTitleChange(value: string) {
@@ -163,6 +181,7 @@ export function ProductForm({
           (s) => s.key.trim() && s.value.trim(),
         ),
         category,
+        brand: brand || null,
         images,
         variants: variants.map((v) => ({
           unit: v.unit,
@@ -251,6 +270,25 @@ export function ProductForm({
                   value: c.id,
                   label: c.parentId ? `⤷ ${c.name}` : c.name,
                 }))}
+              />
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-foreground/80">
+              برند (اختیاری)
+            </label>
+            {brands === null ? (
+              <Skeleton className="h-11 w-full" />
+            ) : (
+              <Combobox
+                value={brand}
+                onChange={setBrand}
+                placeholder="بدون برند"
+                options={[
+                  { value: "", label: "بدون برند" },
+                  ...brands.map((b) => ({ value: b.id, label: b.name })),
+                ]}
               />
             )}
           </div>

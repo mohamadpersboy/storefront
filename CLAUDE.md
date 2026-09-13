@@ -1257,6 +1257,17 @@ Desktop Header، یا Phase 6: Most Discounted Products Carousel).
   - ۲ تست Unit جدید برای `buildCardShareMessage` و `sendCardAccountSchema`
     — ۲۸۹ تست کل، همه سبز.
   - Build/TypeScript/ESLint هر سه سبز.
+- ✅ **Brand (برند محصول)**: Entity کاملاً مستقل از Category (نه
+  Variant، نه زیرمجموعه دسته‌بندی — طبق درخواست صریح کارفرما). مدل +
+  Validation + RBAC (`BRANDS_*`) + API کامل (`GET/POST /api/v1/brands`،
+  `PATCH/DELETE /api/v1/brands/[id]`، `GET /api/v1/brands/homepage`
+  عمومی) + Dashboard (`BrandsManager` هم‌الگو با `BannersManager`،
+  تصویر مربعی + Cropper هم‌الگو با `CategoryImageUploader`، Nav
+  مستقل «برندها») + فیلد Brand (Combobox جدا از Category) در فرم
+  محصول + `Product.brand` (Nullable/Optional، Additive-only) + نمایش
+  در صفحه اصلی Storefront (`BrandsSection`، فقط `isActive &&
+  showOnHomepage`). ۹ تست Unit جدید برای Validation برند — ۳۰۷ تست
+  کل، همه سبز. Build/TypeScript/ESLint هر سه سبز.
 
 ## 4. In Progress
 
@@ -1564,6 +1575,43 @@ Category | null — حداکثر عمق ۲ سطح، Validate شده در
 معنا دارند**؛ اجرای این قانون در API است (نگاه کنید
 `src/app/api/v1/categories`)، نه در خود Schema.
 
+### Brand
+Entity کاملاً مستقل (نه Variant، نه زیرمجموعه Category — طبق درخواست
+صریح کارفرما در فرم محصول جدا از دسته‌بندی انتخاب می‌شود). `name`,
+`slug` (unique, lowercase, `[a-z0-9-]+`)، `imageUrl`/`imagePublicId`/
+`imageBlurDataUrl` (اختیاری، تصویر مربعی ۱:۱ + Cropper، دقیقاً هم‌الگو
+با تصویر دسته‌بندی سطح اول)، `isActive`، `showOnHomepage`،
+`sortOrder` — ساختار لیست‌تخت (بدون درخت) هم‌الگو با `Banner`
+(Toggle فعال/غیرفعال + جابه‌جایی دستی با `sortOrder`)، timestamps.
+
+مدیریت کامل: `src/components/brands/` (`BrandImageUploader` = کپی
+`CategoryImageUploader` با Target «brand-image»، `BrandFormModal`،
+`BrandsManager` = هم‌الگو با `BannersManager`) + صفحه
+`/dashboard/brands` (Nav مستقل، در کنار «دسته‌بندی‌ها»). RBAC:
+`BRANDS_READ/CREATE/UPDATE/DELETE` (Staff فقط Read، Admin کامل).
+
+API: `GET/POST /api/v1/brands` (مدیریتی، Auth، همین Route هم برای
+`BrandsManager` هم برای Combobox انتخاب برند در فرم محصول استفاده
+می‌شود)، `PATCH/DELETE /api/v1/brands/[id]`، `GET
+/api/v1/brands/homepage` (عمومی بدون Auth، فقط `isActive &&
+showOnHomepage`، هم‌الگو با `/api/v1/categories/homepage`). حذف یک
+برند، محصولات مرتبط را حذف نمی‌کند — فقط `Product.brand` آنها را
+`null` می‌کند (بدون برند)، نه Cascade Delete.
+
+`Product.brand`: `ObjectId | null`، ref `Brand`، **Nullable/Optional**
+(نه `required` مثل `category`) — چون محصولات موجود قبل از این فیلد
+برند نداشتند (Additive-only Schema Change؛ نگاه کنید بخش ۱۳ «فیلد
+برند در فرم محصول» + یادداشت «Mongoose schema defaults don't
+backfill» در بخش تصمیمات). فرم محصول (`ProductForm`) یک Combobox کاملاً
+جدا از Combobox دسته‌بندی دارد (نه Nested، نه بخشی از Variant) با
+گزینه «بدون برند».
+
+Storefront: `BrandsSection` (`src/components/storefront/`) —
+Server Component ساده (بدون Auto-Scroll RTL چون هنوز صفحه
+`/brands/[slug]` وجود ندارد و کارت‌ها فعلاً Link ندارند)، در صفحه
+اصلی بعد از `FreeShippingBanner`/قبل از `AmazingOffersSection` رندر
+می‌شود، فقط برندهای `isActive && showOnHomepage` را نشان می‌دهد.
+
 ### Color
 `name` (unique)، `hexCode` (`#RRGGBB`، Uppercase)، `isActive`،
 `sortOrder`، timestamps. مستقل از Product — هر Variant حداکثر یک
@@ -1574,7 +1622,9 @@ Category | null — حداکثر عمق ۲ سطح، Validate شده در
 ### Product
 `title`, `slug` (unique)، `description?`, `technicalDescription?`,
 `technicalSpecifications: {key,value}[]` (کاملاً Flexible، Hard-code
-نشده)، `category` (ref Category, required)، `images: {url,publicId}[]`
+نشده)، `category` (ref Category, required)، `brand` (ref Brand,
+**nullable, optional** — نگاه کنید بخش «Brand» بالا)، `images:
+{url,publicId}[]`
 (حداکثر ۱۰، از Cloudinary)، `variants` (حداقل ۱، هرکدام: `unit`
 [تخته/عدد/جفت/متر/متر مربع]، `colorId?` [ref Color، حداکثر یکی]،
 `attributes: {name,value}[]` [اندازه/شانه/تراکم/... — رنگ دیگر اینجا

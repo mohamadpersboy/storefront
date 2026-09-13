@@ -45,6 +45,13 @@ export interface IProduct {
   technicalDescription?: string;
   technicalSpecifications: ITechnicalSpec[];
   category: Types.ObjectId;
+  /**
+   * برند محصول — کاملاً مستقل از `category` (نه Variant، نه
+   * زیرمجموعه دسته‌بندی). Nullable/Optional چون محصولات موجود قبل
+   * از افزودن این فیلد برند ندارند (Additive-only schema change؛
+   * نگاه کنید یادداشت «Mongoose schema defaults don't backfill»).
+   */
+  brand: Types.ObjectId | null;
   images: IProductImage[];
   variants: IProductVariant[];
   status: ProductStatus;
@@ -114,6 +121,12 @@ const ProductSchema = new Schema<IProduct>(
       type: Schema.Types.ObjectId,
       ref: "Category",
       required: true,
+      index: true,
+    },
+    brand: {
+      type: Schema.Types.ObjectId,
+      ref: "Brand",
+      default: null,
       index: true,
     },
     images: {

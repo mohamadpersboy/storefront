@@ -44,6 +44,8 @@ export const createProductSchema = z.object({
   technicalDescription: z.string().trim().optional(),
   technicalSpecifications: z.array(technicalSpecSchema).default([]),
   category: z.string().regex(objectIdRegex, "دسته‌بندی معتبر نیست"),
+  /** برند — مستقل از دسته‌بندی، اختیاری (محصول می‌تواند بدون برند باشد). */
+  brand: z.string().regex(objectIdRegex, "برند معتبر نیست").nullable().optional(),
   images: z.array(imageSchema).max(10, "حداکثر ۱۰ تصویر مجاز است").default([]),
   variants: z
     .array(variantSchema)
@@ -64,6 +66,7 @@ export const productsListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(10),
   search: z.string().trim().max(100).optional(),
   category: z.string().regex(objectIdRegex).optional(),
+  brand: z.string().regex(objectIdRegex).optional(),
   status: z.enum(["draft", "published", "archived"]).optional(),
   /** Only products with at least one variant carrying a discount (§24). */
   hasDiscount: z.coerce.boolean().optional(),

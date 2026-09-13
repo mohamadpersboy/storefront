@@ -1,6 +1,7 @@
 import { connectToDatabase } from "@/lib/db/connect";
 import { Product } from "@/models/Product";
 import { Category } from "@/models/Category";
+import { Brand } from "@/models/Brand";
 import { PERMISSIONS } from "@/lib/constants/rbac";
 import { requireApiUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
@@ -29,6 +30,7 @@ export async function GET(
     technicalDescription: product.technicalDescription ?? "",
     technicalSpecifications: product.technicalSpecifications,
     category: String(product.category),
+    brand: product.brand ? String(product.brand) : "",
     images: product.images,
     variants: product.variants.map((v) => ({
       id: String(v._id),
@@ -91,6 +93,16 @@ export async function PATCH(
       return apiError("دسته‌بندی انتخاب‌شده معتبر نیست", {
         status: 400,
         errors: { category: ["دسته‌بندی انتخاب‌شده معتبر نیست"] },
+      });
+    }
+  }
+
+  if (parsed.data.brand) {
+    const brandDoc = await Brand.findById(parsed.data.brand);
+    if (!brandDoc) {
+      return apiError("برند انتخاب‌شده معتبر نیست", {
+        status: 400,
+        errors: { brand: ["برند انتخاب‌شده معتبر نیست"] },
       });
     }
   }

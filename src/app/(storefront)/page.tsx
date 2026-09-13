@@ -5,6 +5,7 @@ import {
   type HomepageCategory,
 } from "@/components/storefront/category-shortcuts";
 import { FreeShippingBanner } from "@/components/storefront/free-shipping-banner";
+import { BrandsSection, type HomepageBrand } from "@/components/storefront/brands-section";
 import { AmazingOffersSection } from "@/components/storefront/amazing-offers-section";
 import { BestSellersSection } from "@/components/storefront/best-sellers-section";
 import { LatestProductsSection } from "@/components/storefront/latest-products-section";
@@ -14,6 +15,7 @@ import { Footer, type FooterSocialLink } from "@/components/storefront/footer";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Banner } from "@/models/Banner";
 import { Category } from "@/models/Category";
+import { Brand } from "@/models/Brand";
 import { getShippingSettings } from "@/models/ShippingSettings";
 import { getSocialLinks } from "@/models/SocialLinks";
 import { getAboutUs } from "@/models/AboutUs";
@@ -84,6 +86,28 @@ async function getHomepageCategories(): Promise<HomepageCategory[]> {
   }
 }
 
+async function getHomepageBrands(): Promise<HomepageBrand[]> {
+  try {
+    await connectToDatabase();
+    const brands = await Brand.find({
+      isActive: true,
+      showOnHomepage: true,
+    })
+      .sort({ sortOrder: 1, createdAt: 1 })
+      .lean();
+
+    return brands.map((b) => ({
+      id: String(b._id),
+      name: b.name,
+      slug: b.slug,
+      imageUrl: b.imageUrl,
+      imageBlurDataUrl: b.imageBlurDataUrl,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 /**
  * اگر تنظیمات ارسال هنوز در Dashboard مشخص/فعال نشده باشد،
  * `null` برمی‌گردد — طبق درخواست صریح کارفرما («اگه در دشبورد
@@ -125,13 +149,15 @@ async function getAboutUsContent(): Promise<{ title: string; content: string }> 
 }
 
 export default async function StorefrontHomePage() {
-  const [banners, categories, freeShippingThreshold, socialLinks, aboutUs] = await Promise.all([
-    getActiveBanners(),
-    getHomepageCategories(),
-    getFreeShippingThreshold(),
-    getActiveSocialLinks(),
-    getAboutUsContent(),
-  ]);
+  const [banners, categories, brands, freeShippingThreshold, socialLinks, aboutUs] =
+    await Promise.all([
+      getActiveBanners(),
+      getHomepageCategories(),
+      getHomepageBrands(),
+      getFreeShippingThreshold(),
+      getActiveSocialLinks(),
+      getAboutUsContent(),
+    ]);
 
   return (
     <>
@@ -141,6 +167,7 @@ export default async function StorefrontHomePage() {
       {freeShippingThreshold !== null ? (
         <FreeShippingBanner threshold={freeShippingThreshold} />
       ) : null}
+      <BrandsSection brands={brands} />
       <AmazingOffersSection />
       <BestSellersSection />
       <LatestProductsSection />

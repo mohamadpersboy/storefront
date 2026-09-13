@@ -3,6 +3,7 @@ import type { Types } from "mongoose";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Product, type IProduct } from "@/models/Product";
 import { Category } from "@/models/Category";
+import { Brand } from "@/models/Brand";
 import { resolveProductCategories } from "@/lib/products/resolve-categories";
 import { PERMISSIONS } from "@/lib/constants/rbac";
 import { requireApiUser } from "@/lib/auth/api-guard";
@@ -39,11 +40,12 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const { page, limit, search, category, status, hasDiscount } = parsed.data;
+  const { page, limit, search, category, brand, status, hasDiscount } = parsed.data;
   await connectToDatabase();
 
   const filter: Record<string, unknown> = {};
   if (category) filter.category = category;
+  if (brand) filter.brand = brand;
   if (status) filter.status = status;
   if (search) {
     const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -141,9 +143,10 @@ export async function POST(request: Request) {
 
   await connectToDatabase();
 
-  const [existingSlug, categoryDoc] = await Promise.all([
+  const [existingSlug, categoryDoc, brandDoc] = await Promise.all([
     Product.findOne({ slug: parsed.data.slug }),
     Category.findById(parsed.data.category),
+    parsed.data.brand ? Brand.findById(parsed.data.brand) : Promise.resolve(null),
   ]);
 
   if (existingSlug) {
@@ -157,6 +160,13 @@ export async function POST(request: Request) {
     return apiError("دسته‌بندی انتخاب‌شده معتبر نیست", {
       status: 400,
       errors: { category: ["دسته‌بندی انتخاب‌شده معتبر نیست"] },
+    });
+  }
+
+  if (parsed.data.brand && !brandDoc) {
+    return apiError("برند انتخاب‌شده معتبر نیست", {
+      status: 400,
+      errors: { brand: ["برند انتخاب‌شده معتبر نیست"] },
     });
   }
 
