@@ -51,7 +51,7 @@ export function Footer({ socialLinks }: { socialLinks: FooterSocialLink[] }) {
     <footer className="mt-6 bg-white px-4 pb-6 pt-8 sm:px-6">
       <div className="text-right">
         <h2 className="text-lg font-bold text-[var(--sf-ink)]">فروشگاه اینترنتی فرش سَقَطچی</h2>
-        <p className="mt-1 text-xs text-[var(--sf-ink)]/60">
+        <p className="mt-1 text-[11px] text-[var(--sf-ink)]/50">
           فروشگاه اینترنتی تخصصی فرش، تحویل درب منزل در سراسر کشور
         </p>
       </div>

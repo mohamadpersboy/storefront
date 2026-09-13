@@ -24,10 +24,10 @@ export function AboutUsCard({ title, content }: AboutUsCardData) {
     <section className="px-4 pt-6 sm:px-6">
       <div className="rounded-2xl bg-[var(--sf-ink)] p-5">
         <h2 className="text-base font-bold text-white">{title}</h2>
-        <p className="mt-3 line-clamp-3 text-sm leading-7 text-white/60">{content}</p>
+        <p className="mt-3 line-clamp-3 text-xs leading-6 text-white/60">{content}</p>
         <Link
           href="/about"
-          className="mt-4 flex items-center justify-end gap-0.5 text-sm font-medium text-[var(--sf-accent)]"
+          className="mt-4 flex items-center justify-end gap-0.5 text-xs font-medium text-[var(--sf-accent)]"
         >
           <span>بیشتر بدانید</span>
           <ChevronLeft className="size-4" />

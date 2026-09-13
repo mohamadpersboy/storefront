@@ -596,6 +596,19 @@ Sellers Carousel («پرفروش‌ترین‌ها») زودتر از ترتیب
 
 تست‌ها: TS/ESLint/Vitest (۲۹۸ تست)/Build همه سبز.
 
+**دور بازخورد ریز (FeaturesRow/AboutUsCard/Footer):**
+
+- `AboutUsCard`: سایز متن و لینک «بیشتر بدانید» کوچک‌تر شد
+  (`text-sm` → `text-xs`).
+- `FeaturesRow`: ترتیب چهار آیتم طبق دستور صریح کارفرما برعکس شد —
+  راست‌به‌چپ حالا: ارسال سراسری، پرداخت در محل، اصالت اصل بودن
+  (تغییر نام از «ضمانت اصالت»)، پشتیبانی. آیکون کامیون با
+  `-scale-x-100` افقی Flip شد تا سمتش به چپ باشد.
+- `Footer`: زیرعنوان یک درجه کم‌رنگ‌تر و کوچک‌تر شد
+  (`text-xs`/`60%` → `text-[11px]`/`50%`).
+
+تست‌ها: TS/ESLint/Vitest (۲۹۸ تست)/Build همه سبز.
+
 **Branch فعلی:** `main`
 **Feature بعدی:** منتظر تأیید کاربر برای ماژول بعدی (Phase 2:
 Desktop Header، یا Phase 6: Most Discounted Products Carousel).
