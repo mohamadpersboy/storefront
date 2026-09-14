@@ -2,38 +2,45 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeftRight, Info } from "lucide-react";
+import { ArrowLeftRight, Info, Landmark } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatTomanGlyph } from "@/lib/utils/format";
 
-export type WithdrawFormDefaults = {
+export type WithdrawDestination = {
   ownerName: string;
-  cardNumber: string;
-  iban: string;
+  bankName: string | null;
+  cardNumber: string | null;
+  iban: string | null;
 };
 
+function maskDestinationNumber(destination: WithdrawDestination): string {
+  if (destination.cardNumber) {
+    return `${destination.cardNumber.slice(0, 4)} •••• •••• ${destination.cardNumber.slice(-4)}`;
+  }
+  if (destination.iban) {
+    return `${destination.iban.slice(0, 4)} •••••••••••••••••••• ${destination.iban.slice(-4)}`;
+  }
+  return "—";
+}
+
 /**
- * فرم درخواست تسویه — اگر کاربر قبلاً «اطلاعات بانکی» را ذخیره کرده
- * باشد، این فرم با همان مقادیر پیش‌پر می‌شود (نگاه کنید
- * `models/CustomerBankAccount.ts`) تا کاربر مجبور نباشد هر بار
- * دوباره شماره کارت/شبا را تایپ کند؛ در عین حال هر دو فیلد قابل
- * ویرایش می‌مانند چون مقصد هر درخواست تسویه یک Snapshot مستقل است
- * (توضیح کامل در همان Model).
+ * فرم درخواست تسویه — فقط مبلغ می‌گیرد. مقصد واریز دیگر اینجا
+ * پرسیده نمی‌شود؛ همیشه همان «اطلاعات بانکی» ذخیره‌شده کاربر است
+ * (نمایش خلاصه/فقط‌خواندنی برای اطمینان کاربر از مقصد صحیح، با
+ * لینک ویرایش در صورت نیاز). این کامپوننت اصلاً رندر نمی‌شود اگر
+ * کاربر هنوز اطلاعات بانکی ثبت نکرده باشد — آن حالت را خود صفحه
+ * (`wallet/withdraw/page.tsx`) با یک پیام جدا نشان می‌دهد.
  */
 export function WalletWithdrawForm({
   balance,
-  defaults,
+  destination,
 }: {
   balance: number;
-  defaults: WithdrawFormDefaults;
+  destination: WithdrawDestination;
 }) {
   const router = useRouter();
   const [amount, setAmount] = useState<number | "">("");
-  const [ownerName, setOwnerName] = useState(defaults.ownerName);
-  const [cardNumber, setCardNumber] = useState(defaults.cardNumber);
-  const [iban, setIban] = useState(defaults.iban);
-  const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -41,19 +48,17 @@ export function WalletWithdrawForm({
     e.preventDefault();
     setSubmitting(true);
     setFormError(null);
-    setErrors({});
 
     try {
       const res = await fetch("/api/v1/wallet/withdrawals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount, ownerName, cardNumber, iban }),
+        body: JSON.stringify({ amount }),
       });
       const body = await res.json();
 
       if (!res.ok || !body.success) {
         setFormError(body.message ?? "ثبت درخواست تسویه ممکن نشد");
-        setErrors(body.errors ?? {});
         return;
       }
 
@@ -70,54 +75,40 @@ export function WalletWithdrawForm({
         <Info className="mt-0.5 size-3.5 shrink-0 text-[var(--color-primary)]" strokeWidth={1.75} aria-hidden="true" />
         <span>
           موجودی قابل تسویه: <strong className="text-[var(--sf-ink)]">{formatTomanGlyph(balance)}</strong>
-          {" — "}مبلغ بلافاصله از کیف پول کسر و بعد از بررسی به حساب شما واریز می‌شود.
+          {" — "}مبلغ بلافاصله از کیف پول کسر و بعد از بررسی به حساب زیر واریز می‌شود.
         </span>
       </div>
 
-      <div className="space-y-4 rounded-[var(--radius-lg)] border border-black/5 bg-white p-4">
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-[var(--sf-ink)]/70">
-            مبلغ تسویه (تومان)
-          </label>
-          <Input
-            dir="ltr"
-            inputMode="numeric"
-            value={amount === "" ? "" : String(amount)}
-            onChange={(e) => {
-              const digits = e.target.value.replace(/[^\d]/g, "");
-              setAmount(digits === "" ? "" : Number(digits));
-            }}
-          />
+      <div className="rounded-[var(--radius-lg)] border border-black/5 bg-white p-4">
+        <div className="flex items-center gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-violet-50 text-violet-600">
+            <Landmark className="size-5" strokeWidth={1.75} aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-[var(--sf-ink)]">
+              {destination.bankName || "حساب مقصد"}
+            </p>
+            <p dir="ltr" className="mt-0.5 text-xs text-[var(--sf-ink)]/60">
+              {maskDestinationNumber(destination)}
+            </p>
+            <p className="mt-0.5 text-xs text-[var(--sf-ink)]/50">{destination.ownerName}</p>
+          </div>
         </div>
+      </div>
 
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-[var(--sf-ink)]/70">
-            نام صاحب حساب
-          </label>
-          <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} />
-          {errors.ownerName && <p className="mt-1 text-xs text-danger">{errors.ownerName[0]}</p>}
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-[var(--sf-ink)]/70">
-            شماره کارت (۱۶ رقم)
-          </label>
-          <Input
-            dir="ltr"
-            maxLength={16}
-            value={cardNumber}
-            onChange={(e) => setCardNumber(e.target.value.replace(/[^\d]/g, ""))}
-          />
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-[var(--sf-ink)]/70">
-            شماره شبا (با IR)
-          </label>
-          <Input dir="ltr" value={iban} onChange={(e) => setIban(e.target.value.toUpperCase())} />
-        </div>
-
-        {errors.cardNumber && <p className="text-xs text-danger">{errors.cardNumber[0]}</p>}
+      <div className="rounded-[var(--radius-lg)] border border-black/5 bg-white p-4">
+        <label className="mb-1.5 block text-xs font-medium text-[var(--sf-ink)]/70">
+          مبلغ تسویه (تومان)
+        </label>
+        <Input
+          dir="ltr"
+          inputMode="numeric"
+          value={amount === "" ? "" : String(amount)}
+          onChange={(e) => {
+            const digits = e.target.value.replace(/[^\d]/g, "");
+            setAmount(digits === "" ? "" : Number(digits));
+          }}
+        />
       </div>
 
       {formError && <p className="text-xs text-danger">{formError}</p>}

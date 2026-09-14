@@ -1474,6 +1474,24 @@ Desktop Header، یا Phase 6: Most Discounted Products Carousel).
   Reason واقعی از کد). مجموع تست‌ها اکنون ۳۳۰. TypeScript/ESLint/
   Vitest/Build همه سبز.
 
+- ✅ **درخواست تسویه دیگر مقصد واریز را از کاربر نمی‌پرسد** — طبق
+  درخواست صریح کارفرما: تنها مقصد مجاز همان «اطلاعات بانکی»
+  ذخیره‌شده (`CustomerBankAccount`) است.
+  - `createWithdrawalRequestSchema` از `{amount, ownerName,
+    cardNumber, iban}` به فقط `{amount}` ساده شد.
+  - `POST /api/v1/wallet/withdrawals`: پیش از هر کسر از کیف پول،
+    `CustomerBankAccount` کاربر را می‌خواند؛ اگر رکوردی نباشد، با
+    ۴۲۲ و پیام «ابتدا اطلاعات بانکی خود را ثبت کنید» رد می‌شود
+    (کیف پول اصلاً دست نمی‌خورد).
+  - `/account/wallet/withdraw`: اگر `CustomerBankAccount` نباشد،
+    اصلاً فرم مبلغ نشان داده نمی‌شود — فقط یک پیام + لینک به
+    `/account/bank-info`. اگر باشد، فرم فقط مبلغ می‌گیرد و مقصد
+    (بانک/شماره ماسک‌شده/نام صاحب حساب) را فقط‌خواندنی نشان می‌دهد.
+
+  تست‌های `wallet.test.ts` برای `createWithdrawalRequestSchema`
+  با Schema ساده‌شده به‌روز شدند. TypeScript/ESLint/Vitest (۳۲۶
+  تست)/Build همه سبز.
+
 ## 4. In Progress
 
 **مدیریت مالی — Phase ۱ و Phase ۲ (Master Prompt — Financial

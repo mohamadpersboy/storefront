@@ -3,6 +3,7 @@ import { requireAuthenticatedUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { createWithdrawalRequestSchema } from "@/lib/validations/wallet";
 import { WithdrawalRequest } from "@/models/WithdrawalRequest";
+import { CustomerBankAccount } from "@/models/CustomerBankAccount";
 import { adjustWalletBalance, WalletAdjustmentError } from "@/lib/wallet/wallet-service";
 
 /**
@@ -11,6 +12,12 @@ import { adjustWalletBalance, WalletAdjustmentError } from "@/lib/wallet/wallet-
  * `adjustWalletBalance` Atomic — تا کاربر نتواند با چند درخواست
  * هم‌زمان بیشتر از موجودی واقعی‌اش درخواست بدهد. اگر ادمین بعداً رد
  * کند، مبلغ برمی‌گردد (`review` route).
+ *
+ * **مقصد واریز از کاربر گرفته نمی‌شود.** طبق درخواست صریح کارفرما،
+ * تنها مقصد مجاز همان «اطلاعات بانکی» ذخیره‌شده کاربر
+ * (`CustomerBankAccount`) است — نه یک Input آزاد در همین فرم. اگر
+ * کاربر چنین رکوردی نداشته باشد، پیش از هرگونه کسر از کیف پول با
+ * پیام روشن رد می‌شود.
  */
 export async function POST(request: Request) {
   const guard = await requireAuthenticatedUser();
@@ -26,6 +33,11 @@ export async function POST(request: Request) {
   }
 
   await connectToDatabase();
+
+  const bankAccount = await CustomerBankAccount.findOne({ user: guard.user.id }).lean();
+  if (!bankAccount) {
+    return apiError("ابتدا اطلاعات بانکی خود را ثبت کنید", { status: 422 });
+  }
 
   try {
     await adjustWalletBalance({
@@ -46,9 +58,9 @@ export async function POST(request: Request) {
     user: guard.user.id,
     amount: parsed.data.amount,
     destination: {
-      ownerName: parsed.data.ownerName,
-      cardNumber: parsed.data.cardNumber || null,
-      iban: parsed.data.iban || null,
+      ownerName: bankAccount.ownerName,
+      cardNumber: bankAccount.cardNumber,
+      iban: bankAccount.iban,
     },
     status: "pending",
   });

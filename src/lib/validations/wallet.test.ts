@@ -77,64 +77,18 @@ describe("topupWalletSchema", () => {
 });
 
 describe("createWithdrawalRequestSchema", () => {
-  it("accepts a valid request with a card number", () => {
-    const result = createWithdrawalRequestSchema.safeParse({
-      amount: 100_000,
-      ownerName: "علی رضایی",
-      cardNumber: "6037991234567890",
-    });
+  it("accepts a valid amount", () => {
+    const result = createWithdrawalRequestSchema.safeParse({ amount: 100_000 });
     expect(result.success).toBe(true);
-  });
-
-  it("accepts a valid request with an IBAN (24 digits after IR)", () => {
-    const result = createWithdrawalRequestSchema.safeParse({
-      amount: 100_000,
-      ownerName: "علی رضایی",
-      iban: "IR123456789012345678901234",
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects an IBAN with the wrong digit count", () => {
-    const result = createWithdrawalRequestSchema.safeParse({
-      amount: 100_000,
-      ownerName: "علی رضایی",
-      iban: "IR1234",
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects a request with neither card nor IBAN", () => {
-    const result = createWithdrawalRequestSchema.safeParse({
-      amount: 100_000,
-      ownerName: "علی رضایی",
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects an invalid card number (not 16 digits)", () => {
-    const result = createWithdrawalRequestSchema.safeParse({
-      amount: 100_000,
-      ownerName: "علی رضایی",
-      cardNumber: "12345",
-    });
-    expect(result.success).toBe(false);
   });
 
   it("rejects an amount below the minimum", () => {
-    const result = createWithdrawalRequestSchema.safeParse({
-      amount: 1000,
-      ownerName: "علی رضایی",
-      cardNumber: "6037991234567890",
-    });
+    const result = createWithdrawalRequestSchema.safeParse({ amount: 1000 });
     expect(result.success).toBe(false);
   });
 
-  it("rejects a missing owner name", () => {
-    const result = createWithdrawalRequestSchema.safeParse({
-      amount: 100_000,
-      cardNumber: "6037991234567890",
-    });
+  it("rejects a missing amount", () => {
+    const result = createWithdrawalRequestSchema.safeParse({});
     expect(result.success).toBe(false);
   });
 });
