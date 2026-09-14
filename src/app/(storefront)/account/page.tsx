@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import {
   Package,
   Ticket,
   Wallet as WalletIcon,
   MapPin,
   CreditCard,
+  Pencil,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { connectToDatabase } from "@/lib/db/connect";
@@ -86,7 +88,14 @@ export default async function AccountPage() {
 
       <div className="space-y-6 px-4 py-4 sm:px-6">
         {/* پروفایل */}
-        <section className="rounded-[var(--radius-lg)] border border-black/5 bg-white p-4">
+        <section className="relative rounded-[var(--radius-lg)] border border-black/5 bg-white p-4">
+          <Link
+            href="/account/edit-profile"
+            aria-label="ویرایش اطلاعات کاربری"
+            className="absolute left-3 top-3 flex size-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 active:bg-gray-200"
+          >
+            <Pencil className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+          </Link>
           <div className="flex items-center gap-3">
             <span className="flex size-14 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary)] text-lg font-bold text-white">
               {initials}

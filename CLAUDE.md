@@ -1492,6 +1492,36 @@ Desktop Header، یا Phase 6: Most Discounted Products Carousel).
   با Schema ساده‌شده به‌روز شدند. TypeScript/ESLint/Vitest (۳۲۶
   تست)/Build همه سبز.
 
+- ✅ **ویرایش اطلاعات کاربری اضافه شد** (`/account/edit-profile`) —
+  دکمه ویرایش (مداد) روی کارت پروفایل بالای `/account` به آن لینک
+  می‌دهد.
+  - نام و نام‌خانوادگی: بدون OTP (شناسه امنیتی حساب نیست) —
+    `PATCH /api/v1/account/profile`.
+  - تغییر شماره موبایل: **حتماً با OTP** طبق درخواست صریح کارفرما —
+    `POST /api/v1/account/phone/request-otp` سپس
+    `POST /api/v1/account/phone/verify-otp`، دقیقاً همان زیرساخت
+    OTP ورود (طول کد، Cooldown ارسال مجدد، سقف تلاش نادرست، سقف
+    ساعتی — همه یکسان).
+  - چک‌های اضافه مخصوص این دو Route (که در OTP ورود معنا ندارند):
+    شماره جدید نباید همان شماره فعلی باشد؛ نباید قبلاً متعلق به
+    کاربر دیگری باشد (هم قبل از ارسال OTP، هم دوباره لحظه Verify —
+    چون بین این دو درخواست ممکن است شخص دیگری همان شماره را گرفته
+    باشد؛ روی خطای Race واقعی هم با کد ۱۱۰۰۰ Mongo محافظت شده).
+  - بعد از تغییر موفق شماره، چون `phoneNumber` داخل خود Session JWT
+    است، یک Session تازه صادر و Cookie جایگزین می‌شود — وگرنه توکن
+    قدیمی شماره قبلی را نگه می‌داشت.
+
+  **Refactor همراه (بدون تغییر رفتار):** منطق صدور/مصرف OTP که قبلاً
+  فقط داخل Routeهای ورود (`auth/otp/request`, `auth/otp/verify`)
+  تکرار شده بود، به `lib/auth/otp-flow.ts` (`issueOtp`/`consumeOtp`)
+  منتقل شد تا مسیر تغییر شماره هم بدون Duplicate Code از همان
+  قوانین دقیق استفاده کند. هر دو Route قبلی هم به همین توابع مشترک
+  بازنویسی شدند — پیام‌ها/کدهای وضعیت/رفتار دقیقاً همان قبلی مانده.
+
+  تست جدید: `validations/account.test.ts` (۳ تست برای
+  `updateProfileSchema`). مجموع تست‌ها اکنون ۳۲۹.
+  TypeScript/ESLint/Vitest/Build همه سبز.
+
 ## 4. In Progress
 
 **مدیریت مالی — Phase ۱ و Phase ۲ (Master Prompt — Financial

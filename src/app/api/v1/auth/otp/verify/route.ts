@@ -1,11 +1,10 @@
 import type { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
-import { Otp } from "@/models/Otp";
 import { User } from "@/models/User";
 import { claimFirstAdminSlot } from "@/models/SystemFlag";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { otpVerifySchema } from "@/lib/validations/auth";
-import { OTP_MAX_ATTEMPTS, verifyOtpHash } from "@/lib/auth/otp";
+import { consumeOtp, OtpVerificationError } from "@/lib/auth/otp-flow";
 import {
   createSessionToken,
   sessionCookieOptions,
@@ -26,36 +25,16 @@ export async function POST(request: NextRequest) {
   const { phoneNumber, code } = parsed.data;
   await connectToDatabase();
 
+  try {
+    await consumeOtp(phoneNumber, code);
+  } catch (error) {
+    if (error instanceof OtpVerificationError) {
+      return apiError(error.message, { status: error.status });
+    }
+    throw error;
+  }
+
   const now = new Date();
-  const otp = await Otp.findOne({
-    phoneNumber,
-    consumedAt: null,
-    expiresAt: { $gt: now },
-  }).sort({ createdAt: -1 });
-
-  if (!otp) {
-    return apiError("کد تأیید منقضی شده یا یافت نشد. دوباره درخواست دهید.", {
-      status: 400,
-    });
-  }
-
-  if (otp.attempts >= OTP_MAX_ATTEMPTS) {
-    return apiError("تعداد تلاش‌های مجاز به پایان رسیده. دوباره درخواست دهید.", {
-      status: 429,
-    });
-  }
-
-  const isValid = verifyOtpHash(phoneNumber, code, otp.codeHash);
-
-  if (!isValid) {
-    otp.attempts += 1;
-    await otp.save();
-    return apiError("کد تأیید نادرست است", { status: 400 });
-  }
-
-  otp.consumedAt = now;
-  await otp.save();
-
   let user = await User.findOne({ phoneNumber });
 
   if (!user) {
