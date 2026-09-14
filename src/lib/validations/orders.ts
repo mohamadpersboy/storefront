@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ORDER_STATUSES } from "@/lib/constants/order-status";
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
-const phoneNumberRegex = /^09\d{9}$/;
+export const phoneNumberRegex = /^09\d{9}$/;
 
 export const findOrCreateCustomerSchema = z.object({
   phoneNumber: z.string().trim().regex(phoneNumberRegex, "شماره موبایل معتبر نیست"),

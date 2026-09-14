@@ -4,6 +4,8 @@ import {
   Ticket,
   Wallet as WalletIcon,
   RefreshCcw,
+  MapPin,
+  CreditCard,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { connectToDatabase } from "@/lib/db/connect";
@@ -11,6 +13,8 @@ import { Order } from "@/models/Order";
 import { Wallet } from "@/models/Wallet";
 import { CouponRedemption } from "@/models/CouponRedemption";
 import { WithdrawalRequest } from "@/models/WithdrawalRequest";
+import { Address } from "@/models/Address";
+import { CustomerBankAccount } from "@/models/CustomerBankAccount";
 import { ROLE_LABELS } from "@/lib/constants/role-labels";
 import { formatTomanGlyph } from "@/lib/utils/format";
 import { PageHeader } from "@/components/storefront/page-header";
@@ -25,33 +29,26 @@ import { AccountLogoutButton } from "@/components/storefront/account-logout-butt
  * `(dashboard)/dashboard/layout.tsx`: `getCurrentUser()` مستقیم چک
  * می‌شود، نه فقط یک Middleware/proxy خوش‌بینانه.
  *
- * **چرا فقط این ۴ ردیف؟** رفرنس بصری کارفرما («حساب من» یک اپ
- * مالی) شامل «آدرس‌های من»، «اطلاعات بانکی»، و یک بنر دعوت‌دوستان
- * هم بود، اما این سه مورد فعلاً پشت هیچ قابلیت واقعی در Backend
- * نیستند:
- *  - Address Book مستقل مشتری هنوز طراحی نشده (طبق CLAUDE.md، بخش
- *    «Known Limitations» — فقط `Order.shippingAddress` Embedded
- *    وجود دارد، نه چند آدرس ذخیره‌شده per کاربر).
- *  - «اطلاعات بانکی» به‌عنوان یک پروفایل دائمی کارت/شبا برای کاربر
- *    ذخیره نمی‌شود؛ شماره کارت/شبا فقط per-درخواست داخل خود
- *    `WithdrawalRequest.destination` گرفته می‌شود.
- *  - سیستم دعوت‌دوستان/Referral اصلاً در پروژه وجود ندارد.
- * ساختن هرکدام از این‌ها یک Model/API جدید و یک تصمیم معماری
- * جداست — طبق قانون پروژه («قبل از تغییر معماری گسترده اجازه
- * بگیر») این‌ها را نساختم؛ در پیام بعدی گزارش می‌دهم تا خودتان
- * تصمیم بگیرید کدام‌یک ماژول بعدی باشد.
+ * **«آدرس‌های من» و «اطلاعات بانکی»** ابتدا در نسخه اول این صفحه
+ * عمداً حذف شده بودند چون پشت هیچ Model واقعی نبودند؛ حالا هر دو
+ * یک Model/API مستقل خودشان را دارند (`models/Address.ts` و
+ * `models/CustomerBankAccount.ts` — دلیل طراحی هرکدام داخل همان
+ * فایل‌ها مستند شده) و اینجا هم به داده واقعی وصل‌اند، نه Mock.
  *
- * چهار ردیفی که نگه داشته شد، همه پشت داده/Model واقعی موجود
- * هستند: سفارش‌ها (`Order`)، کدهای تخفیف استفاده‌شده
- * (`CouponRedemption`)، کیف پول (`Wallet`)، و صف درخواست‌های
- * برداشت وجه (`WithdrawalRequest`). هیچ Badge با عدد ساختگی نمایش
- * داده نمی‌شود — طبق همان اصل رعایت‌شده در Bottom Bar (شمارنده سبد
- * خرید صفر واقعی).
+ * **بنر دعوت‌دوستان** همچنان اضافه نشد — چون سیستم Referral اصلاً
+ * در پروژه وجود ندارد و ساختن آن (کد دعوت، پاداش، ردیابی) یک
+ * تصمیم/Task کاملاً جدا و بزرگ‌تر از حد این صفحه است.
  *
- * لینک مقصد سه ردیف (`/orders`، `/account/coupons`، `/wallet`) هنوز
- * صفحه ندارند — دقیقاً هم‌الگو با `/search`/`/notifications`/
- * `/support` در Top Bar: لینک از قبل درست ساخته می‌شود، خود صفحه
- * مقصد در ماژول بعدی اضافه خواهد شد.
+ * هیچ Badge با عدد ساختگی نمایش داده نمی‌شود — طبق همان اصل
+ * رعایت‌شده در Bottom Bar (شمارنده سبد خرید صفر واقعی): وقتی عددی
+ * معنا ندارد یا صفر است (مثلاً درخواست برداشت در انتظار)، Badge اصلاً
+ * پاس داده نمی‌شود.
+ *
+ * لینک مقصد `/orders` و `/account/coupons` و `/wallet` هنوز صفحه
+ * ندارند — دقیقاً هم‌الگو با `/search`/`/notifications`/`/support` در
+ * Top Bar: لینک از قبل درست ساخته می‌شود، خود صفحه مقصد در ماژول
+ * بعدی اضافه خواهد شد. `/account/addresses` و `/account/bank-info`
+ * برخلاف آن‌ها، همین ماژول ساخته شدند.
  */
 export default async function AccountPage() {
   const user = await getCurrentUser();
@@ -62,13 +59,21 @@ export default async function AccountPage() {
 
   await connectToDatabase();
 
-  const [ordersCount, wallet, usedCouponsCount, pendingWithdrawalsCount] =
-    await Promise.all([
-      Order.countDocuments({ customer: user._id }),
-      Wallet.findOne({ user: user._id }).lean(),
-      CouponRedemption.countDocuments({ user: user._id }),
-      WithdrawalRequest.countDocuments({ user: user._id, status: "pending" }),
-    ]);
+  const [
+    ordersCount,
+    wallet,
+    usedCouponsCount,
+    pendingWithdrawalsCount,
+    addressesCount,
+    bankAccount,
+  ] = await Promise.all([
+    Order.countDocuments({ customer: user._id }),
+    Wallet.findOne({ user: user._id }).lean(),
+    CouponRedemption.countDocuments({ user: user._id }),
+    WithdrawalRequest.countDocuments({ user: user._id, status: "pending" }),
+    Address.countDocuments({ user: user._id }),
+    CustomerBankAccount.findOne({ user: user._id }).lean(),
+  ]);
 
   const displayName = user.fullName || user.phoneNumber;
   const initials = displayName.slice(0, 2);
@@ -127,6 +132,14 @@ export default async function AccountPage() {
               subtitle="کدهای تخفیف استفاده‌شده"
               badge={usedCouponsCount}
             />
+            <AccountNavRow
+              href="/account/addresses"
+              icon={MapPin}
+              iconClassName="bg-teal-50 text-teal-600"
+              title="آدرس‌های من"
+              subtitle="مدیریت آدرس‌های تحویل"
+              badge={addressesCount}
+            />
           </div>
         </section>
 
@@ -151,6 +164,13 @@ export default async function AccountPage() {
               subtitle="پیگیری مبالغ عودت‌شده"
               badge={pendingWithdrawalsCount || undefined}
               badgeVariant="attention"
+            />
+            <AccountNavRow
+              href="/account/bank-info"
+              icon={CreditCard}
+              iconClassName="bg-violet-50 text-violet-600"
+              title="اطلاعات بانکی"
+              subtitle={bankAccount ? "شماره کارت/شبا ثبت شده" : "هنوز ثبت نشده"}
             />
           </div>
         </section>

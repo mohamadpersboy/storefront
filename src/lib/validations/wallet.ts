@@ -10,8 +10,8 @@ export const topupWalletSchema = z.object({
   amount: z.number().int().min(10_000, "حداقل مبلغ شارژ ۱۰,۰۰۰ تومان است").max(500_000_000),
 });
 
-const cardNumberRegex = /^\d{16}$/;
-const ibanRegex = /^IR\d{24}$/i;
+export const cardNumberRegex = /^\d{16}$/;
+export const ibanRegex = /^IR\d{24}$/i;
 
 export const createWithdrawalRequestSchema = z
   .object({

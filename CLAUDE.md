@@ -1316,6 +1316,58 @@ Desktop Header، یا Phase 6: Most Discounted Products Carousel).
   تست‌ها: TS/ESLint/Vitest (۳۰۷ تست، بدون تست جدید چون هیچ تابع
   Pure جدیدی اضافه نشد)/Build همه سبز.
 
+- ✅ **«آدرس‌های من» + «اطلاعات بانکی» اضافه شدند به `/account`.**
+  کارفرما صریحاً خواست («حتما لازمه») بعد از این‌که در نسخه اول
+  صفحه حساب کاربری این دو به‌خاطر نبود Model واقعی حذف شده بودند.
+
+  **Model جدید:**
+  - `src/models/Address.ts` — دفترچه آدرس مستقل مشتری (چند آدرس،
+    `title`، `isDefault`). فیلدهای مشترک (`recipientName`،
+    `phoneNumber`، `province`، `city`، `addressLine`، `postalCode`،
+    `latitude`، `longitude`) عمداً همان نام‌ها و همان
+    Validation Schema (`shippingAddressSchema` در
+    `validations/orders.ts`, با `.extend()`) را با
+    `Order.shippingAddress` دارند — تا وقتی Checkout بعداً ساخته شود
+    تبدیل «آدرس ذخیره‌شده» به «Snapshot سفارش» بدون Mapping باشد.
+  - `src/models/CustomerBankAccount.ts` — اطلاعات بانکی دائمی هر
+    کاربر (یک رکورد به ازای هر کاربر، Upsert می‌شود). عمداً از
+    `WithdrawalRequest.destination` جداست چون آن یک Snapshot لحظه
+    درخواست است، نه پروفایل قابل‌تغییر (دلیل کامل داخل خود فایل Model
+    مستند شده).
+
+  **API جدید:**
+  - `GET/POST /api/v1/addresses`، `PATCH/DELETE /api/v1/addresses/[id]`
+    — مالکیت همیشه داخل خود Query (`{ _id, user }`) چک می‌شود.
+    منطق `isDefault`: اولین آدرس کاربر خودکار پیش‌فرض می‌شود؛ حذف
+    آدرس پیش‌فرض، جدیدترین آدرس باقی‌مانده را خودکار پیش‌فرض جدید
+    می‌کند.
+  - `GET/PUT /api/v1/account/bank-info` — همان الگوی Regex شماره
+    کارت/شبای `createWithdrawalRequestSchema` با Export کردن
+    `cardNumberRegex`/`ibanRegex` از `validations/wallet.ts` دوباره
+    استفاده شد (بدون Duplicate).
+
+  **صفحات جدید:**
+  - `/account/addresses` (لیست) + `/account/addresses/new` +
+    `/account/addresses/[id]/edit` — فرم مشترک
+    (`components/storefront/address-form.tsx`) از دو کامپوننت آماده
+    و تأییدشده پروژه استفاده می‌کند: `ProvinceCitySelect` (بدون
+    Input آزاد استان/شهر) و `NeshanMapPicker` (همان‌هایی که فرم
+    آدرس سفارش در Dashboard استفاده می‌کند) — هیچ UI موازی برای
+    همین قابلیت ساخته نشد.
+  - `/account/bank-info` — فرم تک‌رکوردی، `PUT` Upsert.
+  - صفحه `/account` به‌روز شد: ردیف «آدرس‌های من» با شمارش واقعی
+    (`Address.countDocuments`) و ردیف «اطلاعات بانکی» با وضعیت واقعی
+    («ثبت شده»/«هنوز ثبت نشده» بر اساس وجود رکورد) — بدون هیچ Badge
+    ساختگی.
+
+  تست‌های جدید: `validations/addresses.test.ts` (۷ تست)،
+  `validations/bank-info.test.ts` (۵ تست). مجموع تست‌ها اکنون ۳۱۹.
+  TypeScript/ESLint/Vitest/Build همه سبز.
+
+  **باقی‌مانده عمدی:** بنر دعوت‌دوستان/Referral همچنان اضافه نشد —
+  چنین سیستمی اصلاً در پروژه وجود ندارد و ساختن آن یک Task کاملاً
+  جدا و بزرگ‌تر است.
+
 ## 4. In Progress
 
 **مدیریت مالی — Phase ۱ و Phase ۲ (Master Prompt — Financial
