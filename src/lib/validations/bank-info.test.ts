@@ -20,6 +20,15 @@ describe("saveBankInfoSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts an optional bank name", () => {
+    const result = saveBankInfoSchema.safeParse({
+      ownerName: "علی محمدی",
+      bankName: "بانک تجارت",
+      cardNumber: "6037991234567890",
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("rejects when neither card number nor IBAN is provided", () => {
     const result = saveBankInfoSchema.safeParse({
       ownerName: "علی محمدی",

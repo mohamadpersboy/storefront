@@ -2,11 +2,12 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { requireAuthenticatedUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { createAddressSchema } from "@/lib/validations/addresses";
-import { Address } from "@/models/Address";
+import { Address, type AddressType } from "@/models/Address";
 
 function serializeAddress(address: {
   _id: unknown;
-  title: string;
+  addressType: AddressType;
+  customTitle: string | null;
   recipientName: string;
   phoneNumber: string;
   province: string;
@@ -20,7 +21,8 @@ function serializeAddress(address: {
 }) {
   return {
     id: String(address._id),
-    title: address.title,
+    addressType: address.addressType,
+    customTitle: address.customTitle,
     recipientName: address.recipientName,
     phoneNumber: address.phoneNumber,
     province: address.province,
@@ -78,7 +80,8 @@ export async function POST(request: Request) {
 
   const address = await Address.create({
     user: guard.user.id,
-    title: parsed.data.title,
+    addressType: parsed.data.addressType,
+    customTitle: parsed.data.addressType === "other" ? parsed.data.customTitle?.trim() : null,
     recipientName: parsed.data.recipientName,
     phoneNumber: parsed.data.phoneNumber,
     province: parsed.data.province,

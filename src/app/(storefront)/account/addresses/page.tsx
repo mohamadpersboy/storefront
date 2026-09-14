@@ -41,7 +41,8 @@ export default async function AddressesPage() {
           <AddressListItem
             key={String(address._id)}
             id={String(address._id)}
-            title={address.title}
+            addressType={address.addressType}
+            customTitle={address.customTitle}
             recipientName={address.recipientName}
             phoneNumber={address.phoneNumber}
             province={address.province}

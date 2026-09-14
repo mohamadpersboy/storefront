@@ -9,6 +9,7 @@ import { cardNumberRegex, ibanRegex } from "@/lib/validations/wallet";
 export const saveBankInfoSchema = z
   .object({
     ownerName: z.string().trim().min(2, "نام صاحب حساب الزامی است"),
+    bankName: z.string().trim().max(50).optional().or(z.literal("")),
     cardNumber: z
       .string()
       .trim()

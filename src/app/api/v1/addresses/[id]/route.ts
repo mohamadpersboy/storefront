@@ -45,6 +45,11 @@ export async function PATCH(
   }
 
   Object.assign(address, parsed.data);
+  // نرمال‌سازی customTitle: اگر addressType نهایی «سایر» نیست، مقدار
+  // قدیمی/جدید customTitle نباید در Database باقی بماند (طبق همان
+  // قاعده مدل: `customTitle` فقط برای `"other"` معنا دارد).
+  address.customTitle =
+    address.addressType === "other" ? parsed.data.customTitle?.trim() || address.customTitle : null;
   await address.save();
 
   return apiSuccess(

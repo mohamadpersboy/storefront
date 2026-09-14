@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Landmark } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 export type BankInfoValues = {
   ownerName: string;
+  bankName: string;
   cardNumber: string;
   iban: string;
 };
@@ -16,13 +18,26 @@ export type BankInfoValues = {
  * می‌شود (چه اولین بار باشد چه ویرایش، همان یک Endpoint). توضیح
  * کامل تفاوت این مدل با مقصد درخواست برداشت در
  * `models/CustomerBankAccount.ts`.
+ *
+ * `onSaved`/`onCancel` اختیاری هستند: وقتی این فرم داخل
+ * `BankInfoSection` و برای *ویرایش* یک رکورد موجود باز می‌شود، والد
+ * می‌خواهد بعد از ذخیره موفق یا انصراف به نمای «کارت» برگردد، بدون
+ * Navigation به صفحه دیگر (برخلاف فرم آدرس که همیشه به لیست
+ * برمی‌گردد).
  */
-export function BankInfoForm({ initialValues }: { initialValues: BankInfoValues }) {
+export function BankInfoForm({
+  initialValues,
+  onSaved,
+  onCancel,
+}: {
+  initialValues: BankInfoValues;
+  onSaved?: (saved: BankInfoValues) => void;
+  onCancel?: () => void;
+}) {
   const router = useRouter();
   const [values, setValues] = useState<BankInfoValues>(initialValues);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   function update<K extends keyof BankInfoValues>(key: K, value: BankInfoValues[K]) {
@@ -33,7 +48,6 @@ export function BankInfoForm({ initialValues }: { initialValues: BankInfoValues 
     e.preventDefault();
     setSubmitting(true);
     setFormError(null);
-    setSuccessMessage(null);
     setErrors({});
 
     try {
@@ -50,8 +64,13 @@ export function BankInfoForm({ initialValues }: { initialValues: BankInfoValues 
         return;
       }
 
-      setSuccessMessage(body.message ?? "اطلاعات بانکی ذخیره شد");
       router.refresh();
+      onSaved?.({
+        ownerName: body.data?.ownerName ?? values.ownerName,
+        bankName: body.data?.bankName ?? values.bankName,
+        cardNumber: body.data?.cardNumber ?? values.cardNumber,
+        iban: body.data?.iban ?? values.iban,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -59,8 +78,9 @@ export function BankInfoForm({ initialValues }: { initialValues: BankInfoValues 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 px-4 py-4 sm:px-6">
-      <div className="space-y-3 rounded-[var(--radius-lg)] border border-black/5 bg-white p-4">
-        <p className="text-xs text-[var(--sf-ink)]/50">
+      <div className="space-y-4 rounded-[var(--radius-lg)] border border-black/5 bg-white p-4">
+        <p className="flex items-start gap-1.5 text-xs text-[var(--sf-ink)]/50">
+          <Landmark className="mt-0.5 size-3.5 shrink-0 text-[var(--color-primary)]" strokeWidth={1.75} aria-hidden="true" />
           این اطلاعات فقط برای واریز وجه (مثلاً بازگشت وجه یا برداشت از کیف
           پول) استفاده می‌شود.
         </p>
@@ -73,6 +93,17 @@ export function BankInfoForm({ initialValues }: { initialValues: BankInfoValues 
           {errors.ownerName && (
             <p className="mt-1 text-xs text-danger">{errors.ownerName[0]}</p>
           )}
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-[var(--sf-ink)]/70">
+            نام بانک (اختیاری)
+          </label>
+          <Input
+            placeholder="مثلاً بانک تجارت"
+            value={values.bankName}
+            onChange={(e) => update("bankName", e.target.value)}
+          />
         </div>
 
         <div>
@@ -104,11 +135,17 @@ export function BankInfoForm({ initialValues }: { initialValues: BankInfoValues 
       </div>
 
       {formError && <p className="text-xs text-danger">{formError}</p>}
-      {successMessage && <p className="text-xs text-emerald-600">{successMessage}</p>}
 
-      <Button type="submit" disabled={submitting} className="w-full">
-        {submitting ? "در حال ذخیره…" : "ذخیره اطلاعات بانکی"}
-      </Button>
+      <div className="flex gap-3">
+        <Button type="submit" disabled={submitting} className="flex-1">
+          {submitting ? "در حال ذخیره…" : "ذخیره اطلاعات بانکی"}
+        </Button>
+        {onCancel && (
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
+            انصراف
+          </Button>
+        )}
+      </div>
     </form>
   );
 }

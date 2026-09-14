@@ -21,6 +21,7 @@ export async function GET() {
     bankAccount
       ? {
           ownerName: bankAccount.ownerName,
+          bankName: bankAccount.bankName,
           cardNumber: bankAccount.cardNumber,
           iban: bankAccount.iban,
         }
@@ -48,6 +49,7 @@ export async function PUT(request: Request) {
     {
       $set: {
         ownerName: parsed.data.ownerName,
+        bankName: parsed.data.bankName || null,
         cardNumber: parsed.data.cardNumber || null,
         iban: parsed.data.iban || null,
       },
@@ -58,9 +60,20 @@ export async function PUT(request: Request) {
   return apiSuccess(
     {
       ownerName: bankAccount.ownerName,
+      bankName: bankAccount.bankName,
       cardNumber: bankAccount.cardNumber,
       iban: bankAccount.iban,
     },
     { message: "اطلاعات بانکی ذخیره شد" },
   );
+}
+
+export async function DELETE() {
+  const guard = await requireAuthenticatedUser();
+  if (guard.response) return guard.response;
+
+  await connectToDatabase();
+  await CustomerBankAccount.deleteOne({ user: guard.user.id });
+
+  return apiSuccess({ deleted: true }, { message: "اطلاعات بانکی حذف شد" });
 }

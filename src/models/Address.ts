@@ -14,12 +14,25 @@ import mongoose, { Schema, type Model, type HydratedDocument, type Types } from 
  * Checkout بعداً ساخته شود، تبدیل «یک آدرس ذخیره‌شده» به
  * «Snapshot سفارش» بدون Mapping/تغییر شکل داده انجام شود.
  *
- * `title` و `isDefault` مختص دفترچه آدرس هستند و در Snapshot سفارش
- * معنا ندارند (به همین دلیل داخل `IShippingAddress` نیستند).
+ * `addressType`/`customTitle`/`isDefault` مختص دفترچه آدرس هستند و
+ * در Snapshot سفارش معنا ندارند (به همین دلیل داخل `IShippingAddress`
+ * نیستند).
+ *
+ * **چرا `addressType` به‌جای `title` آزاد؟** طبق درخواست کارفرما:
+ * عنوان آدرس از یک Input آزاد به یک انتخاب محدود (خانه/محل کار/سایر)
+ * تغییر کرد تا هم آیکون مناسب هر آدرس مشخص باشد، هم یکدستی بین
+ * آدرس‌های کاربران حفظ شود. `customTitle` فقط وقتی `addressType`
+ * برابر `"other"` باشد پر می‌شود (برچسب Persian نمایشی برای
+ * `"home"`/`"work"` از خود کد ساخته می‌شود، نه از Database — نگاه
+ * کنید `lib/utils/address.ts`).
  */
+export const ADDRESS_TYPES = ["home", "work", "other"] as const;
+export type AddressType = (typeof ADDRESS_TYPES)[number];
+
 export interface IAddress {
   user: Types.ObjectId;
-  title: string; // مثلاً «خانه»، «محل کار»
+  addressType: AddressType;
+  customTitle: string | null; // فقط وقتی addressType === "other"
   recipientName: string;
   phoneNumber: string;
   province: string;
@@ -38,7 +51,8 @@ export type AddressDocument = HydratedDocument<IAddress>;
 const AddressSchema = new Schema<IAddress>(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    title: { type: String, required: true, trim: true, minlength: 2, maxlength: 50 },
+    addressType: { type: String, enum: ADDRESS_TYPES, required: true, default: "home" },
+    customTitle: { type: String, trim: true, maxlength: 50, default: null },
     recipientName: { type: String, required: true, trim: true },
     phoneNumber: { type: String, required: true, trim: true },
     province: { type: String, required: true, trim: true },
@@ -57,3 +71,4 @@ type AddressModel = Model<IAddress>;
 export const Address: AddressModel =
   (mongoose.models.Address as AddressModel) ||
   mongoose.model<IAddress, AddressModel>("Address", AddressSchema);
+

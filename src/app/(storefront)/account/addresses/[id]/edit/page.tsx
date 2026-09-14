@@ -36,7 +36,8 @@ export default async function EditAddressPage({
         mode="edit"
         addressId={String(address._id)}
         initialValues={{
-          title: address.title,
+          addressType: address.addressType,
+          customTitle: address.customTitle ?? "",
           recipientName: address.recipientName,
           phoneNumber: address.phoneNumber,
           province: address.province,

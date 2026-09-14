@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { connectToDatabase } from "@/lib/db/connect";
 import { CustomerBankAccount } from "@/models/CustomerBankAccount";
 import { PageHeader } from "@/components/storefront/page-header";
-import { BankInfoForm } from "@/components/storefront/bank-info-form";
+import { BankInfoSection } from "@/components/storefront/bank-info-section";
 
 export default async function BankInfoPage() {
   const user = await getCurrentUser();
@@ -17,12 +17,18 @@ export default async function BankInfoPage() {
   return (
     <div>
       <PageHeader title="اطلاعات بانکی" />
-      <BankInfoForm
-        initialValues={{
-          ownerName: bankAccount?.ownerName ?? user.fullName ?? "",
-          cardNumber: bankAccount?.cardNumber ?? "",
-          iban: bankAccount?.iban ?? "",
-        }}
+      <BankInfoSection
+        defaultOwnerName={user.fullName ?? undefined}
+        initialData={
+          bankAccount
+            ? {
+                ownerName: bankAccount.ownerName,
+                bankName: bankAccount.bankName,
+                cardNumber: bankAccount.cardNumber,
+                iban: bankAccount.iban,
+              }
+            : null
+        }
       />
     </div>
   );

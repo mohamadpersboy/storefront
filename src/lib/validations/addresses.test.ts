@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createAddressSchema, updateAddressSchema } from "./addresses";
 
 const VALID_ADDRESS = {
-  title: "خانه",
+  addressType: "home" as const,
   recipientName: "علی محمدی",
   phoneNumber: "09121234567",
   province: "تهران",
@@ -12,8 +12,13 @@ const VALID_ADDRESS = {
 };
 
 describe("createAddressSchema", () => {
-  it("accepts a valid address payload", () => {
+  it("accepts a valid home address", () => {
     const result = createAddressSchema.safeParse(VALID_ADDRESS);
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a work address without a custom title", () => {
+    const result = createAddressSchema.safeParse({ ...VALID_ADDRESS, addressType: "work" });
     expect(result.success).toBe(true);
   });
 
@@ -27,8 +32,22 @@ describe("createAddressSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects a title shorter than 2 characters", () => {
-    const result = createAddressSchema.safeParse({ ...VALID_ADDRESS, title: "خ" });
+  it("accepts an 'other' address when a custom title is provided", () => {
+    const result = createAddressSchema.safeParse({
+      ...VALID_ADDRESS,
+      addressType: "other",
+      customTitle: "خانه مادربزرگ",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an 'other' address without a custom title", () => {
+    const result = createAddressSchema.safeParse({ ...VALID_ADDRESS, addressType: "other" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an invalid addressType", () => {
+    const result = createAddressSchema.safeParse({ ...VALID_ADDRESS, addressType: "office" });
     expect(result.success).toBe(false);
   });
 
@@ -53,6 +72,11 @@ describe("updateAddressSchema", () => {
 
   it("still rejects an invalid field when provided", () => {
     const result = updateAddressSchema.safeParse({ phoneNumber: "invalid" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects switching to 'other' without a custom title", () => {
+    const result = updateAddressSchema.safeParse({ addressType: "other" });
     expect(result.success).toBe(false);
   });
 });
