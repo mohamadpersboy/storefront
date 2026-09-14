@@ -13,8 +13,11 @@ export async function getOrCreateWallet(userId: string): Promise<WalletDocument>
 }
 
 /**
- * تعدیل دستی موجودی توسط ادمین (نسخه ساده — بدون درگاه پرداخت، طبق
- * تصمیم صریح کارفرما). با `findOneAndUpdate` و `$inc` به‌صورت
+ * تعدیل موجودی — دو مسیر واقعی به این تابع می‌رسند: (۱) تعدیل دستی
+ * ادمین از داشبورد (بدون درگاه، طبق تصمیم اولیه کارفرما) و (۲) شارژ
+ * خودکار از طریق درگاه بعد از Verify موفق زرین‌پال
+ * (`wallet/topup/callback`) و کسر/استرداد کیف پول در پرداخت سفارش
+ * (`initiate-order-payment.ts`). با `findOneAndUpdate` و `$inc` به‌صورت
  * Atomic روی خود Mongo انجام می‌شود — برای Debit، شرط
  * `balance >= amount` هم *داخل همان Query* است، نه یک چک جداگانه
  * قبل از نوشتن؛ یعنی حتی اگر دو تعدیل هم‌زمان روی یک کیف پول اجرا

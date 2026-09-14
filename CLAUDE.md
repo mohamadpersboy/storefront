@@ -1411,6 +1411,69 @@ Desktop Header، یا Phase 6: Most Discounted Products Carousel).
   (۶ تست). مجموع تست‌ها اکنون ۳۲۴. TypeScript/ESLint/Vitest/Build
   همه سبز.
 
+- ✅ **صفحه «کیف پول من» Storefront کامل شد** — کارفرما ۴ نوع
+  تراکنش خواست: شارژ، درخواست تسویه، پرداخت با کیف پول، پرداخت
+  ترکیبی (کیف پول + درگاه). بررسی کد نشان داد Backend هر ۴ مورد از
+  قبل کامل وجود داشت (فقط UI مصرف‌کننده آن نبود):
+  - شارژ: `WalletTopup` + `POST /api/v1/wallet/topup` (زرین‌پال) —
+    از قبل ساخته شده بود، حتی صفحه نتیجه
+    (`/wallet/topup/result`) هم از قبل وجود داشت.
+  - درخواست تسویه: `WithdrawalRequest` + `POST /api/v1/wallet/withdrawals`
+    — از قبل ساخته شده بود.
+  - پرداخت با کیف پول/ترکیبی: `Payment.walletAmount` +
+    `initiateOrderPayment({ useWallet })` در
+    `lib/payment/initiate-order-payment.ts` — منطق کامل (تا سقف
+    موجودی کسر می‌شود، مابقی به زرین‌پال می‌رود، اگر درگاه رد کند
+    سهم کیف پول خودکار برمی‌گردد) از قبل پیاده‌سازی شده بود، اما
+    فقط از داشبورد (`PAYMENTS_MANAGE`) قابل استفاده بود، چون
+    Storefront هنوز Cart/Checkout ندارد.
+
+  **مهم — چرا این دو نوع صفحه مستقل نگرفتند:** «پرداخت با کیف پول»
+  و «پرداخت ترکیبی» رفتار لحظه Checkout یک سفارش‌اند، نه یک اقدام
+  مستقل در صفحه کیف پول. چون Storefront هنوز صفحه Cart/Checkout
+  ندارد (فقط API آن‌ها ساخته شده — `api/v1/cart`,
+  `api/v1/checkout`)، امروز هیچ نقطه ورودی برای شروع این دو از
+  Storefront وجود ندارد. به‌جایش، تاریخچه تراکنش‌های کیف پول
+  (`/account/wallet`) از هم‌اکنون آماده نمایش صحیح آن‌هاست؛ همین‌که
+  Checkout ساخته شود، بدون تغییر در این صفحه، تراکنش‌های مرتبط
+  به‌عنوان «پرداخت سفارش» نمایش داده خواهند شد.
+
+  **فایل‌های جدید:**
+  - `lib/utils/wallet-transactions.ts` — `classifyWalletTransaction()`:
+    تابع خالص که متن `reason` هر `WalletTransaction` را به یکی از ۴
+    دسته (`topup`/`withdrawal`/`order_payment`/`manual_adjustment`)
+    نگاشت می‌کند؛ چون «پرداخت با کیف پول» و «پرداخت ترکیبی» از منظر
+    خود دفتر کیف پول یک نوع کسر یکسان‌اند (تفاوتشان در رکورد
+    `Payment` سفارش است، نه در کیف پول)، هر دو زیر یک دسته
+    `order_payment` قرار می‌گیرند — توضیح کامل داخل همان فایل.
+    **این تابع به متن دقیق Reason در سه فایل دیگر وابسته است** —
+    اگر آن متن‌ها عوض شوند، تست‌های همین فایل باید هم‌زمان
+    به‌روزرسانی شوند.
+  - `/account/wallet` — موجودی (کارت گرادیانی سبز)، دو دکمه اقدام
+    (شارژ/درخواست تسویه)، و تاریخچه کامل تراکنش‌ها با آیکون/رنگ هر
+    دسته.
+  - `/account/wallet/topup` — انتخاب سریع مبلغ + مبلغ دلخواه،
+    Redirect کامل مرورگر به `paymentUrl` زرین‌پال.
+  - `/account/wallet/withdraw` — با اطلاعات بانکی ذخیره‌شده
+    (`CustomerBankAccount`) پیش‌پر می‌شود.
+  - `WalletTransactionRow` — ردیف تاریخچه با آیکون/رنگ/علامت
+    (+/−) بر اساس `classifyWalletTransaction`.
+
+  **تصحیح دو توضیح قدیمی/نادرست در کد:** کامنت بالای
+  `adjustWalletBalance` در `wallet-service.ts` می‌گفت «بدون درگاه
+  پرداخت» — که از وقتی `WalletTopup`/`initiateOrderPayment` اضافه
+  شدند دیگر درست نبود؛ اصلاح شد.
+
+  صفحه `/account` هم به‌روز شد: دو ردیف «کیف پول من» +
+  «تراکنش‌ها و بازگشت وجه» در یک ردیف ادغام شدند (چون
+  `/account/wallet` خودش تاریخچه کامل و درخواست تسویه را نشان
+  می‌دهد) و Badge درخواست‌های تسویه در انتظار به همان یک ردیف منتقل
+  شد.
+
+  تست جدید: `wallet-transactions.test.ts` (۶ تست، شامل متن دقیق هر
+  Reason واقعی از کد). مجموع تست‌ها اکنون ۳۳۰. TypeScript/ESLint/
+  Vitest/Build همه سبز.
+
 ## 4. In Progress
 
 **مدیریت مالی — Phase ۱ و Phase ۲ (Master Prompt — Financial

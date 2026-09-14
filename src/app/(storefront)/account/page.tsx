@@ -3,7 +3,6 @@ import {
   Package,
   Ticket,
   Wallet as WalletIcon,
-  RefreshCcw,
   MapPin,
   CreditCard,
 } from "lucide-react";
@@ -44,11 +43,12 @@ import { AccountLogoutButton } from "@/components/storefront/account-logout-butt
  * معنا ندارد یا صفر است (مثلاً درخواست برداشت در انتظار)، Badge اصلاً
  * پاس داده نمی‌شود.
  *
- * لینک مقصد `/orders` و `/account/coupons` و `/wallet` هنوز صفحه
- * ندارند — دقیقاً هم‌الگو با `/search`/`/notifications`/`/support` در
- * Top Bar: لینک از قبل درست ساخته می‌شود، خود صفحه مقصد در ماژول
- * بعدی اضافه خواهد شد. `/account/addresses` و `/account/bank-info`
- * برخلاف آن‌ها، همین ماژول ساخته شدند.
+ * لینک مقصد `/orders` و `/account/coupons` هنوز صفحه ندارند —
+ * دقیقاً هم‌الگو با `/search`/`/notifications`/`/support` در Top
+ * Bar: لینک از قبل درست ساخته می‌شود، خود صفحه مقصد در ماژول بعدی
+ * اضافه خواهد شد. `/account/addresses`، `/account/bank-info`، و
+ * `/account/wallet` (با شارژ/درخواست تسویه) برخلاف آن‌ها، ساخته
+ * شده‌اند.
  */
 export default async function AccountPage() {
   const user = await getCurrentUser();
@@ -150,18 +150,11 @@ export default async function AccountPage() {
           </h2>
           <div className="divide-y divide-black/5 overflow-hidden rounded-[var(--radius-lg)] border border-black/5 bg-white">
             <AccountNavRow
-              href="/wallet"
+              href="/account/wallet"
               icon={WalletIcon}
               iconClassName="bg-emerald-50 text-emerald-600"
               title="کیف پول من"
               subtitle={`موجودی: ${formatTomanGlyph(walletBalance)}`}
-            />
-            <AccountNavRow
-              href="/wallet/withdrawals"
-              icon={RefreshCcw}
-              iconClassName="bg-rose-50 text-rose-600"
-              title="تراکنش‌ها و بازگشت وجه"
-              subtitle="پیگیری مبالغ عودت‌شده"
               badge={pendingWithdrawalsCount || undefined}
               badgeVariant="attention"
             />
