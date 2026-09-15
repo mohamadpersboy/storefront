@@ -51,6 +51,8 @@ export const createProductSchema = z.object({
     .array(variantSchema)
     .min(1, "حداقل یک Variant لازم است"),
   status: z.enum(["draft", "published", "archived"]).default("draft"),
+  /** اولویت نمایش در ردیف‌های Storefront — عدد کوچک‌تر یعنی زودتر نمایش داده می‌شود. */
+  sortOrder: z.number().int().default(0),
   seo: z
     .object({
       title: z.string().trim().optional(),

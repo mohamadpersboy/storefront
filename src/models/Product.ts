@@ -46,15 +46,25 @@ export interface IProduct {
   technicalSpecifications: ITechnicalSpec[];
   category: Types.ObjectId;
   /**
-   * برند محصول — کاملاً مستقل از `category` (نه Variant، نه
-   * زیرمجموعه دسته‌بندی). Nullable/Optional چون محصولات موجود قبل
-   * از افزودن این فیلد برند ندارند (Additive-only schema change؛
-   * نگاه کنید یادداشت «Mongoose schema defaults don't backfill»).
+   * برند — مستقل از دسته‌بندی، اختیاری (نه Variant، نه زیرمجموعه
+   * دسته‌بندی). Nullable/Optional چون محصولات موجود قبل از افزودن
+   * این فیلد برند ندارند (Additive-only schema change؛ نگاه کنید
+   * یادداشت «Mongoose schema defaults don't backfill»).
    */
   brand: Types.ObjectId | null;
   images: IProductImage[];
   variants: IProductVariant[];
   status: ProductStatus;
+  /**
+   * اولویت نمایش این محصول در ردیف‌های Storefront (جدیدترین‌ها،
+   * پرفروش‌ترین‌ها، شگفت‌انگیزها، دسته‌بندی‌ها) — عدد کوچک‌تر یعنی
+   * اولویت بیشتر (زودتر نمایش داده می‌شود)، دقیقاً هم‌معنا با
+   * `sortOrder` در Category/Banner/Brand. محصولات قدیمی‌تر که این
+   * فیلد را ندارند باید همیشه با `?? 0` خوانده شوند، نه با فرض
+   * وجود مقدار (همان درسِ «Mongoose schema defaults don't
+   * backfill»).
+   */
+  sortOrder: number;
   seo: ISeo;
   deletedAt: Date | null;
   createdAt: Date;
@@ -150,6 +160,7 @@ const ProductSchema = new Schema<IProduct>(
       default: "draft",
       index: true,
     },
+    sortOrder: { type: Number, default: 0, index: true },
     seo: {
       title: { type: String, trim: true },
       description: { type: String, trim: true },

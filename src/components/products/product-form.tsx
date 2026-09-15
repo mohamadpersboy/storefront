@@ -56,6 +56,8 @@ export interface ProductFormInitial {
   }>;
   status: ProductStatus;
   seo: { title?: string; description?: string };
+  /** اولویت نمایش در Storefront — عدد کوچک‌تر یعنی زودتر نمایش داده می‌شود. */
+  sortOrder: number;
 }
 
 const statusOptions: Array<{ value: ProductStatus; label: string }> = [
@@ -96,6 +98,7 @@ export function ProductForm({
     initial?.technicalSpecifications ?? [],
   );
   const [status, setStatus] = useState<ProductStatus>(initial?.status ?? "draft");
+  const [sortOrder, setSortOrder] = useState(initial?.sortOrder ?? 0);
   const [seoTitle, setSeoTitle] = useState(initial?.seo?.title ?? "");
   const [seoDescription, setSeoDescription] = useState(
     initial?.seo?.description ?? "",
@@ -197,6 +200,7 @@ export function ProductForm({
           isActive: v.isActive,
         })),
         status,
+        sortOrder,
         seo: { title: seoTitle || undefined, description: seoDescription || undefined },
       };
 
@@ -327,6 +331,22 @@ export function ProductForm({
                 label: opt.label,
               }))}
             />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-foreground/80">
+              اولویت نمایش در فروشگاه
+            </label>
+            <Input
+              type="number"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(Number(e.target.value) || 0)}
+              className="max-w-32"
+            />
+            <p className="mt-1 text-xs text-muted">
+              عدد کوچک‌تر زودتر در ردیف‌های صفحه اصلی (جدیدترین‌ها، پرفروش‌ترین‌ها،
+              دسته‌بندی‌ها و ...) نمایش داده می‌شود.
+            </p>
           </div>
         </CardContent>
       </Card>

@@ -53,6 +53,7 @@ export default async function EditProductPage({
             isActive: v.isActive,
           })),
           status: product.status,
+          sortOrder: product.sortOrder ?? 0,
           seo: product.seo ?? {},
         }}
       />

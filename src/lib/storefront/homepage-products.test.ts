@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildCategoryIdGroups, pickRepresentativeVariant } from "@/lib/storefront/homepage-products";
+import {
+  buildCategoryIdGroups,
+  pickRepresentativeVariant,
+  sortByPriority,
+} from "@/lib/storefront/homepage-products";
 import type { IProductVariant } from "@/models/Product";
 import type { Types } from "mongoose";
 
@@ -84,5 +88,43 @@ describe("buildCategoryIdGroups", () => {
     );
     expect(groups.get("root1")).toEqual(["root1"]);
     expect(groups.has("unrelated-root")).toBe(false);
+  });
+});
+
+describe("sortByPriority", () => {
+  it("orders items by ascending priority (smaller number first)", () => {
+    const items = [
+      { id: "a", sortOrder: 5 },
+      { id: "b", sortOrder: 1 },
+      { id: "c", sortOrder: 3 },
+    ];
+    expect(sortByPriority(items, (i) => i.sortOrder).map((i) => i.id)).toEqual(["b", "c", "a"]);
+  });
+
+  it("treats a missing priority as 0", () => {
+    const items = [
+      { id: "a", sortOrder: 2 },
+      { id: "b", sortOrder: undefined },
+    ];
+    expect(sortByPriority(items, (i) => i.sortOrder).map((i) => i.id)).toEqual(["b", "a"]);
+  });
+
+  it("is stable: equal priorities keep their original relative order", () => {
+    const items = [
+      { id: "a", sortOrder: 0 },
+      { id: "b", sortOrder: 0 },
+      { id: "c", sortOrder: 0 },
+    ];
+    expect(sortByPriority(items, (i) => i.sortOrder).map((i) => i.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("does not mutate the original array", () => {
+    const items = [
+      { id: "a", sortOrder: 2 },
+      { id: "b", sortOrder: 1 },
+    ];
+    const result = sortByPriority(items, (i) => i.sortOrder);
+    expect(result).not.toBe(items);
+    expect(items.map((i) => i.id)).toEqual(["a", "b"]);
   });
 });

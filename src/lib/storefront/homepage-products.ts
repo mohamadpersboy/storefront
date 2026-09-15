@@ -22,7 +22,37 @@ type LeanProductForCard = {
   slug: string;
   images: { url: string }[];
   variants: IProductVariant[];
+  /** محصولات قدیمی‌تر ممکن است این فیلد را نداشته باشند — همیشه با `?? 0` خوانده شود. */
+  sortOrder?: number;
 };
+
+/** فیلدهای مشترک `select()` برای هر Query‌ای که قرار است کارت محصول از آن ساخته شود. */
+const PRODUCT_CARD_FIELDS = "title slug images variants sortOrder";
+
+/**
+ * بزرگ‌کردن Candidate Pool قبل از اعمال «اولویت نمایش» — چون
+ * Mongo مقدار *نبودِ* فیلد را در Sort به‌صورت «کوچک‌تر از هر عدد»
+ * در نظر می‌گیرد (نه معادل ۰)، اگر مستقیم `sortOrder` را در Query
+ * Sort می‌کردیم، محصولات قدیمی بدون این فیلد همیشه (نه فقط در
+ * تساوی) جلوتر از محصولاتی می‌افتادند که عمداً `sortOrder: 0`
+ * گرفته‌اند — دقیقاً همان دستهٔ باگ «Mongoose defaults don't
+ * backfill». به‌جایش: با معیار طبیعی همان ردیف (تاریخ ایجاد/فروش)
+ * یک Pool بزرگ‌تر می‌گیریم، سپس در جاوااسکریپت با `?? 0` مرتب‌سازی
+ * پایدار می‌کنیم و در آخر به تعداد نهایی برش می‌زنیم.
+ */
+const PRIORITY_OVER_FETCH_MULTIPLIER = 4;
+
+/**
+ * مرتب‌سازی پایدار بر اساس «اولویت نمایش» (عدد کوچک‌تر = اولویت
+ * بیشتر). چون `Array.prototype.sort` در جاوااسکریپت تضمین‌شده
+ * پایدار است، آیتم‌های با اولویت برابر (یا هر دو بدون این فیلد)
+ * دقیقاً به همان ترتیب ورودی (معیار طبیعی همان ردیف) باقی می‌مانند
+ * — یعنی اولویت فقط یک لایهٔ مرتب‌سازی *اول* روی معیار قبلی است، نه
+ * جایگزین کامل آن.
+ */
+export function sortByPriority<T>(items: T[], getSortOrder: (item: T) => number | null | undefined): T[] {
+  return [...items].sort((a, b) => (getSortOrder(a) ?? 0) - (getSortOrder(b) ?? 0));
+}
 
 /**
  * از بین Variantهای فعال و موجود یک محصول، ارزان‌ترین (بعد از تخفیف
@@ -134,15 +164,24 @@ function toDisplayableCards(
     .filter((card): card is ProductCardData => card !== null);
 }
 
-/** «جدیدترین‌ها» — جدیدترین محصولات منتشرشده بر اساس تاریخ ایجاد. */
+/**
+ * «جدیدترین‌ها» — جدیدترین محصولات منتشرشده، اما با در نظر گرفتن
+ * «اولویت نمایش» (`sortOrder`) هر محصول: ابتدا یک Pool بزرگ‌تر از
+ * جدیدترین محصولات گرفته می‌شود، سپس همان Pool با اولویت مرتب‌سازی
+ * می‌شود (نگاه کنید `sortByPriority`) و در آخر به تعداد درخواستی
+ * برش می‌خورد.
+ */
 export async function getLatestProductCards(limit = 8): Promise<ProductCardData[]> {
   const products = (await Product.find({ status: "published" })
     .sort({ createdAt: -1 })
-    .limit(limit)
-    .select("title slug images variants")
+    .limit(limit * PRIORITY_OVER_FETCH_MULTIPLIER)
+    .select(PRODUCT_CARD_FIELDS)
     .lean()) as unknown as LeanProductForCard[];
 
-  const displayable = products.filter(isDisplayable);
+  const displayable = sortByPriority(products.filter(isDisplayable), (p) => p.sortOrder).slice(
+    0,
+    limit,
+  );
   const colorsMap = await buildColorsMap(displayable);
 
   return toDisplayableCards(displayable, colorsMap);
@@ -154,7 +193,9 @@ export async function getLatestProductCards(limit = 8): Promise<ProductCardData[
  * محاسبه در نظر گرفته نمی‌شوند. معیار فعلی: مجموع `quantity` تمام
  * آیتم‌های آن محصول در تمام سفارش‌های باقی‌مانده — در آینده قابل
  * تغییر به بازهٔ زمانی محدود (مثلاً ۳۰ روز اخیر) بدون تغییر در
- * ساختار خروجی این تابع.
+ * ساختار خروجی این تابع. «اولویت نمایش» هر محصول (`sortOrder`) به
+ * همان شکل بقیهٔ ردیف‌ها به‌عنوان یک لایهٔ مرتب‌سازی اول روی این
+ * معیار اعمال می‌شود.
  */
 export async function getBestSellerProductCards(limit = 8): Promise<ProductCardData[]> {
   const bestSelling = await Order.aggregate<{ _id: Types.ObjectId; totalQuantity: number }>([
@@ -172,14 +213,16 @@ export async function getBestSellerProductCards(limit = 8): Promise<ProductCardD
     _id: { $in: orderedIds },
     status: "published",
   })
-    .select("title slug images variants")
+    .select(PRODUCT_CARD_FIELDS)
     .lean()) as unknown as LeanProductForCard[];
 
   const byId = new Map(products.map((p) => [String(p._id), p]));
-  const displayable = orderedIds
+  const inSellingOrder = orderedIds
     .map((id) => byId.get(id))
-    .filter((p): p is LeanProductForCard => p !== undefined && isDisplayable(p))
-    .slice(0, limit);
+    .filter((p): p is LeanProductForCard => p !== undefined && isDisplayable(p));
+  // اولویت نمایش به‌عنوان یک لایهٔ اول روی «پرفروش‌ترین» اعمال می‌شود؛
+  // در تساوی اولویت، ترتیب فروش واقعی (بالا) حفظ می‌ماند.
+  const displayable = sortByPriority(inSellingOrder, (p) => p.sortOrder).slice(0, limit);
 
   const colorsMap = await buildColorsMap(displayable);
 
@@ -191,7 +234,13 @@ type LeanAmazingOffer = IAmazingOffer & {
   productId: LeanProductForCard | Types.ObjectId | null;
 };
 
-/** «شگفت‌انگیزها» — فقط Offerهایی که همین الان فعال و در بازهٔ زمانی معتبرشان هستند. */
+/**
+ * «شگفت‌انگیزها» — فقط Offerهایی که همین الان فعال و در بازهٔ زمانی
+ * معتبرشان هستند. مثل بقیهٔ ردیف‌ها، «اولویت نمایش» محصولِ زیرِ هر
+ * Offer یک لایهٔ مرتب‌سازی اول روی ترتیب طبیعی (نزدیک‌ترین به پایان
+ * اول) اعمال می‌شود — به همین دلیل Pool اولیه بزرگ‌تر از حد نهایی
+ * گرفته می‌شود (نگاه کنید `PRIORITY_OVER_FETCH_MULTIPLIER`).
+ */
 export async function getAmazingOfferProductCards(limit = 8): Promise<ProductCardData[]> {
   const now = new Date();
   const offers = (await AmazingOffer.find({
@@ -200,11 +249,11 @@ export async function getAmazingOfferProductCards(limit = 8): Promise<ProductCar
     endAt: { $gte: now },
   })
     .sort({ endAt: 1 })
-    .limit(limit)
+    .limit(limit * PRIORITY_OVER_FETCH_MULTIPLIER)
     .populate({
       path: "productId",
       match: { status: "published" },
-      select: "title slug images variants",
+      select: PRODUCT_CARD_FIELDS,
     })
     .lean()) as unknown as LeanAmazingOffer[];
 
@@ -212,7 +261,10 @@ export async function getAmazingOfferProductCards(limit = 8): Promise<ProductCar
     (o): o is LeanAmazingOffer & { productId: LeanProductForCard } =>
       !!o.productId && typeof o.productId === "object" && "variants" in o.productId,
   );
-  const displayableOffers = withProduct.filter((o) => isDisplayable(o.productId));
+  const displayableOffers = sortByPriority(
+    withProduct.filter((o) => isDisplayable(o.productId)),
+    (o) => o.productId.sortOrder,
+  ).slice(0, limit);
 
   const colorsMap = await buildColorsMap(displayableOffers.map((o) => o.productId));
 
@@ -305,11 +357,14 @@ export async function getPriorityCategorySections(
         status: "published",
       })
         .sort({ createdAt: -1 })
-        .limit(limitPerCategory)
-        .select("title slug images variants")
+        .limit(limitPerCategory * PRIORITY_OVER_FETCH_MULTIPLIER)
+        .select(PRODUCT_CARD_FIELDS)
         .lean()) as unknown as LeanProductForCard[];
 
-      const displayable = products.filter(isDisplayable);
+      const displayable = sortByPriority(products.filter(isDisplayable), (p) => p.sortOrder).slice(
+        0,
+        limitPerCategory,
+      );
       const colorsMap = await buildColorsMap(displayable);
 
       return {
