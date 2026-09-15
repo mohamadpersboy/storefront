@@ -9,6 +9,7 @@ import { BrandsSection, type HomepageBrand } from "@/components/storefront/brand
 import { AmazingOffersSection } from "@/components/storefront/amazing-offers-section";
 import { BestSellersSection } from "@/components/storefront/best-sellers-section";
 import { LatestProductsSection } from "@/components/storefront/latest-products-section";
+import type { ProductCardData } from "@/components/storefront/product-card";
 import { FeaturesRow } from "@/components/storefront/features-row";
 import { AboutUsCard } from "@/components/storefront/about-us-card";
 import { Footer, type FooterSocialLink } from "@/components/storefront/footer";
@@ -19,6 +20,11 @@ import { Brand } from "@/models/Brand";
 import { getShippingSettings } from "@/models/ShippingSettings";
 import { getSocialLinks } from "@/models/SocialLinks";
 import { getAboutUs } from "@/models/AboutUs";
+import {
+  getAmazingOfferProductCards,
+  getBestSellerProductCards,
+  getLatestProductCards,
+} from "@/lib/storefront/homepage-products";
 
 /**
  * بنرها مستقیماً از DB خوانده می‌شوند (نه یک Fetch HTTP به
@@ -148,16 +154,64 @@ async function getAboutUsContent(): Promise<{ title: string; content: string }> 
   }
 }
 
+/**
+ * سه ردیف محصول صفحه اصلی (شگفت‌انگیزها/پرفروش‌ترین‌ها/جدیدترین‌ها)
+ * دیگر Mock نیستند — منطق واقعی Query در
+ * `src/lib/storefront/homepage-products.ts` است؛ اینجا فقط طبق
+ * همان الگوی بقیهٔ Getterهای همین فایل با `try/catch` پوشانده
+ * می‌شوند تا نبود/خرابی موقت DB باعث از کار افتادن کل صفحهٔ اصلی
+ * نشود — فقط همان ردیف خالی نمایش داده می‌شود (خودش `items.length
+ * === 0` را مدیریت می‌کند).
+ */
+async function getAmazingOffersSafe(): Promise<ProductCardData[]> {
+  try {
+    await connectToDatabase();
+    return await getAmazingOfferProductCards();
+  } catch {
+    return [];
+  }
+}
+
+async function getBestSellersSafe(): Promise<ProductCardData[]> {
+  try {
+    await connectToDatabase();
+    return await getBestSellerProductCards();
+  } catch {
+    return [];
+  }
+}
+
+async function getLatestProductsSafe(): Promise<ProductCardData[]> {
+  try {
+    await connectToDatabase();
+    return await getLatestProductCards();
+  } catch {
+    return [];
+  }
+}
+
 export default async function StorefrontHomePage() {
-  const [banners, categories, brands, freeShippingThreshold, socialLinks, aboutUs] =
-    await Promise.all([
-      getActiveBanners(),
-      getHomepageCategories(),
-      getHomepageBrands(),
-      getFreeShippingThreshold(),
-      getActiveSocialLinks(),
-      getAboutUsContent(),
-    ]);
+  const [
+    banners,
+    categories,
+    brands,
+    freeShippingThreshold,
+    socialLinks,
+    aboutUs,
+    amazingOffers,
+    bestSellers,
+    latestProducts,
+  ] = await Promise.all([
+    getActiveBanners(),
+    getHomepageCategories(),
+    getHomepageBrands(),
+    getFreeShippingThreshold(),
+    getActiveSocialLinks(),
+    getAboutUsContent(),
+    getAmazingOffersSafe(),
+    getBestSellersSafe(),
+    getLatestProductsSafe(),
+  ]);
 
   return (
     <>
@@ -168,9 +222,9 @@ export default async function StorefrontHomePage() {
         <FreeShippingBanner threshold={freeShippingThreshold} />
       ) : null}
       <BrandsSection brands={brands} />
-      <AmazingOffersSection />
-      <BestSellersSection />
-      <LatestProductsSection />
+      <AmazingOffersSection items={amazingOffers} />
+      <BestSellersSection items={bestSellers} />
+      <LatestProductsSection items={latestProducts} />
       <FeaturesRow />
       <AboutUsCard title={aboutUs.title} content={aboutUs.content} />
       <Footer socialLinks={socialLinks} />

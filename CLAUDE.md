@@ -2525,6 +2525,51 @@ Secretهای سرور را هم دارد) Import کند — حتی برای خو
   Domainهای متفاوت به اشتراک گذاشته نمی‌شود؛ باید همیشه از آدرس ثابت
   Production (نه لینک هر Deployment) استفاده شود.
 
+**کارت‌های محصول صفحه اصلی (شگفت‌انگیزها/پرفروش‌ترین‌ها/جدیدترین‌ها)
+به Backend واقعی وصل شدند — دیگر Mock ندارند.** طبق درخواست صریح
+کارفرما («کارت محصولات رو به بک اند واقعی وصل کن و موک‌ها رو حذف
+کن»)، هم‌الگو با Banner/Category/Brand:
+
+- ماژول جدید `src/lib/storefront/homepage-products.ts` — سه تابع
+  `getAmazingOfferProductCards`، `getBestSellerProductCards`،
+  `getLatestProductCards`؛ هر سه مستقیماً از DB می‌خوانند (بدون
+  Round-trip HTTP به API خودِ پروژه)، دقیقاً هم‌الگو با
+  `getActiveBanners`/`getHomepageCategories` در `page.tsx`.
+- **شگفت‌انگیزها:** از `AmazingOffer`های واقعاً فعال (`isActive` +
+  در بازهٔ `startAt`/`endAt`) با `populate` محصول (`match: { status:
+  "published" }`) — دقیقاً هم‌الگو با Serialize موجود در
+  `GET /api/v1/amazing-offers`؛ `finalPrice` از همان
+  `computeAmazingOfferPrice` محاسبه می‌شود.
+- **پرفروش‌ترین‌ها:** با `Order.aggregate` واقعی — جمع `quantity`
+  آیتم‌ها به‌ازای هر `items.product`، با کنار گذاشتن سفارش‌های
+  `cancelled`/`returned`؛ معیار مستند و در آینده قابل تغییر
+  (مثلاً محدود به ۳۰ روز اخیر) بدون تغییر امضای تابع.
+- **جدیدترین‌ها:** `Product.find({status:"published"})` مرتب‌شده
+  بر اساس `createdAt` نزولی.
+- هر سه از یک `pickRepresentativeVariant` مشترک استفاده می‌کنند
+  (ارزان‌ترین Variant فعال/موجود بعد از تخفیف خودش، با Fallback
+  منطقی) — Export شده و تست Unit کامل دارد
+  (`homepage-products.test.ts`، ۶ تست).
+- «رنگ‌های دیگر» روی کارت از Variantهای فعال محصول (`colorId`
+  یکتا) با یک Query دسته‌جمعی `Color.find({_id:{$in:...}})`
+  ساخته می‌شود (نه یک Query جدا به‌ازای هر محصول).
+- محصولات بدون تصویر یا بدون هیچ Variant قابل‌نمایش از هر سه ردیف
+  فیلتر می‌شوند تا کارتی با تصویر خالی رندر نشود.
+- سه Component (`AmazingOffersSection`/`BestSellersSection`/
+  `LatestProductsSection`) دیگر Mock داخلی ندارند؛ حالا `items:
+  ProductCardData[]` را به‌عنوان Prop می‌گیرند (هم‌الگو با
+  `HeroSlider`/`CategoryShortcuts`)، `page.tsx` این سه را با
+  Getterهای `try/catch`-دار (`getAmazingOffersSafe` و مشابه) پر
+  می‌کند تا خرابی موقت DB مثل بقیهٔ بخش‌های صفحه اصلی فقط همان ردیف
+  را خالی کند، نه کل صفحه را.
+- Product در حال حاضر فیلد `imageBlurDataUrl` ندارد (برخلاف
+  Banner/Category)، پس Mesh Blur روی این کارت‌ها فعلاً `null`
+  است — اگر در آینده به Product اضافه شد، فقط همین سه Getter باید
+  به‌روزرسانی شوند.
+
+تست‌ها: TS/ESLint/Vitest (۳۳۵ تست، ۶ تست جدید
+`pickRepresentativeVariant`)/Build همه سبز.
+
 ## 15. TODO (نزدیک)
 
 - [ ] تست واقعی Orders روی Vercel (ساخت سفارش دستی، جستجوی محصول

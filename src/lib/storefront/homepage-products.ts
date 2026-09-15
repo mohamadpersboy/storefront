@@ -1,0 +1,234 @@
+import type { Types } from "mongoose";
+import { Product, type IProductVariant } from "@/models/Product";
+import { Color } from "@/models/Color";
+import { AmazingOffer, type IAmazingOffer } from "@/models/AmazingOffer";
+import { Order } from "@/models/Order";
+import { computeFinalPrice } from "@/lib/utils/pricing";
+import { computeAmazingOfferPrice } from "@/lib/utils/amazing-offer";
+import type { ProductCardData } from "@/components/storefront/product-card";
+
+/**
+ * منبع واقعی داده برای سه ردیف محصول صفحه اصلی (شگفت‌انگیزها،
+ * جدیدترین‌ها، پرفروش‌ترین‌ها) — قبلاً هرکدام Mock Data داخلی خودشان
+ * را داشتند. طبق همان الگوی `page.tsx` برای Banner/Category/Brand:
+ * این توابع مستقیماً از DB می‌خوانند (نه یک Fetch HTTP به API خودِ
+ * پروژه) چون فقط داخل همین Server Component مصرف می‌شوند.
+ */
+
+type LeanProductForCard = {
+  _id: Types.ObjectId;
+  title: string;
+  slug: string;
+  images: { url: string }[];
+  variants: IProductVariant[];
+};
+
+/**
+ * از بین Variantهای فعال و موجود یک محصول، ارزان‌ترین (بعد از تخفیف
+ * خودِ Variant) را برای نمایش روی کارت انتخاب می‌کند. اگر هیچ
+ * Variant فعال/موجودی نداشت، به یک Variant فعال بدون موجودی و در
+ * نهایت به اولین Variant محصول برمی‌گردد — تا محصول بدون Variant
+ * قابل‌نمایش هرگز باعث خرابی کارت نشود.
+ */
+export function pickRepresentativeVariant(variants: IProductVariant[]): IProductVariant | null {
+  if (variants.length === 0) return null;
+  const inStock = variants.filter((v) => v.isActive && v.stock > 0);
+  const active = variants.filter((v) => v.isActive);
+  const pool = inStock.length > 0 ? inStock : active.length > 0 ? active : variants;
+
+  return pool.reduce((cheapest, current) => {
+    const currentPrice = computeFinalPrice(
+      current.price,
+      current.discountPercent,
+      current.discountAmount,
+    );
+    const cheapestPrice = computeFinalPrice(
+      cheapest.price,
+      cheapest.discountPercent,
+      cheapest.discountAmount,
+    );
+    return currentPrice < cheapestPrice ? current : cheapest;
+  }, pool[0]);
+}
+
+/** رنگ‌های دیگر همین محصول (از روی Variantهای فعال دیگر) برای نقطه‌های رنگی روی کارت. */
+async function buildColorsMap(
+  products: { variants: IProductVariant[] }[],
+): Promise<Map<string, { id: string; hexCode: string }>> {
+  const colorIds = new Set<string>();
+  for (const p of products) {
+    for (const v of p.variants) {
+      if (v.isActive && v.colorId) colorIds.add(String(v.colorId));
+    }
+  }
+  if (colorIds.size === 0) return new Map();
+
+  const colors = await Color.find({ _id: { $in: [...colorIds] } })
+    .select("hexCode")
+    .lean();
+
+  return new Map(colors.map((c) => [String(c._id), { id: String(c._id), hexCode: c.hexCode }]));
+}
+
+function getProductColors(
+  variants: IProductVariant[],
+  colorsMap: Map<string, { id: string; hexCode: string }>,
+): { id: string; hexCode: string }[] {
+  const seen = new Set<string>();
+  const result: { id: string; hexCode: string }[] = [];
+  for (const v of variants) {
+    if (!v.isActive || !v.colorId) continue;
+    const key = String(v.colorId);
+    if (seen.has(key)) continue;
+    const color = colorsMap.get(key);
+    if (color) {
+      seen.add(key);
+      result.push(color);
+    }
+  }
+  return result;
+}
+
+function toProductCard(
+  product: LeanProductForCard,
+  variant: IProductVariant,
+  colorsMap: Map<string, { id: string; hexCode: string }>,
+  amazingOffer: { startAt: string; endAt: string; finalPrice: number } | null,
+): ProductCardData {
+  const basePrice = variant.price;
+  const finalPrice = amazingOffer
+    ? amazingOffer.finalPrice
+    : computeFinalPrice(variant.price, variant.discountPercent, variant.discountAmount);
+
+  return {
+    id: String(product._id),
+    product: {
+      title: product.title,
+      slug: product.slug,
+      imageUrl: product.images[0]?.url ?? "",
+      imageBlurDataUrl: null,
+    },
+    colors: getProductColors(product.variants, colorsMap),
+    basePrice,
+    finalPrice,
+    amazingOffer: amazingOffer ? { startAt: amazingOffer.startAt, endAt: amazingOffer.endAt } : null,
+  };
+}
+
+/** محصولاتی که حداقل یک تصویر و حداقل یک Variant قابل‌نمایش دارند. */
+function isDisplayable(p: LeanProductForCard): boolean {
+  return p.images.length > 0 && p.variants.length > 0;
+}
+
+/** «جدیدترین‌ها» — جدیدترین محصولات منتشرشده بر اساس تاریخ ایجاد. */
+export async function getLatestProductCards(limit = 8): Promise<ProductCardData[]> {
+  const products = (await Product.find({ status: "published" })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .select("title slug images variants")
+    .lean()) as unknown as LeanProductForCard[];
+
+  const displayable = products.filter(isDisplayable);
+  const colorsMap = await buildColorsMap(displayable);
+
+  return displayable
+    .map((p) => {
+      const variant = pickRepresentativeVariant(p.variants);
+      return variant ? toProductCard(p, variant, colorsMap, null) : null;
+    })
+    .filter((card): card is ProductCardData => card !== null);
+}
+
+/**
+ * «پرفروش‌ترین‌ها» — بر اساس مجموع تعداد فروخته‌شدهٔ واقعی هر محصول
+ * در Orderها محاسبه می‌شود (نه Mock)؛ سفارش‌های لغوشده/مرجوعی در
+ * محاسبه در نظر گرفته نمی‌شوند. معیار فعلی: مجموع `quantity` تمام
+ * آیتم‌های آن محصول در تمام سفارش‌های باقی‌مانده — در آینده قابل
+ * تغییر به بازهٔ زمانی محدود (مثلاً ۳۰ روز اخیر) بدون تغییر در
+ * ساختار خروجی این تابع.
+ */
+export async function getBestSellerProductCards(limit = 8): Promise<ProductCardData[]> {
+  const bestSelling = await Order.aggregate<{ _id: Types.ObjectId; totalQuantity: number }>([
+    { $match: { status: { $nin: ["cancelled", "returned"] } } },
+    { $unwind: "$items" },
+    { $group: { _id: "$items.product", totalQuantity: { $sum: "$items.quantity" } } },
+    { $sort: { totalQuantity: -1 } },
+    { $limit: limit * 3 }, // Over-fetch: some products may since be unpublished/deleted/imageless.
+  ]);
+
+  if (bestSelling.length === 0) return [];
+
+  const orderedIds = bestSelling.map((r) => String(r._id));
+  const products = (await Product.find({
+    _id: { $in: orderedIds },
+    status: "published",
+  })
+    .select("title slug images variants")
+    .lean()) as unknown as LeanProductForCard[];
+
+  const byId = new Map(products.map((p) => [String(p._id), p]));
+  const displayable = orderedIds
+    .map((id) => byId.get(id))
+    .filter((p): p is LeanProductForCard => p !== undefined && isDisplayable(p))
+    .slice(0, limit);
+
+  const colorsMap = await buildColorsMap(displayable);
+
+  return displayable
+    .map((p) => {
+      const variant = pickRepresentativeVariant(p.variants);
+      return variant ? toProductCard(p, variant, colorsMap, null) : null;
+    })
+    .filter((card): card is ProductCardData => card !== null);
+}
+
+type LeanAmazingOffer = IAmazingOffer & {
+  _id: Types.ObjectId;
+  productId: LeanProductForCard | Types.ObjectId | null;
+};
+
+/** «شگفت‌انگیزها» — فقط Offerهایی که همین الان فعال و در بازهٔ زمانی معتبرشان هستند. */
+export async function getAmazingOfferProductCards(limit = 8): Promise<ProductCardData[]> {
+  const now = new Date();
+  const offers = (await AmazingOffer.find({
+    isActive: true,
+    startAt: { $lte: now },
+    endAt: { $gte: now },
+  })
+    .sort({ endAt: 1 })
+    .limit(limit)
+    .populate({
+      path: "productId",
+      match: { status: "published" },
+      select: "title slug images variants",
+    })
+    .lean()) as unknown as LeanAmazingOffer[];
+
+  const withProduct = offers.filter(
+    (o): o is LeanAmazingOffer & { productId: LeanProductForCard } =>
+      !!o.productId && typeof o.productId === "object" && "variants" in o.productId,
+  );
+  const displayableOffers = withProduct.filter((o) => isDisplayable(o.productId));
+
+  const colorsMap = await buildColorsMap(displayableOffers.map((o) => o.productId));
+
+  return displayableOffers
+    .map((offer) => {
+      const product = offer.productId;
+      const variant = product.variants.find((v) => String(v._id) === String(offer.variantId));
+      if (!variant) return null;
+
+      const finalPrice = computeAmazingOfferPrice(
+        variant.price,
+        offer.discountType,
+        offer.discountValue,
+      );
+
+      return toProductCard(product, variant, colorsMap, {
+        startAt: offer.startAt.toISOString(),
+        endAt: offer.endAt.toISOString(),
+        finalPrice,
+      });
+    })
+    .filter((card): card is ProductCardData => card !== null);
+}
