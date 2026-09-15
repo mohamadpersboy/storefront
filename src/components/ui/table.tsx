@@ -33,13 +33,23 @@ export function TableCard({
 export function Table({
   children,
   className,
+  /**
+   * روی موبایل بگذار — وقتی `Table` از قبل داخل یک `Card` با حاشیه
+   * خودش قرار دارد (نه `TableCard`) — تا هر ردیف دیگر حاشیه/گوشه‌گرد
+   * جدا نگیرد (که باعث «حاشیه دوتایی» می‌شد) و ردیف‌ها به‌جای کارت‌های
+   * جدا، به‌صورت یک لیست به‌هم‌پیوسته با فقط خط جداکننده نمایش داده شوند.
+   */
+  flat = false,
 }: {
   children: React.ReactNode;
   className?: string;
+  flat?: boolean;
 }) {
   return (
     <div className={cn("w-full overflow-x-auto sm:overflow-visible", className)}>
-      <table className="responsive-table w-full text-sm">{children}</table>
+      <table className={cn("responsive-table w-full text-sm", flat && "responsive-table--flat")}>
+        {children}
+      </table>
     </div>
   );
 }

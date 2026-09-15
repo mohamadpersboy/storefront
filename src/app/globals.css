@@ -137,6 +137,24 @@ body:has(> .storefront) {
     margin-top: 0.75rem;
   }
   /*
+   * حالت flat — وقتی Table از قبل داخل یک Card با حاشیه/گوشه‌گرد خودش
+   * است (نگاه کنید توضیح prop `flat` در table.tsx): هر ردیف حاشیه و
+   * گوشه‌گرد جدا نمی‌گیرد، بلکه ردیف‌ها به‌هم می‌چسبند و فقط با یک خط
+   * پایین از هم جدا می‌شوند — دقیقاً مثل یک لیست ساده.
+   */
+  .responsive-table--flat tr {
+    border: 0;
+    border-radius: 0;
+    border-bottom: 1px solid var(--color-border);
+    background: transparent;
+  }
+  .responsive-table--flat tr:last-child {
+    border-bottom: 0;
+  }
+  .responsive-table--flat tr + tr {
+    margin-top: 0;
+  }
+  /*
    * هر سلول یک Grid دو‌ستونی با نسبت ۲ به ۳ است (روی ۵ واحد فرضی:
    * ۲ واحد عنوان، ۳ واحد مقدار) — نه Flex با space-between؛ این‌طور
    * مقدارها به‌جای چسبیدن به لبه چپ کارت، بلافاصله بعد از عنوان (که

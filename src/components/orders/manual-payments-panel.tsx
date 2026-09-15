@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { AdminPicker } from "@/components/checks/admin-picker";
+import { CheckPicker, type CheckOption } from "@/components/checks/check-picker";
 import { PaymentStatusBadge } from "@/components/orders/payment-status-badge";
 import { formatToman, toPersianDigits, digitsOnly } from "@/lib/utils/format";
 import { formatJalali } from "@/lib/utils/jalali";
@@ -67,13 +68,6 @@ interface ReceiverUser {
   phoneNumber: string;
   role: string;
 }
-interface ApiCheckOption {
-  id: string;
-  amount: number;
-  sayadiId: string;
-  bank: { name: string } | null;
-}
-
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between text-foreground/80">
@@ -128,9 +122,10 @@ export function ManualPaymentsPanel({
         title="اطلاعات پرداخت"
         description="ثبت دستی وجوه دریافت‌شده برای این سفارش (نقدی/کارتخوان/کارت‌به‌کارت/چک)"
         action={
-          <Button size="sm" onClick={() => setFormOpen(true)}>
+          <Button size="sm" onClick={() => setFormOpen(true)} className="shrink-0">
             <Plus className="size-4" />
-            ثبت دریافت وجه
+            <span className="hidden sm:inline">ثبت دریافت وجه</span>
+            <span className="sm:hidden">دریافت</span>
           </Button>
         }
       />
@@ -218,8 +213,7 @@ function RecordPaymentModal({
   const [cardAccountId, setCardAccountId] = useState("");
 
   const [checkMode, setCheckMode] = useState<"existing" | "new">("existing");
-  const [checkOptions, setCheckOptions] = useState<ApiCheckOption[]>([]);
-  const [checkId, setCheckId] = useState("");
+  const [selectedCheck, setSelectedCheck] = useState<CheckOption | null>(null);
 
   const [banks, setBanks] = useState<ApiBank[]>([]);
   const [bankId, setBankId] = useState("");
@@ -248,9 +242,6 @@ function RecordPaymentModal({
     fetch("/api/v1/banks")
       .then((res) => res.json())
       .then((body) => body.success && setBanks(body.data.filter((b: { isActive: boolean }) => b.isActive)));
-    fetch("/api/v1/checks?status=registered&limit=50")
-      .then((res) => res.json())
-      .then((body) => body.success && setCheckOptions(body.data));
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -266,7 +257,11 @@ function RecordPaymentModal({
     } else if (method === "card_transfer") {
       payload = { method: "card_transfer", amount: Number(digitsOnly(amountInput)), cardAccountId };
     } else if (checkMode === "existing") {
-      payload = { method: "check", checkId };
+      if (!selectedCheck) {
+        setError("یک چک انتخاب کنید");
+        return;
+      }
+      payload = { method: "check", checkId: selectedCheck.id };
     } else {
       if (!receiver || !receivedDate || !dueDate) {
         setError("همه فیلدهای چک را کامل کنید");
@@ -411,15 +406,7 @@ function RecordPaymentModal({
               {checkMode === "existing" ? (
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-foreground/80">چک</label>
-                  <Combobox
-                    value={checkId}
-                    onChange={setCheckId}
-                    placeholder="انتخاب چک ثبت‌شده"
-                    options={checkOptions.map((c) => ({
-                      value: c.id,
-                      label: `${formatToman(c.amount)} — ${c.bank?.name ?? ""} — صیادی ${toPersianDigits(c.sayadiId)}`,
-                    }))}
-                  />
+                  <CheckPicker value={selectedCheck} onChange={setSelectedCheck} />
                 </div>
               ) : (
                 <div className="flex flex-col gap-3 rounded-[var(--radius-md)] border border-dashed border-border p-3">
@@ -462,7 +449,7 @@ function RecordPaymentModal({
                     </label>
                     <AdminPicker value={receiver} onChange={setReceiver} />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-2">
                     <div>
                       <label className="mb-1.5 block text-xs font-medium text-foreground/80">
                         تاریخ دریافت

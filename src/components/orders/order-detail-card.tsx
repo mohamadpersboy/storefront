@@ -214,7 +214,7 @@ export function OrderDetailCard({ order }: { order: OrderDetailData }) {
 
       <Card>
         <CardHeader title="اقلام سفارش" />
-        <Table>
+        <Table flat>
           <TableHeaderRow>
             <TableHead>محصول</TableHead>
             <TableHead>مشخصات</TableHead>
