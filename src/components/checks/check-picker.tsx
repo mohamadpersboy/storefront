@@ -32,7 +32,18 @@ export function CheckPicker({
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CheckOption[]>([]);
+  const [recentChecks, setRecentChecks] = useState<CheckOption[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // آخرین چک‌های ثبت‌شده — فقط یک‌بار در Mount، تا وقتی فیلد جستجو
+  // خالی است چیزی برای انتخاب سریع نمایش داده شود (بدون نیاز به تایپ).
+  useEffect(() => {
+    fetch(`/api/v1/checks?status=${status}&limit=5`)
+      .then((res) => res.json())
+      .then((body) => body.success && setRecentChecks(body.data as CheckOption[]))
+      .catch(() => setRecentChecks([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!query.trim()) {
@@ -73,6 +84,9 @@ export function CheckPicker({
     );
   }
 
+  const showingRecent = !query.trim();
+  const list = showingRecent ? recentChecks : results;
+
   return (
     <div className="flex flex-col gap-2">
       <div className="relative">
@@ -85,12 +99,15 @@ export function CheckPicker({
         />
       </div>
       {loading ? <p className="text-xs text-muted">در حال جستجو...</p> : null}
-      {!loading && query.trim() && results.length === 0 ? (
+      {!loading && !showingRecent && query.trim() && results.length === 0 ? (
         <p className="text-xs text-muted">موردی یافت نشد</p>
       ) : null}
-      {results.length > 0 ? (
+      {list.length > 0 ? (
         <ul className="flex flex-col gap-1 rounded-[var(--radius-md)] border border-border bg-surface">
-          {results.map((c) => (
+          {showingRecent ? (
+            <li className="px-3 pt-2 text-xs text-muted">آخرین چک‌های ثبت‌شده</li>
+          ) : null}
+          {list.map((c) => (
             <li key={c.id}>
               <button
                 type="button"
