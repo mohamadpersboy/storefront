@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { pickRepresentativeVariant } from "@/lib/storefront/homepage-products";
+import { buildCategoryIdGroups, pickRepresentativeVariant } from "@/lib/storefront/homepage-products";
 import type { IProductVariant } from "@/models/Product";
 import type { Types } from "mongoose";
+
+function asObjectId(id: string): Types.ObjectId {
+  return id as unknown as Types.ObjectId;
+}
 
 function makeVariant(overrides: Partial<IProductVariant>): IProductVariant {
   return {
@@ -50,5 +54,35 @@ describe("pickRepresentativeVariant", () => {
     const inactiveCheap = makeVariant({ price: 100, isActive: false });
     const activeInStock = makeVariant({ price: 3000, isActive: true, stock: 5 });
     expect(pickRepresentativeVariant([inactiveCheap, activeInStock])).toBe(activeInStock);
+  });
+});
+
+describe("buildCategoryIdGroups", () => {
+  it("maps each root category to at least itself", () => {
+    const groups = buildCategoryIdGroups([asObjectId("root1"), asObjectId("root2")], []);
+    expect(groups.get("root1")).toEqual(["root1"]);
+    expect(groups.get("root2")).toEqual(["root2"]);
+  });
+
+  it("adds each child's id under its parent's group", () => {
+    const groups = buildCategoryIdGroups(
+      [asObjectId("root1"), asObjectId("root2")],
+      [
+        { _id: asObjectId("child1"), parentId: asObjectId("root1") },
+        { _id: asObjectId("child2"), parentId: asObjectId("root1") },
+        { _id: asObjectId("child3"), parentId: asObjectId("root2") },
+      ],
+    );
+    expect(groups.get("root1")).toEqual(["root1", "child1", "child2"]);
+    expect(groups.get("root2")).toEqual(["root2", "child3"]);
+  });
+
+  it("ignores children whose parent is not in the root list", () => {
+    const groups = buildCategoryIdGroups(
+      [asObjectId("root1")],
+      [{ _id: asObjectId("orphan"), parentId: asObjectId("unrelated-root") }],
+    );
+    expect(groups.get("root1")).toEqual(["root1"]);
+    expect(groups.has("unrelated-root")).toBe(false);
   });
 });

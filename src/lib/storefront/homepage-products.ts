@@ -1,5 +1,6 @@
 import type { Types } from "mongoose";
 import { Product, type IProductVariant } from "@/models/Product";
+import { Category } from "@/models/Category";
 import { Color } from "@/models/Color";
 import { AmazingOffer, type IAmazingOffer } from "@/models/AmazingOffer";
 import { Order } from "@/models/Order";
@@ -120,6 +121,19 @@ function isDisplayable(p: LeanProductForCard): boolean {
   return p.images.length > 0 && p.variants.length > 0;
 }
 
+/** تبدیل دسته‌ای محصولات به کارت — منطق مشترک هر سه ردیف/بخش این فایل. */
+function toDisplayableCards(
+  products: LeanProductForCard[],
+  colorsMap: Map<string, { id: string; hexCode: string }>,
+): ProductCardData[] {
+  return products
+    .map((p) => {
+      const variant = pickRepresentativeVariant(p.variants);
+      return variant ? toProductCard(p, variant, colorsMap, null) : null;
+    })
+    .filter((card): card is ProductCardData => card !== null);
+}
+
 /** «جدیدترین‌ها» — جدیدترین محصولات منتشرشده بر اساس تاریخ ایجاد. */
 export async function getLatestProductCards(limit = 8): Promise<ProductCardData[]> {
   const products = (await Product.find({ status: "published" })
@@ -131,12 +145,7 @@ export async function getLatestProductCards(limit = 8): Promise<ProductCardData[
   const displayable = products.filter(isDisplayable);
   const colorsMap = await buildColorsMap(displayable);
 
-  return displayable
-    .map((p) => {
-      const variant = pickRepresentativeVariant(p.variants);
-      return variant ? toProductCard(p, variant, colorsMap, null) : null;
-    })
-    .filter((card): card is ProductCardData => card !== null);
+  return toDisplayableCards(displayable, colorsMap);
 }
 
 /**
@@ -174,12 +183,7 @@ export async function getBestSellerProductCards(limit = 8): Promise<ProductCardD
 
   const colorsMap = await buildColorsMap(displayable);
 
-  return displayable
-    .map((p) => {
-      const variant = pickRepresentativeVariant(p.variants);
-      return variant ? toProductCard(p, variant, colorsMap, null) : null;
-    })
-    .filter((card): card is ProductCardData => card !== null);
+  return toDisplayableCards(displayable, colorsMap);
 }
 
 type LeanAmazingOffer = IAmazingOffer & {
@@ -231,4 +235,91 @@ export async function getAmazingOfferProductCards(limit = 8): Promise<ProductCar
       });
     })
     .filter((card): card is ProductCardData => card !== null);
+}
+
+export type CategoryProductSection = {
+  id: string;
+  name: string;
+  slug: string;
+  items: ProductCardData[];
+};
+
+type LeanCategory = { _id: Types.ObjectId; name: string; slug: string };
+type LeanCategoryRef = { _id: Types.ObjectId; parentId: Types.ObjectId };
+
+/**
+ * هر دسته‌بندی سطح اول را به شناسهٔ خودش + شناسهٔ زیردسته‌های
+ * مستقیمش نگاشت می‌کند — چون محصول می‌تواند به خودِ دسته اصلی *یا*
+ * به یکی از زیردسته‌هایش متصل باشد (نگاه کنید فرم محصول، گزینه‌های
+ * دارای پیشوند «⤷»)؛ عمق مجاز دسته‌بندی حداکثر ۲ سطح است، پس یک
+ * سطح زیردسته برای پوشش کامل کافی است.
+ */
+export function buildCategoryIdGroups(
+  rootIds: Types.ObjectId[],
+  children: LeanCategoryRef[],
+): Map<string, string[]> {
+  const groups = new Map<string, string[]>(rootIds.map((id) => [String(id), [String(id)]]));
+  for (const child of children) {
+    const group = groups.get(String(child.parentId));
+    if (group) group.push(String(child._id));
+  }
+  return groups;
+}
+
+/**
+ * دسته‌بندی‌های سطح اول که در Dashboard هم «نمایش در صفحه اصلی» را
+ * دارند و هم «اولویت نمایش» (`sortOrder`) آن‌ها دقیقاً صفر تنظیم
+ * شده — طبق درخواست صریح کارفرما، هرکدام یک ردیف/کروسل محصول
+ * مستقل مثل «پرفروش‌ترین‌ها»/«جدیدترین‌ها» به صفحه اصلی اضافه
+ * می‌کند (محصولات آن دسته + زیردسته‌هایش، جدیدترین‌ها اول).
+ * دسته‌ای که فعلاً هیچ محصول قابل‌نمایشی ندارد از خروجی حذف
+ * می‌شود تا یک ردیف خالی رندر نشود.
+ */
+export async function getPriorityCategorySections(
+  limitPerCategory = 8,
+): Promise<CategoryProductSection[]> {
+  const priorityCategories = (await Category.find({
+    parentId: null,
+    isActive: true,
+    showOnHomepage: true,
+    sortOrder: 0,
+  })
+    .sort({ createdAt: 1 })
+    .select("name slug")
+    .lean()) as unknown as LeanCategory[];
+
+  if (priorityCategories.length === 0) return [];
+
+  const rootIds = priorityCategories.map((c) => c._id);
+  const children = (await Category.find({ parentId: { $in: rootIds } })
+    .select("parentId")
+    .lean()) as unknown as LeanCategoryRef[];
+
+  const categoryIdGroups = buildCategoryIdGroups(rootIds, children);
+
+  const sections = await Promise.all(
+    priorityCategories.map(async (category) => {
+      const categoryIds = categoryIdGroups.get(String(category._id)) ?? [String(category._id)];
+      const products = (await Product.find({
+        category: { $in: categoryIds },
+        status: "published",
+      })
+        .sort({ createdAt: -1 })
+        .limit(limitPerCategory)
+        .select("title slug images variants")
+        .lean()) as unknown as LeanProductForCard[];
+
+      const displayable = products.filter(isDisplayable);
+      const colorsMap = await buildColorsMap(displayable);
+
+      return {
+        id: String(category._id),
+        name: category.name,
+        slug: category.slug,
+        items: toDisplayableCards(displayable, colorsMap),
+      };
+    }),
+  );
+
+  return sections.filter((section) => section.items.length > 0);
 }

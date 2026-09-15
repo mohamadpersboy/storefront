@@ -9,6 +9,7 @@ import { BrandsSection, type HomepageBrand } from "@/components/storefront/brand
 import { AmazingOffersSection } from "@/components/storefront/amazing-offers-section";
 import { BestSellersSection } from "@/components/storefront/best-sellers-section";
 import { LatestProductsSection } from "@/components/storefront/latest-products-section";
+import { CategoryProductsSection } from "@/components/storefront/category-products-section";
 import type { ProductCardData } from "@/components/storefront/product-card";
 import { FeaturesRow } from "@/components/storefront/features-row";
 import { AboutUsCard } from "@/components/storefront/about-us-card";
@@ -24,6 +25,8 @@ import {
   getAmazingOfferProductCards,
   getBestSellerProductCards,
   getLatestProductCards,
+  getPriorityCategorySections,
+  type CategoryProductSection,
 } from "@/lib/storefront/homepage-products";
 
 /**
@@ -190,6 +193,22 @@ async function getLatestProductsSafe(): Promise<ProductCardData[]> {
   }
 }
 
+/**
+ * دسته‌بندی‌های سطح اول با «اولویت نمایش» (`sortOrder`) دقیقاً صفر
+ * — طبق درخواست صریح کارفرما، هرکدام یک ردیف/کروسل محصول مستقل مثل
+ * «پرفروش‌ترین‌ها»/«جدیدترین‌ها» می‌گیرند. تعدادشان از قبل مشخص
+ * نیست (صفر تا چند دسته)، پس در JSX پایین با `.map` رندر می‌شوند،
+ * نه یک Prop ثابت مثل بقیهٔ ردیف‌ها.
+ */
+async function getPriorityCategorySectionsSafe(): Promise<CategoryProductSection[]> {
+  try {
+    await connectToDatabase();
+    return await getPriorityCategorySections();
+  } catch {
+    return [];
+  }
+}
+
 export default async function StorefrontHomePage() {
   const [
     banners,
@@ -201,6 +220,7 @@ export default async function StorefrontHomePage() {
     amazingOffers,
     bestSellers,
     latestProducts,
+    priorityCategorySections,
   ] = await Promise.all([
     getActiveBanners(),
     getHomepageCategories(),
@@ -211,6 +231,7 @@ export default async function StorefrontHomePage() {
     getAmazingOffersSafe(),
     getBestSellersSafe(),
     getLatestProductsSafe(),
+    getPriorityCategorySectionsSafe(),
   ]);
 
   return (
@@ -225,6 +246,14 @@ export default async function StorefrontHomePage() {
       <AmazingOffersSection items={amazingOffers} />
       <BestSellersSection items={bestSellers} />
       <LatestProductsSection items={latestProducts} />
+      {priorityCategorySections.map((section) => (
+        <CategoryProductsSection
+          key={section.id}
+          title={section.name}
+          seeAllHref={`/products/category/${section.slug}`}
+          items={section.items}
+        />
+      ))}
       <FeaturesRow />
       <AboutUsCard title={aboutUs.title} content={aboutUs.content} />
       <Footer socialLinks={socialLinks} />
