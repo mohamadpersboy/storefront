@@ -11,6 +11,12 @@ export interface IContactUs {
   workingHours: string;
   latitude: number | null;
   longitude: number | null;
+  /** لینک مستقیم چت با ادمین پشتیبانی (مثلاً t.me/username یا wa.me/...) */
+  supportAdminLink: string;
+  telegramLink: string;
+  whatsappLink: string;
+  rubikaLink: string;
+  eitaaLink: string;
   updatedAt: Date;
 }
 
@@ -24,6 +30,11 @@ const ContactUsSchema = new Schema<IContactUs>(
     workingHours: { type: String, default: "", trim: true },
     latitude: { type: Number, default: null },
     longitude: { type: Number, default: null },
+    supportAdminLink: { type: String, default: "", trim: true },
+    telegramLink: { type: String, default: "", trim: true },
+    whatsappLink: { type: String, default: "", trim: true },
+    rubikaLink: { type: String, default: "", trim: true },
+    eitaaLink: { type: String, default: "", trim: true },
   },
   { timestamps: { createdAt: false, updatedAt: true } },
 );

@@ -8,6 +8,26 @@ export const updateContactUsSchema = z.object({
   workingHours: z.string().trim().max(300).optional().default(""),
   latitude: z.number().min(-90).max(90).nullable().optional().default(null),
   longitude: z.number().min(-180).max(180).nullable().optional().default(null),
+  supportAdminLink: z
+    .union([z.string().trim().url("آدرس معتبر نیست"), z.literal("")])
+    .optional()
+    .default(""),
+  telegramLink: z
+    .union([z.string().trim().url("آدرس معتبر نیست"), z.literal("")])
+    .optional()
+    .default(""),
+  whatsappLink: z
+    .union([z.string().trim().url("آدرس معتبر نیست"), z.literal("")])
+    .optional()
+    .default(""),
+  rubikaLink: z
+    .union([z.string().trim().url("آدرس معتبر نیست"), z.literal("")])
+    .optional()
+    .default(""),
+  eitaaLink: z
+    .union([z.string().trim().url("آدرس معتبر نیست"), z.literal("")])
+    .optional()
+    .default(""),
 });
 
 export type UpdateContactUsInput = z.infer<typeof updateContactUsSchema>;

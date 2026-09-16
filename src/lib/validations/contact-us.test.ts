@@ -16,8 +16,29 @@ describe("updateContactUsSchema", () => {
       workingHours: "شنبه تا پنجشنبه، ۹ الی ۱۸",
       latitude: 35.7,
       longitude: 51.4,
+      supportAdminLink: "https://t.me/saghatchi_support",
+      telegramLink: "https://t.me/saghatchi",
+      whatsappLink: "https://wa.me/989121234567",
+      rubikaLink: "https://rubika.ir/saghatchi",
+      eitaaLink: "https://eitaa.com/saghatchi",
     });
     expect(result.success).toBe(true);
+  });
+
+  it("accepts empty strings for all messenger links", () => {
+    const result = updateContactUsSchema.safeParse({
+      supportAdminLink: "",
+      telegramLink: "",
+      whatsappLink: "",
+      rubikaLink: "",
+      eitaaLink: "",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid support admin link", () => {
+    const result = updateContactUsSchema.safeParse({ supportAdminLink: "not-a-url" });
+    expect(result.success).toBe(false);
   });
 
   it("rejects an invalid email", () => {

@@ -17,6 +17,11 @@ interface ContactUsData {
   workingHours: string;
   latitude: number | null;
   longitude: number | null;
+  supportAdminLink: string;
+  telegramLink: string;
+  whatsappLink: string;
+  rubikaLink: string;
+  eitaaLink: string;
 }
 
 export function ContactUsForm() {
@@ -185,6 +190,81 @@ export function ContactUsForm() {
                   setMapOpen(false);
                 }}
               />
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="لینک‌های پشتیبانی"
+          description="برای استفاده در دکمه‌های تماس سریع Storefront (مثلاً چت با ادمین یا آیکون‌های پیام‌رسان در فوتر/صفحه تماس با ما)"
+        />
+        <CardContent className="flex flex-col gap-4">
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-foreground/80">
+              لینک ادمین پشتیبانی
+            </label>
+            <Input
+              dir="ltr"
+              value={data.supportAdminLink}
+              onChange={(e) => setData({ ...data, supportAdminLink: e.target.value })}
+              placeholder="https://t.me/username"
+            />
+            {fieldErrors.supportAdminLink ? (
+              <p className="mt-1 text-xs text-danger">{fieldErrors.supportAdminLink[0]}</p>
+            ) : null}
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-foreground/80">تلگرام</label>
+            <Input
+              dir="ltr"
+              value={data.telegramLink}
+              onChange={(e) => setData({ ...data, telegramLink: e.target.value })}
+              placeholder="https://t.me/username"
+            />
+            {fieldErrors.telegramLink ? (
+              <p className="mt-1 text-xs text-danger">{fieldErrors.telegramLink[0]}</p>
+            ) : null}
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-foreground/80">واتس‌اپ</label>
+            <Input
+              dir="ltr"
+              value={data.whatsappLink}
+              onChange={(e) => setData({ ...data, whatsappLink: e.target.value })}
+              placeholder="https://wa.me/98912xxxxxxx"
+            />
+            {fieldErrors.whatsappLink ? (
+              <p className="mt-1 text-xs text-danger">{fieldErrors.whatsappLink[0]}</p>
+            ) : null}
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-foreground/80">روبیکا</label>
+            <Input
+              dir="ltr"
+              value={data.rubikaLink}
+              onChange={(e) => setData({ ...data, rubikaLink: e.target.value })}
+              placeholder="https://rubika.ir/username"
+            />
+            {fieldErrors.rubikaLink ? (
+              <p className="mt-1 text-xs text-danger">{fieldErrors.rubikaLink[0]}</p>
+            ) : null}
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-foreground/80">ایتا</label>
+            <Input
+              dir="ltr"
+              value={data.eitaaLink}
+              onChange={(e) => setData({ ...data, eitaaLink: e.target.value })}
+              placeholder="https://eitaa.com/username"
+            />
+            {fieldErrors.eitaaLink ? (
+              <p className="mt-1 text-xs text-danger">{fieldErrors.eitaaLink[0]}</p>
             ) : null}
           </div>
         </CardContent>

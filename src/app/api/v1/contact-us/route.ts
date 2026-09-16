@@ -15,6 +15,11 @@ function serialize(doc: Awaited<ReturnType<typeof getContactUs>>) {
     workingHours: doc.workingHours,
     latitude: doc.latitude,
     longitude: doc.longitude,
+    supportAdminLink: doc.supportAdminLink,
+    telegramLink: doc.telegramLink,
+    whatsappLink: doc.whatsappLink,
+    rubikaLink: doc.rubikaLink,
+    eitaaLink: doc.eitaaLink,
   };
 }
 

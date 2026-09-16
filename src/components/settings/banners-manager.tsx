@@ -132,25 +132,27 @@ export function BannersManager() {
         ) : (
           <ul className="divide-y divide-border">
             {banners.map((banner, i) => (
-              <li key={banner.id} className="flex items-center gap-3 px-5 py-3">
-                <div className="relative aspect-[16/9] w-20 shrink-0 overflow-hidden rounded-[var(--radius-md)] border border-border bg-white">
-                  <Image
-                    src={banner.imageUrl}
-                    alt={banner.title}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {banner.title}
-                  </p>
-                  <p className="truncate text-xs text-muted">{banner.href}</p>
+              <li key={banner.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-3">
+                <div className="flex min-w-0 flex-1 items-center gap-3 basis-full sm:basis-auto">
+                  <div className="relative aspect-[16/9] w-20 shrink-0 overflow-hidden rounded-[var(--radius-md)] border border-border bg-white">
+                    <Image
+                      src={banner.imageUrl}
+                      alt={banner.title}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {banner.title}
+                    </p>
+                    <p className="truncate text-xs text-muted">{banner.href}</p>
+                  </div>
                 </div>
                 <Badge tone={banner.isActive ? "success" : "neutral"}>
                   {banner.isActive ? "فعال" : "غیرفعال"}
                 </Badge>
-                <div className="flex items-center gap-1">
+                <div className="mr-auto flex items-center gap-1 sm:mr-0">
                   <button
                     onClick={() => move(banner, "up")}
                     disabled={busyId === banner.id || i === 0}

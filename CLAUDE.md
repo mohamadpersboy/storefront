@@ -1090,7 +1090,14 @@ Desktop Header، یا Phase 6: Most Discounted Products Carousel).
     `secondaryPhone`, `email`, `address`, `workingHours`, و
     `latitude`/`longitude` اختیاری — فرم Dashboard از همان
     `NeshanMapPicker` مرحله ۵ سند Audit استفاده مجدد می‌کند (بدون هیچ
-    منطق نقشه جدید) تا موقعیت فروشگاه انتخاب شود.
+    منطق نقشه جدید) تا موقعیت فروشگاه انتخاب شود. همچنین ۵ فیلد لینک
+    اختیاری (`supportAdminLink`, `telegramLink`, `whatsappLink`,
+    `rubikaLink`, `eitaaLink`) — درخواست صریح کارفرما برای استفادهٔ
+    بعدی در دکمه‌های تماس سریع Storefront (کارفرما بعداً مشخص می‌کند
+    دقیقاً کجا)؛ فعلاً فقط در Dashboard ذخیره می‌شوند و هیچ‌جای
+    Storefront به آن‌ها Wire نشده — با `SocialLinks` (که برای فوتر/
+    شبکه‌های اجتماعی عمومی فروشگاه است) اشتباه گرفته نشود، این‌ها
+    مخصوص «تماس با ما»/پشتیبانی‌اند.
   - `Faq` (لیست معمولی، `src/models/Faq.ts`، الگوی `Color`):
     `question`, `answer`, `isActive`, `sortOrder` — CRUD کامل.
   - APIها: `GET/PATCH /api/v1/about-us`, `GET/PATCH
@@ -2427,10 +2434,11 @@ Secretهای سرور را هم دارد) Import کند — حتی برای خو
   Overflow)، و اسکرول/سقف ارتفاع روی خودِ پنل/فرم داخلی:
   `max-h-[90vh] ... overflow-y-auto`. هر Modal جدید یا طولانی باید از
   همین الگو پیروی کند، نه از الگوی قدیمیِ `manual-payments-panel.tsx`.
-  (نکته: `BannersManager` هم از همان الگوی لیست تخت `BrandsManager`
-  کپی شده — اگر همین باگِ نام‌ناپدیدشونده روی موبایل در Banners هم دیده
-  شد، همین اصلاح باید آنجا هم تکرار شود؛ فعلاً فقط طبق درخواست روی
-  Brands انجام شد.)
+
+- **رفع شد — همین باگِ «نام دیده نمی‌شود روی موبایل» در `BannersManager`
+  هم عیناً وجود داشت (کپی از الگوی `BrandsManager` بود):** دقیقاً همان
+  اصلاح (Flex Row به `flex-wrap`، بلوک تصویر+عنوان با `basis-full`
+  خط اختصاصی خودش را می‌گیرد) روی `banners-manager.tsx` هم اعمال شد.
 
 - **رفع شد — نام برند در لیست موبایل صفحهٔ Brands اصلاً دیده نمی‌شد
   (وقتی تصویر آپلود نشده، تشخیص برند ممکن نبود):** ردیف `<li>` یک
