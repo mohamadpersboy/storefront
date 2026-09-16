@@ -134,32 +134,34 @@ export function BrandsManager() {
         ) : (
           <ul className="divide-y divide-border">
             {brands.map((brand, i) => (
-              <li key={brand.id} className="flex items-center gap-3 px-5 py-3">
-                <div className="relative aspect-square w-14 shrink-0 overflow-hidden rounded-[var(--radius-md)] border border-border bg-white">
-                  {brand.imageUrl ? (
-                    <Image
-                      src={brand.imageUrl}
-                      alt={brand.name}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex size-full items-center justify-center text-muted">
-                      <Award className="size-5" />
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{brand.name}</p>
-                  <p className="truncate text-xs text-muted" dir="ltr">
-                    {brand.slug}
-                  </p>
+              <li key={brand.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-3">
+                <div className="flex min-w-0 flex-1 items-center gap-3 basis-full sm:basis-auto">
+                  <div className="relative aspect-square w-14 shrink-0 overflow-hidden rounded-[var(--radius-md)] border border-border bg-white">
+                    {brand.imageUrl ? (
+                      <Image
+                        src={brand.imageUrl}
+                        alt={brand.name}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="flex size-full items-center justify-center text-muted">
+                        <Award className="size-5" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">{brand.name}</p>
+                    <p className="truncate text-xs text-muted" dir="ltr">
+                      {brand.slug}
+                    </p>
+                  </div>
                 </div>
                 {brand.showOnHomepage ? <Badge tone="primary">صفحه اصلی</Badge> : null}
                 <Badge tone={brand.isActive ? "success" : "neutral"}>
                   {brand.isActive ? "فعال" : "غیرفعال"}
                 </Badge>
-                <div className="flex items-center gap-1">
+                <div className="mr-auto flex items-center gap-1 sm:mr-0">
                   <button
                     onClick={() => move(brand, "up")}
                     disabled={busyId === brand.id || i === 0}

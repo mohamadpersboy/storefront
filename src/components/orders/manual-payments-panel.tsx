@@ -317,11 +317,11 @@ function RecordPaymentModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
       <form
         onSubmit={handleSubmit}
-        className="relative my-8 w-full max-w-lg rounded-[var(--radius-lg)] border border-border bg-surface p-5"
+        className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-y-auto rounded-[var(--radius-lg)] border border-border bg-surface p-5"
       >
         <h2 className="mb-4 text-sm font-semibold text-foreground">ثبت دریافت وجه</h2>
 
