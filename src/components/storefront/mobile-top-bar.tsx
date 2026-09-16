@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Search, Headphones } from "lucide-react";
+import { Search } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { NotificationBell } from "@/components/storefront/notification-bell";
+import { SupportPopup, type SupportContactData } from "@/components/storefront/support-popup";
 
 /**
  * Top Bar موبایل Storefront.
@@ -43,8 +44,17 @@ import { NotificationBell } from "@/components/storefront/notification-bell";
  * آیکون Notification از یک Link ساده به کامپوننت مستقل
  * `NotificationBell` (پاپ‌آپ کامل با بستن با کلیک بیرون/Escape)
  * تغییر کرد — نگاه کنید `notification-bell.tsx`.
+ *
+ * آیکون Support هم به همان الگو، از یک Link ساده به `/support` به
+ * کامپوننت مستقل `SupportPopup` تغییر کرد — درخواست صریح کارفرما:
+ * پاپ‌آپی مشابه اعلان‌ها که تماس تلفنی + لینک ادمین پشتیبانی +
+ * پیام‌رسان‌های ثبت‌شده در «تنظیمات ← تماس با ما» را لیست کند.
+ * داده از DB در همان Server Component صفحه اصلی خوانده و به این‌جا
+ * Prop داده می‌شود (نگاه کنید `page.tsx` → `getSupportContactSafe`)
+ * — نه یک Fetch جدا در خود `SupportPopup`، تا با الگوی همین فایل
+ * برای بقیهٔ داده‌های صفحه اصلی (بنر/برند/شبکه اجتماعی) یکسان بماند.
  */
-export function MobileTopBar() {
+export function MobileTopBar({ support }: { support: SupportContactData }) {
   return (
     <div
       className={cn(
@@ -74,13 +84,7 @@ export function MobileTopBar() {
 
           <NotificationBell />
 
-          <Link
-            href="/support"
-            aria-label="پشتیبانی"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-400 active:bg-gray-200"
-          >
-            <Headphones className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
-          </Link>
+          <SupportPopup support={support} />
         </div>
       </div>
     </div>

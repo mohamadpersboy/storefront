@@ -1,4 +1,5 @@
 import { MobileTopBar } from "@/components/storefront/mobile-top-bar";
+import type { SupportContactData } from "@/components/storefront/support-popup";
 import { HeroSlider, type HeroBannerSlide } from "@/components/storefront/hero-slider";
 import {
   CategoryShortcuts,
@@ -21,6 +22,7 @@ import { Brand } from "@/models/Brand";
 import { getShippingSettings } from "@/models/ShippingSettings";
 import { getSocialLinks } from "@/models/SocialLinks";
 import { getAboutUs } from "@/models/AboutUs";
+import { getContactUs } from "@/models/ContactUs";
 import {
   getAmazingOfferProductCards,
   getBestSellerProductCards,
@@ -157,6 +159,31 @@ async function getAboutUsContent(): Promise<{ title: string; content: string }> 
   }
 }
 
+async function getSupportContactSafe(): Promise<SupportContactData> {
+  const empty: SupportContactData = {
+    phone: "",
+    supportAdminLink: "",
+    telegramLink: "",
+    whatsappLink: "",
+    rubikaLink: "",
+    eitaaLink: "",
+  };
+  try {
+    await connectToDatabase();
+    const contact = await getContactUs();
+    return {
+      phone: contact.phone,
+      supportAdminLink: contact.supportAdminLink,
+      telegramLink: contact.telegramLink,
+      whatsappLink: contact.whatsappLink,
+      rubikaLink: contact.rubikaLink,
+      eitaaLink: contact.eitaaLink,
+    };
+  } catch {
+    return empty;
+  }
+}
+
 /**
  * سه ردیف محصول صفحه اصلی (شگفت‌انگیزها/پرفروش‌ترین‌ها/جدیدترین‌ها)
  * دیگر Mock نیستند — منطق واقعی Query در
@@ -217,6 +244,7 @@ export default async function StorefrontHomePage() {
     freeShippingThreshold,
     socialLinks,
     aboutUs,
+    supportContact,
     amazingOffers,
     bestSellers,
     latestProducts,
@@ -228,6 +256,7 @@ export default async function StorefrontHomePage() {
     getFreeShippingThreshold(),
     getActiveSocialLinks(),
     getAboutUsContent(),
+    getSupportContactSafe(),
     getAmazingOffersSafe(),
     getBestSellersSafe(),
     getLatestProductsSafe(),
@@ -236,7 +265,7 @@ export default async function StorefrontHomePage() {
 
   return (
     <>
-      <MobileTopBar />
+      <MobileTopBar support={supportContact} />
       <HeroSlider banners={banners} />
       <CategoryShortcuts categories={categories} />
       {freeShippingThreshold !== null ? (
