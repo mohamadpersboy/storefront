@@ -640,9 +640,54 @@ Sellers Carousel («پرفروش‌ترین‌ها») زودتر از ترتیب
 
 تست‌ها: TS/ESLint/Vitest (۲۹۸ تست)/Build همه سبز.
 
+**⚠️ تغییر مسیر: کاربر یک Master Prompt مستقل جدید داد — «Product
+Details Page» (نه ادامه توالی قبلی Homepage). طبق دستور صریح، فعلاً
+فقط همین صفحه پیش می‌رود؛ توالی Homepage (Phase 2 دسکتاپ هدر و بقیه)
+متوقف و منتظر دستور بعدی کارفرماست.**
+
+**Product Details — Phase 1 (Top Bar + Gallery تصویر) انجام شد:**
+
+- Route جدید `src/app/(storefront)/products/[slug]/page.tsx` —
+  Server Component، فقط محصول `status: "published"` را با
+  `getProductDetailBySlug` می‌خواند (مستقیم از DB، هم‌الگو با
+  `homepage-products.ts`)؛ محصول ناموجود/غیرمنتشر → `notFound()`.
+  طبق دستور صریح Master Prompt، فقط Top Bar + Gallery رندر می‌شوند؛
+  عنوان/قیمت/Variant/افزودن به سبد/توضیحات/محصولات مرتبط/نظرات
+  عمداً خارج از این فاز‌اند.
+- `src/lib/storefront/get-product-detail.ts`: `select("title
+  images")` — فقط فیلدهای لازم همین فاز.
+- `src/components/storefront/product-top-bar.tsx`: فقط دو اکشن
+  (بازگشت + اشتراک‌گذاری با Web Share API، Fallback به کپی
+  Clipboard) — طبق «Do not invent unnecessary actions»؛ بدون عنوان
+  محصول (چون Title جزو این فاز نیست).
+- `src/components/storefront/product-image-gallery.tsx` +
+  `src/lib/storefront/product-gallery-math.ts` (منطق خالص، ۲۵ تست
+  Unit): گالری با ارتفاع پویا Progress-based (۰..۱ → `calc(40dvh +
+  progress*20dvh)`)؛ درگ عمودی رو به بالا آن‌را تا ۶۰vh باز می‌کند
+  (دنبال‌کردن زنده انگشت با نوشتن مستقیم روی `ref.style` بدون
+  Re-render، نه State در هر فریم)، رهاکردن با آستانه ۵۰٪ به یکی از
+  دو سر Snap می‌شود؛ اسکرول صفحه (نه درگ گالری) به‌تدریج از حالت باز
+  به ۴۰vh برمی‌گرداند. تشخیص جهت غالب (افقی=تغییر تصویر/عمودی=ارتفاع)
+  قبل از Commit به یک تعامل، با آستانه ۸px. اسلایدر افقی با
+  Pointer Events (نه فقط Touch) — دنبال‌کردن زنده + آستانه Swipe
+  ۵۰px، Dot Indicator، ناوبری کیبورد (Arrow Keys، هم‌سو با RTL).
+  بدون کتابخانه انیمیشن جدید (هیچ‌کدام در پروژه نصب نبود) — فقط
+  CSS Transform/Transition + Pointer Events خام.
+- **محدودیت مستندشده:** مدل `Product`/`Product.images` فیلد
+  `imageBlurDataUrl` ندارد (برخلاف Banner/Category) — پس Mesh Blur
+  واقعی داده‌محور فعلاً ممکن نیست. `get-product-detail.ts` همیشه
+  `blurDataUrl: null` برمی‌گرداند؛ گالری به‌جایش یک Placeholder
+  سبک (`animate-pulse` با گرادیان خاکستری روشن، نه Skeleton خاکستری
+  تخت Generic) نشان می‌دهد تا Reveal تصویر پیاده شود. افزودن این
+  فیلد به مدل + تغییر جریان آپلود `ProductImageUploader` در Dashboard
+  یک تصمیم معماری جداست (تغییر گسترده در بخش دیگر) — منتظر اجازه
+  صریح کارفرما، خارج از Scope همین فاز.
+- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۳۶۹ تست، ۲۵ تست جدید
+  `product-gallery-math`)، Build ✅.
+
 **Branch فعلی:** `main`
-**Feature بعدی:** منتظر تأیید کاربر برای ماژول بعدی (Phase 2:
-Desktop Header، یا Phase 6: Most Discounted Products Carousel).
+**Feature بعدی:** منتظر تأیید کاربر — Approve → ماژول بعدی Product
+Details (مثلاً Title/Price)؛ یا Changes Required؛ یا Rejected.
 
 ## 3. Completed Features
 
@@ -1562,6 +1607,11 @@ Desktop Header، یا Phase 6: Most Discounted Products Carousel).
 
 ## 4. In Progress
 
+**فعلاً در دست اجرا: Product Details Page (نگاه کنید بخش ۲ برای
+جزئیات Phase ۱ — Top Bar + Gallery). توالی Homepage زیر (Phase 2 به
+بعد) موقتاً متوقف است، Discard نشده — با دستور کارفرما ادامه
+می‌یابد.**
+
 **مدیریت مالی — Phase ۱ و Phase ۲ (Master Prompt — Financial
 Management) تکمیل شدند.** سند اصلی فقط همین دو Phase را تعریف کرده
 بود (پایان Phase ۲ در سند: «آیا تأیید می‌کنی وارد فاز بعدی مدیریت
@@ -1757,7 +1807,10 @@ src/
       amazing-offers/  page.tsx + new/ + [id]/edit/
       coupons/  page.tsx + new/ + [id]/edit/
       customers/  page.tsx + [id]/page.tsx
-    (storefront)/               - حذف شد (نگاه کنید بخش «In Progress»)؛ از صفر ساخته می‌شود
+    (storefront)/
+      layout.tsx, page.tsx (Homepage)
+      account/  page.tsx + addresses/ + bank-info/ + edit-profile/ + wallet/
+      products/[slug]/  page.tsx (فقط Top Bar + Gallery — Phase ۱)
     payment/result/page.tsx    - نتیجه پرداخت، Public (بدون Layout Dashboard)
     api/v1/
       auth/  otp/{request,verify}/route.ts, logout/route.ts
@@ -1800,7 +1853,9 @@ src/
                   coupons-page-client
     customers/  - customers-page-client, CustomerDetailCard, WalletManager
     auth/       - OtpLoginForm
-    storefront/ - حذف شد (StorefrontHeader/StorefrontSearchBar قبلی)
+    storefront/ - MobileTopBar/MobileBottomBar/HeroSlider/ProductCard/
+                  SectionHeader/PageHeader/Footer/... (Homepage + Account)
+                  + ProductTopBar/ProductImageGallery (Product Details Phase ۱)
   config/env.ts
   fonts/index.ts
   lib/
@@ -1821,6 +1876,8 @@ src/
                 (adjustWalletBalance — Atomic با findOneAndUpdate+$inc)
     products/   resolve-categories.ts (resolveProductCategories — جایگزین امن populate("category")
                 در برابر category خراب در DB؛ نگاه کنید Known Issues)
+    storefront/ homepage-products.ts, get-product-detail.ts,
+                product-gallery-math.ts (منطق خالص گالری محصول)
     import/     parse-excel.ts, validate-province-city-rows.ts (تابع خالص),
                 import-provinces-cities.ts
     neshan/     config.ts (NEXT_PUBLIC_NESHAN_API_KEY + آدرس‌های پایه API)
