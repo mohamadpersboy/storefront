@@ -4,6 +4,7 @@ import {
   hasDiscount,
   computePrepayment,
   computeRemainingOnlineAmount,
+  computeDisplayDiscountPercent,
 } from "@/lib/utils/pricing";
 
 describe("computeFinalPrice", () => {
@@ -91,5 +92,24 @@ describe("computeRemainingOnlineAmount", () => {
   it("returns 0 once fully paid, never negative", () => {
     expect(computeRemainingOnlineAmount(500_000, 500_000)).toBe(0);
     expect(computeRemainingOnlineAmount(500_000, 600_000)).toBe(0);
+  });
+});
+
+describe("computeDisplayDiscountPercent", () => {
+  it("returns 0 when there is no discount", () => {
+    expect(computeDisplayDiscountPercent(100_000, 100_000)).toBe(0);
+  });
+
+  it("computes the rounded percent drop", () => {
+    expect(computeDisplayDiscountPercent(100_000, 90_000)).toBe(10);
+  });
+
+  it("returns 0 for a non-positive base price", () => {
+    expect(computeDisplayDiscountPercent(0, 0)).toBe(0);
+  });
+
+  it("returns 0 when final price is not actually lower", () => {
+    expect(computeDisplayDiscountPercent(100_000, 100_000)).toBe(0);
+    expect(computeDisplayDiscountPercent(100_000, 110_000)).toBe(0);
   });
 });

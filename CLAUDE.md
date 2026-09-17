@@ -685,9 +685,28 @@ Details Page» (نه ادامه توالی قبلی Homepage). طبق دستور
 - تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۳۶۹ تست، ۲۵ تست جدید
   `product-gallery-math`)، Build ✅.
 
+**Product Details — Phase 2 (عنوان + قیمت) انجام شد:**
+
+- `src/components/storefront/product-info-header.tsx`: فقط عنوان
+  (`h1`) + قیمت — Variant/ویژگی/موجودی/افزودن به سبد/توضیحات/
+  محصولات مرتبط/نظرات عمداً خارج از Scope (طبق همان محدودیت Phase 1).
+- قیمت با `pickRepresentativeVariant` (تابع صادرشدهٔ
+  `homepage-products.ts`، بدون Duplicate) — ارزان‌ترین Variant فعال/
+  موجود، هم‌الگو با محاسبه صفحه اصلی. این یک قیمت «نماینده/شروع»
+  است، نه انتخاب واقعی کاربر (که ماژول جداست).
+- Refactor کوچک بدون Breaking Change: تابع مشترک جدید
+  `computeDisplayDiscountPercent` در `pricing.ts` (۴ تست) — فرمول
+  درصد تخفیف که قبلاً فقط Inline در `ProductCard` بود، حالا در یک
+  جا؛ `ProductCard` هم به همین تابع مشترک وصل شد تا Duplicate نماند.
+- `get-product-detail.ts`: `select()` به `variants` هم گسترش یافت؛
+  فیلد جدید `price: {basePrice, finalPrice} | null` روی
+  `ProductDetailData`.
+- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۳۷۳ تست، ۴ تست جدید)،
+  Build ✅.
+
 **Branch فعلی:** `main`
 **Feature بعدی:** منتظر تأیید کاربر — Approve → ماژول بعدی Product
-Details (مثلاً Title/Price)؛ یا Changes Required؛ یا Rejected.
+Details؛ یا Changes Required؛ یا Rejected.
 
 ## 3. Completed Features
 

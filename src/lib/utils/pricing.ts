@@ -18,6 +18,18 @@ export function hasDiscount(discountPercent: number, discountAmount: number): bo
 }
 
 /**
+ * درصد تخفیف مؤثر برای نمایش (نه مقدار خام `discountPercent` روی
+ * Variant — چون `discountAmount` ثابت هم می‌تواند روی درصد نهایی اثر
+ * بگذارد). قبلاً به‌صورت Inline در `ProductCard` محاسبه می‌شد؛ اینجا
+ * استخراج شد تا کامپوننت‌های دیگر (مثلاً بخش قیمت صفحه جزئیات
+ * محصول) همان فرمول را تکرار نکنند.
+ */
+export function computeDisplayDiscountPercent(basePrice: number, finalPrice: number): number {
+  if (basePrice <= 0 || finalPrice >= basePrice) return 0;
+  return Math.round(((basePrice - finalPrice) / basePrice) * 100);
+}
+
+/**
  * The online amount still owed on an order's prepayment, after
  * subtracting whatever has already been collected through the
  * gateway. Never negative — a rounding mismatch or a duplicate

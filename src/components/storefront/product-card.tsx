@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { toPersianDigits, formatNumber, TOMAN_GLYPH } from "@/lib/utils/format";
+import { computeDisplayDiscountPercent } from "@/lib/utils/pricing";
 
 /** فقط وقتی محصول واقعاً یک Amazing Offer فعال هم هست پر می‌شود؛ در غیر این صورت `null`. */
 export type ProductCardAmazingOffer = {
@@ -91,9 +92,7 @@ export function ProductCard({ item }: { item: ProductCardData }) {
   );
 
   const hasRealDiscount = item.finalPrice < item.basePrice;
-  const discountPercent = hasRealDiscount
-    ? Math.round(((item.basePrice - item.finalPrice) / item.basePrice) * 100)
-    : 0;
+  const discountPercent = computeDisplayDiscountPercent(item.basePrice, item.finalPrice);
 
   return (
     <Link
