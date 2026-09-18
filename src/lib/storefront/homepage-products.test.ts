@@ -22,6 +22,7 @@ function makeVariant(overrides: Partial<IProductVariant>): IProductVariant {
     discountAmount: 0,
     stock: 1,
     isActive: true,
+    sortOrder: 0,
     ...overrides,
   };
 }
@@ -58,6 +59,27 @@ describe("pickRepresentativeVariant", () => {
     const inactiveCheap = makeVariant({ price: 100, isActive: false });
     const activeInStock = makeVariant({ price: 3000, isActive: true, stock: 5 });
     expect(pickRepresentativeVariant([inactiveCheap, activeInStock])).toBe(activeInStock);
+  });
+
+  it("picks the variant with the lowest sortOrder (priority) over a cheaper one", () => {
+    const cheapButLowPriority = makeVariant({ price: 1000, sortOrder: 5 });
+    const pricierButHighPriority = makeVariant({ price: 9000, sortOrder: 1 });
+    expect(
+      pickRepresentativeVariant([cheapButLowPriority, pricierButHighPriority]),
+    ).toBe(pricierButHighPriority);
+  });
+
+  it("falls back to cheapest price when all variants have equal priority", () => {
+    const a = makeVariant({ price: 2000, sortOrder: 3 });
+    const b = makeVariant({ price: 1000, sortOrder: 3 });
+    expect(pickRepresentativeVariant([a, b])).toBe(b);
+  });
+
+  it("treats a missing sortOrder as 0 when comparing priority", () => {
+    const noPriority = makeVariant({ price: 5000, sortOrder: undefined as unknown as number });
+    const explicitZero = makeVariant({ price: 1000, sortOrder: 0 });
+    // Equal effective priority (0) -> falls back to cheapest price.
+    expect(pickRepresentativeVariant([noPriority, explicitZero])).toBe(explicitZero);
   });
 });
 

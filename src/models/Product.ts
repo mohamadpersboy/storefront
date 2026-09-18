@@ -21,6 +21,14 @@ export interface IProductVariant {
   discountAmount: number; // تخفیف مبلغ ثابت (تومان)، 0 یعنی بدون تخفیف
   stock: number;
   isActive: boolean;
+  /**
+   * اولویت نمایش این Variant — عدد کوچک‌تر یعنی اولویت بیشتر (زودتر
+   * به‌عنوان Variant نماینده روی کارت/صفحه محصول انتخاب می‌شود)، دقیقاً
+   * هم‌معنا با `Product.sortOrder`/`Category.sortOrder`. Variantهای
+   * قدیمی‌تر که این فیلد را ندارند باید همیشه با `?? 0` خوانده شوند
+   * (همان درسِ «Mongoose schema defaults don't backfill»).
+   */
+  sortOrder: number;
 }
 
 export interface ITechnicalSpec {
@@ -95,6 +103,7 @@ const ProductVariantSchema = new Schema<IProductVariant>({
   discountAmount: { type: Number, default: 0, min: 0 },
   stock: { type: Number, required: true, min: 0, default: 0 },
   isActive: { type: Boolean, default: true },
+  sortOrder: { type: Number, default: 0 },
 });
 
 const TechnicalSpecSchema = new Schema<ITechnicalSpec>(

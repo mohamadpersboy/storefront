@@ -55,11 +55,17 @@ export function sortByPriority<T>(items: T[], getSortOrder: (item: T) => number 
 }
 
 /**
- * از بین Variantهای فعال و موجود یک محصول، ارزان‌ترین (بعد از تخفیف
- * خودِ Variant) را برای نمایش روی کارت انتخاب می‌کند. اگر هیچ
- * Variant فعال/موجودی نداشت، به یک Variant فعال بدون موجودی و در
- * نهایت به اولین Variant محصول برمی‌گردد — تا محصول بدون Variant
- * قابل‌نمایش هرگز باعث خرابی کارت نشود.
+ * از بین Variantهای فعال و موجود یک محصول، Variant «نماینده» را برای
+ * نمایش روی کارت/صفحه محصول انتخاب می‌کند — همان Variantی که قیمتش
+ * روی کارت نشان داده می‌شود و اطلاعاتش در صفحه محصول نمایش داده
+ * می‌شود. معیار اول **اولویت Variant** (`sortOrder`، عدد کوچک‌تر یعنی
+ * اولویت بیشتر) است؛ در تساوی اولویت (مثلاً همه Variantهای قدیمی که
+ * این فیلد را نداشته و `?? 0` گرفته‌اند)، مثل قبل ارزان‌ترین Variant
+ * (بعد از تخفیف خودش) انتخاب می‌شود — یعنی رفتار قبلی پروژه برای
+ * محصولات موجود بدون تغییر می‌ماند. اگر هیچ Variant فعال/موجودی
+ * نداشت، به یک Variant فعال بدون موجودی و در نهایت به اولین Variant
+ * محصول برمی‌گردد — تا محصول بدون Variant قابل‌نمایش هرگز باعث
+ * خرابی کارت نشود.
  */
 export function pickRepresentativeVariant(variants: IProductVariant[]): IProductVariant | null {
   if (variants.length === 0) return null;
@@ -67,18 +73,20 @@ export function pickRepresentativeVariant(variants: IProductVariant[]): IProduct
   const active = variants.filter((v) => v.isActive);
   const pool = inStock.length > 0 ? inStock : active.length > 0 ? active : variants;
 
-  return pool.reduce((cheapest, current) => {
+  return pool.reduce((best, current) => {
+    const currentPriority = current.sortOrder ?? 0;
+    const bestPriority = best.sortOrder ?? 0;
+    if (currentPriority !== bestPriority) {
+      return currentPriority < bestPriority ? current : best;
+    }
+
     const currentPrice = computeFinalPrice(
       current.price,
       current.discountPercent,
       current.discountAmount,
     );
-    const cheapestPrice = computeFinalPrice(
-      cheapest.price,
-      cheapest.discountPercent,
-      cheapest.discountAmount,
-    );
-    return currentPrice < cheapestPrice ? current : cheapest;
+    const bestPrice = computeFinalPrice(best.price, best.discountPercent, best.discountAmount);
+    return currentPrice < bestPrice ? current : best;
   }, pool[0]);
 }
 

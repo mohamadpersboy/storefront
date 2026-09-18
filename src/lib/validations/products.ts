@@ -21,6 +21,8 @@ const variantSchema = z.object({
   discountAmount: z.number().min(0).default(0),
   stock: z.number().int().min(0).default(0),
   isActive: z.boolean().default(true),
+  /** اولویت این Variant — عدد کوچک‌تر یعنی اولویت بیشتر. */
+  sortOrder: z.number().int().default(0),
 });
 
 const technicalSpecSchema = z.object({

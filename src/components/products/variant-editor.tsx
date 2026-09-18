@@ -29,6 +29,8 @@ export interface VariantForm {
   discountAmount: string;
   stock: string;
   isActive: boolean;
+  /** اولویت این Variant — عدد کوچک‌تر یعنی اولویت بیشتر (رشته حین ویرایش، مثل بقیه فیلدهای عددی). */
+  sortOrder: string;
 }
 
 export function createEmptyVariant(): VariantForm {
@@ -43,6 +45,7 @@ export function createEmptyVariant(): VariantForm {
     discountAmount: "0",
     stock: "0",
     isActive: true,
+    sortOrder: "0",
   };
 }
 
@@ -245,6 +248,24 @@ export function VariantEditor({
                     })
                   }
                 />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-foreground/80">
+                  اولویت Variant
+                </label>
+                <Input
+                  type="number"
+                  dir="ltr"
+                  value={variant.sortOrder}
+                  onChange={(e) =>
+                    updateVariant(variant.id, { sortOrder: e.target.value })
+                  }
+                />
+                <p className="mt-1 text-[11px] text-muted">
+                  عدد کوچک‌تر یعنی اولویت بیشتر — این Variant زودتر به‌عنوان
+                  Variant پیش‌فرض روی کارت/صفحه محصول انتخاب می‌شود.
+                </p>
               </div>
             </div>
 

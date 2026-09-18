@@ -47,13 +47,16 @@ export interface ProductFormInitial {
   /** برند — مستقل از دسته‌بندی، اختیاری (رشته خالی یعنی بدون برند). */
   brand: string;
   images: ProductImage[];
-  variants: Array<Omit<VariantForm, "id" | "price" | "discountPercent" | "discountAmount" | "stock"> & {
-    id: string;
-    price: number;
-    discountPercent: number;
-    discountAmount: number;
-    stock: number;
-  }>;
+  variants: Array<
+    Omit<VariantForm, "id" | "price" | "discountPercent" | "discountAmount" | "stock" | "sortOrder"> & {
+      id: string;
+      price: number;
+      discountPercent: number;
+      discountAmount: number;
+      stock: number;
+      sortOrder: number;
+    }
+  >;
   status: ProductStatus;
   seo: { title?: string; description?: string };
   /** اولویت نمایش در Storefront — عدد کوچک‌تر یعنی زودتر نمایش داده می‌شود. */
@@ -92,6 +95,7 @@ export function ProductForm({
       discountPercent: String(v.discountPercent),
       discountAmount: String(v.discountAmount),
       stock: String(v.stock),
+      sortOrder: String(v.sortOrder ?? 0),
     })) ?? [createEmptyVariant()],
   );
   const [techSpecs, setTechSpecs] = useState<TechSpecForm[]>(
@@ -198,6 +202,7 @@ export function ProductForm({
           discountAmount: Number(v.discountAmount) || 0,
           stock: Number(v.stock) || 0,
           isActive: v.isActive,
+          sortOrder: Number(v.sortOrder) || 0,
         })),
         status,
         sortOrder,

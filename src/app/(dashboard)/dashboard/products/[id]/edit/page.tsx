@@ -51,6 +51,7 @@ export default async function EditProductPage({
             discountAmount: v.discountAmount,
             stock: v.stock,
             isActive: v.isActive,
+            sortOrder: v.sortOrder ?? 0,
           })),
           status: product.status,
           sortOrder: product.sortOrder ?? 0,
