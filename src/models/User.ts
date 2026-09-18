@@ -3,6 +3,7 @@ import mongoose, {
   type Model,
   type HydratedDocument,
   type PaginateModel,
+  type Types,
 } from "mongoose";
 import mongoosePaginate from "mongoose-paginate-v2";
 import { ROLES, type Role } from "@/lib/constants/rbac";
@@ -15,6 +16,17 @@ export interface IUser {
   role: Role;
   isActive: boolean;
   lastLoginAt?: Date;
+  /**
+   * کد رفرال اختصاصی این کاربر — فقط بعد از تکمیل **اولین خرید**
+   * خودش تولید و ذخیره می‌شود (نه در لحظه ساخت حساب)، دقیقاً طبق
+   * تصمیم صریح کارفرما: «کد رفرال کاربر بعد از اولین خریدش فعال
+   * می‌شود». تا آن زمان `null`/`undefined` است — نبودِ این فیلد یعنی
+   * «هنوز غیرفعال»، نه یک Flag جداگانه. نگاه کنید
+   * `src/lib/referrals/process-referral-events.ts`.
+   */
+  referralCode?: string;
+  /** اگر این کاربر با کد رفرال شخص دیگری ثبت‌نام کرده، همان معرف. */
+  referredBy?: Types.ObjectId | null;
   deletedAt?: Date | null; // soft delete
   createdAt: Date;
   updatedAt: Date;
@@ -41,6 +53,18 @@ const UserSchema = new Schema<IUser>(
     },
     isActive: { type: Boolean, default: true },
     lastLoginAt: { type: Date },
+    referralCode: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      unique: true,
+      sparse: true, // چند کاربر می‌توانند همزمان بدون کد (null) باشند
+    },
+    referredBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     deletedAt: { type: Date, default: null, index: true },
   },
   { timestamps: true },

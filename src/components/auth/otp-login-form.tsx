@@ -14,6 +14,7 @@ export function OtpLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") ?? "/dashboard";
+  const referralCode = searchParams.get("ref");
 
   const [step, setStep] = useState<Step>("phone");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -79,7 +80,11 @@ export function OtpLoginForm() {
       const res = await fetch("/api/v1/auth/otp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber, code }),
+        body: JSON.stringify({
+          phoneNumber,
+          code,
+          ...(referralCode ? { referralCode } : {}),
+        }),
       });
       const body = await res.json();
 

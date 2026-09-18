@@ -8,6 +8,7 @@ import { getNextSequence } from "@/models/Counter";
 import { computeFinalPrice, computePrepayment, type PaymentMethod } from "@/lib/utils/pricing";
 import { resolveOrderDiscount } from "@/lib/discounts/engine";
 import { validateCouponEligibility } from "@/lib/discounts/validate-coupon";
+import { processReferralEventsAfterOrder } from "@/lib/referrals/process-referral-events";
 import {
   reserveCouponUsage,
   releaseCouponReservation,
@@ -258,6 +259,14 @@ export async function createOrder(params: CreateOrderParams) {
   // می‌شد. طبق درخواست کارفرما، ارسال خودکار پیامک وضعیت (چه در ثبت
   // سفارش و چه در تغییر وضعیت) حذف شد؛ ارسال اکنون فقط با دکمهٔ
   // دستی «ارسال وضعیت به مشتری» در صفحهٔ جزئیات سفارش انجام می‌شود.
+
+  try {
+    await processReferralEventsAfterOrder(customer, subtotal);
+  } catch (error) {
+    // Best-effort — دقیقاً هم‌الگو با ثبت Coupon Redemption بالا: سفارش
+    // که تازه با موفقیت ثبت شده هرگز نباید به‌خاطر این مرحله Fail شود.
+    console.error("Failed to process referral events:", error);
+  }
 
   return { order, customer: customer as UserDocument, resolvedDiscount };
 }

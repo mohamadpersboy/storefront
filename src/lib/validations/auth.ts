@@ -13,4 +13,6 @@ export const otpRequestSchema = z.object({
 export const otpVerifySchema = z.object({
   phoneNumber: phoneNumberSchema,
   code: z.string().trim().regex(/^\d{4}$/, "کد تأیید باید ۴ رقم باشد"),
+  /** کد رفرال اختیاری — فقط برای کاربری که دارد اولین بار ثبت‌نام می‌کند معنا دارد. */
+  referralCode: z.string().trim().min(1).max(20).optional(),
 });

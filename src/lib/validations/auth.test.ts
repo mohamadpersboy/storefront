@@ -38,4 +38,21 @@ describe("otpVerifySchema", () => {
       ).toBe(false);
     },
   );
+
+  it("accepts an optional referralCode", () => {
+    expect(
+      otpVerifySchema.safeParse({
+        phoneNumber: "09121234567",
+        code: "1234",
+        referralCode: "AB12CD",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("accepts a missing referralCode", () => {
+    expect(
+      otpVerifySchema.safeParse({ phoneNumber: "09121234567", code: "1234" })
+        .success,
+    ).toBe(true);
+  });
 });

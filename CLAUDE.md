@@ -1409,6 +1409,7 @@ Details؛ یا Changes Required؛ یا Rejected.
     ذخیره نمی‌شود؛ فقط per-درخواست داخل خود
     `WithdrawalRequest.destination` گرفته می‌شود.
   - بنر دعوت‌دوستان/Referral — چنین سیستمی اصلاً در پروژه وجود ندارد.
+    **[به‌روزرسانی: ساخته شد — نگاه کنید بخش «سیستم دعوت دوستان»]**
 
   لینک‌های `/orders`، `/account/coupons`، `/wallet`،
   `/wallet/withdrawals` هنوز صفحه ندارند — هم‌الگو با
@@ -1468,7 +1469,8 @@ Details؛ یا Changes Required؛ یا Rejected.
 
   **باقی‌مانده عمدی:** بنر دعوت‌دوستان/Referral همچنان اضافه نشد —
   چنین سیستمی اصلاً در پروژه وجود ندارد و ساختن آن یک Task کاملاً
-  جدا و بزرگ‌تر است.
+  جدا و بزرگ‌تر است. **[به‌روزرسانی: ساخته شد — نگاه کنید بخش «سیستم
+  دعوت دوستان»]**
 
 - ✅ **بازطراحی «آدرس‌های من» و «اطلاعات بانکی» طبق بازخورد بصری
   کارفرما** (دو رفرنس عکس از یک اپ دیگر) — با تأکید صریح ایشان که
@@ -2841,6 +2843,88 @@ Storefront اعمال می‌شود.** طبق درخواست صریح کارفر
 
 تست‌ها: TS/ESLint/Vitest (۳۷۶ تست، ۴ تست جدید
 `pickRepresentativeVariant`)/Build همه سبز.
+
+**سیستم «دعوت دوستان» (Referral) کامل ساخته شد** — طبق درخواست صریح
+کارفرما و رفرنس بصری ایشان (یک اسکرین‌شات از اپ دیگر؛ فقط برای
+ساختار Layout استفاده شد، نه رنگ — گرادیان بنفش رفرنس با
+`--sf-accent`/`--sf-ink-soft` خودمان جایگزین شد، هم‌الگو با اصل
+همیشگی رفرنس‌های بصری این پروژه):
+
+**منطق کسب‌وکار (دقیقاً طبق سه بند درخواست کارفرما):**
+1. کد رفرال هر کاربر فقط **بعد از تکمیل اولین خرید خودش** فعال
+   می‌شود — قبل از آن `User.referralCode` اصلاً وجود ندارد (نه یک
+   Flag `isActive` جدا؛ نبودِ فیلد یعنی «هنوز فعال نشده»).
+2. وقتی یک دعوت‌شده هم اولین خرید خودش را کامل کند، یک کد تخفیف
+   پاداش به دعوت‌کننده داده می‌شود — **فقط یک فرصت**: سفارش‌های بعدی
+   همان دعوت‌شده اثری روی رفرال ندارند.
+3. سقف تعداد دعوت هر نفر، درصد/سقف پاداش، و حداقل مبلغ اولین خرید
+   دعوت‌شده — همگی از `/dashboard/settings/referral` قابل تنظیم‌اند.
+
+**مدل‌ها:**
+- `User.referralCode` (اختیاری، یکتا، Sparse Index) + `User.referredBy`
+  (ref User، اختیاری) — Additive.
+- `Referral` (مدل جدید مستقل، هم‌روحیه با `CouponRedemption`: یک
+  رکورد به‌ازای هر دعوت‌شده، نه آرایه‌ای روی خود `User`): `referrer`،
+  `invitee` (Index یکتا — هر کاربر حداکثر یک‌بار دعوت‌شده)، `code`
+  (Snapshot)، `status` (`pending`/`rewarded`/`ineligible`)،
+  `firstOrderAmount`، `rewardCoupon` (ref Coupon)، `rewardedAt`.
+- `ReferralSettings` (Singleton، هم‌الگو دقیق با `ShippingSettings`):
+  `enabled` (پیش‌فرض **false** — تا کارفرما صریحاً فعالش نکند،
+  Storefront هرگز وعده «دعوت کن، جایزه بگیر» ساختگی نشان نمی‌دهد)،
+  `maxReferralsPerUser` (nullable = نامحدود)،
+  `rewardDiscountPercentage`، `rewardMaxDiscountAmount` (nullable)،
+  `minInviteeOrderAmount`، `rewardCouponValidityDays`.
+
+**تصمیم معماری مهم — پاداش با کد تخفیف موجود (`Coupon`) صادر
+می‌شود، نه یک مکانیزم تخفیف موازی جدید:** طبق قانون پروژه «از
+ایجاد Duplicate/معماری موازی خودداری کن»، پاداش رفرال یک رکورد
+`Coupon` معمولی است (`type: "private"`, `allowedUsers: [referrer]`,
+`usageLimit: 1`, کد با پیشوند `REF`) — از همان موتور تخفیف/Redemption
+موجود Coupon عبور می‌کند، بدون هیچ کد موازی. **محدودیت مستندشده:**
+چون `Coupon` فعلاً فقط `discountPercentage` دارد (نه تخفیف مبلغ
+ثابت)، پاداش رفرال هم فعلاً فقط درصدی است. افزودن نوع تخفیف مبلغ
+ثابت به `Coupon` یک تصمیم معماری با اثر گسترده (کل موتور
+`computeCouponDiscount`، انحصار متقابل با Payment Reward) است —
+خارج از Scope همین Task، منتظر تصمیم/تأیید صریح کارفرما.
+
+**اتصال به ثبت‌نام (OTP) و اولین سفارش:**
+- `otpVerifySchema` یک فیلد اختیاری `referralCode` گرفت.
+  `POST /api/v1/auth/otp/verify` فقط برای کاربر **تازه‌ساخته‌شده**
+  (نه ورود بعدی) این کد را Resolve و رکورد `Referral(status:
+  pending)` می‌سازد (`attachReferrerOnSignup`) — کاملاً Best-effort،
+  یک کد نامعتبر هرگز جلوی ورود موفق را نمی‌گیرد.
+- `OtpLoginForm` مقدار `?ref=` را از URL می‌خواند و همراه Verify
+  می‌فرستد. لینک دعوت کوتاه: `/r/CODE` (Route جدید در Storefront) —
+  کاربر Login‌شده مستقیم به صفحه اصلی Redirect می‌شود؛ کاربر جدید به
+  `/login?ref=CODE&redirect=/`. این پروژه صفحه ثبت‌نام جدا ندارد
+  (ورود همیشه با OTP روی موبایل است)، پس همین یک نقطه کافی است.
+- `processReferralEventsAfterOrder` — از `createOrder()` (سرویس
+  مشترک Dashboard/Checkout) صدا زده می‌شود، کاملاً Best-effort (مثل
+  ثبت Coupon Redemption): (۱) اگر مشتری هنوز کد رفرال ندارد، اینجا
+  ساخته می‌شود (طبق بند ۱ بالا). (۲) اگر این اولین سفارش واقعی
+  اوست و او خودش دعوت‌شده بوده، رفرال Pending را Resolve می‌کند —
+  رد (`ineligible`) اگر سیستم غیرفعال باشد، یا Subtotal سفارش زیر
+  `minInviteeOrderAmount` باشد، یا سقف دعوت دعوت‌کننده پر شده باشد؛
+  وگرنه یک Coupon پاداش صادر و رفرال `rewarded` می‌شود.
+
+**Storefront:**
+- `/account/referral` (صفحه جدید): بنر معرفی، کارت کد+لینک (کپی +
+  Web Share API، هم‌الگو با `ProductTopBar`) یا حالت قفل («ابتدا
+  اولین خرید را تکمیل کنید» + دکمه «شروع خرید») اگر کد هنوز فعال
+  نشده، سه کارت آمار (در انتظار خرید/پاداش دریافتی/کل دعوت‌شده‌ها)،
+  کدهای تخفیف پاداش فعال، و لیست زیرمجموعه‌ها (نام/شمارهٔ جزئی‌پوشانده‌شده
+  + Badge وضعیت). اگر `ReferralSettings.enabled === false`، پیام
+  «این قابلیت فعلاً در دسترس نیست» نشان داده می‌شود، نه ۴۰۴.
+- ردیف «دعوت دوستان» در `/account` فقط وقتی `enabled` باشد نمایش
+  داده می‌شود (هم‌الگو با `FreeShippingBanner`).
+
+**Dashboard:** `/dashboard/settings/referral` (`ReferralSettingsForm`،
+هم‌الگو با `ShippingSettingsForm`) + آمار فقط‌خواندنی (کل دعوت،
+کل پاداش صادرشده). API: `GET/PATCH /api/v1/referral-settings`
+(`SETTINGS_MANAGE` موجود — پرمیشن جدید اضافه نشد).
+
+تست‌ها: TS/ESLint/Vitest (۳۸۷ تست، ۱۳ تست جدید Validation)/Build
+همه سبز.
 
 ## 15. TODO (نزدیک)
 

@@ -5,6 +5,7 @@ import { claimFirstAdminSlot } from "@/models/SystemFlag";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { otpVerifySchema } from "@/lib/validations/auth";
 import { consumeOtp, OtpVerificationError } from "@/lib/auth/otp-flow";
+import { attachReferrerOnSignup } from "@/lib/referrals/attach-referrer-on-signup";
 import {
   createSessionToken,
   sessionCookieOptions,
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const { phoneNumber, code } = parsed.data;
+  const { phoneNumber, code, referralCode } = parsed.data;
   await connectToDatabase();
 
   try {
@@ -43,6 +44,14 @@ export async function POST(request: NextRequest) {
       phoneNumber,
       role: isFirstAdmin ? ROLES.SUPER_ADMIN : ROLES.CUSTOMER,
     });
+
+    try {
+      await attachReferrerOnSignup(user, referralCode);
+    } catch (error) {
+      // Best-effort — یک مشکل در اتصال رفرال هرگز نباید ثبت‌نام/ورود
+      // یک کاربر تازه را Fail کند.
+      console.error("Failed to attach referrer on signup:", error);
+    }
   }
 
   if (!user.isActive) {

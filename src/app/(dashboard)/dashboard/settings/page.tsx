@@ -14,6 +14,7 @@ import {
   Terminal,
   GalleryHorizontal,
   Truck,
+  Gift,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
@@ -89,6 +90,12 @@ const settingsSections = [
     icon: BadgePercent,
     title: "تخفیف خودکار پرداخت",
     description: "پاداش پرداخت کامل اینترنتی و پرداخت ترکیبی",
+  },
+  {
+    href: "/dashboard/settings/referral",
+    icon: Gift,
+    title: "دعوت دوستان",
+    description: "سقف تعداد دعوت، درصد پاداش، و حداقل مبلغ اولین خرید دعوت‌شده",
   },
   {
     href: "/dashboard/settings/activity-log",

@@ -7,6 +7,7 @@ import {
   MapPin,
   CreditCard,
   Pencil,
+  Gift,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { connectToDatabase } from "@/lib/db/connect";
@@ -16,6 +17,8 @@ import { CouponRedemption } from "@/models/CouponRedemption";
 import { WithdrawalRequest } from "@/models/WithdrawalRequest";
 import { Address } from "@/models/Address";
 import { CustomerBankAccount } from "@/models/CustomerBankAccount";
+import { Referral } from "@/models/Referral";
+import { getReferralSettings } from "@/models/ReferralSettings";
 import { ROLE_LABELS } from "@/lib/constants/role-labels";
 import { formatTomanGlyph } from "@/lib/utils/format";
 import { PageHeader } from "@/components/storefront/page-header";
@@ -36,9 +39,12 @@ import { AccountLogoutButton } from "@/components/storefront/account-logout-butt
  * `models/CustomerBankAccount.ts` — دلیل طراحی هرکدام داخل همان
  * فایل‌ها مستند شده) و اینجا هم به داده واقعی وصل‌اند، نه Mock.
  *
- * **بنر دعوت‌دوستان** همچنان اضافه نشد — چون سیستم Referral اصلاً
- * در پروژه وجود ندارد و ساختن آن (کد دعوت، پاداش، ردیابی) یک
- * تصمیم/Task کاملاً جدا و بزرگ‌تر از حد این صفحه است.
+ * **بنر دعوت‌دوستان** اکنون اضافه شده (`/account/referral`) — سیستم
+ * Referral کامل (کد دعوت فعال بعد از اولین خرید، پاداش بعد از
+ * اولین خرید دعوت‌شده، تنظیمات در Dashboard) ساخته شد؛ نگاه کنید
+ * `src/models/Referral.ts`/`ReferralSettings.ts`. این ردیف فقط وقتی
+ * `ReferralSettings.enabled` باشد نمایش داده می‌شود — هم‌الگو با
+ * اصل «FreeShippingBanner فقط وقتی فعال است دیده می‌شود».
  *
  * هیچ Badge با عدد ساختگی نمایش داده نمی‌شود — طبق همان اصل
  * رعایت‌شده در Bottom Bar (شمارنده سبد خرید صفر واقعی): وقتی عددی
@@ -68,6 +74,8 @@ export default async function AccountPage() {
     pendingWithdrawalsCount,
     addressesCount,
     bankAccount,
+    referralSettings,
+    referralRewardedCount,
   ] = await Promise.all([
     Order.countDocuments({ customer: user._id }),
     Wallet.findOne({ user: user._id }).lean(),
@@ -75,6 +83,8 @@ export default async function AccountPage() {
     WithdrawalRequest.countDocuments({ user: user._id, status: "pending" }),
     Address.countDocuments({ user: user._id }),
     CustomerBankAccount.findOne({ user: user._id }).lean(),
+    getReferralSettings().catch(() => null),
+    Referral.countDocuments({ referrer: user._id, status: "rewarded" }).catch(() => 0),
   ]);
 
   const displayName = user.fullName || user.phoneNumber;
@@ -149,6 +159,17 @@ export default async function AccountPage() {
               subtitle="مدیریت آدرس‌های تحویل"
               badge={addressesCount}
             />
+            {referralSettings?.enabled && (
+              <AccountNavRow
+                href="/account/referral"
+                icon={Gift}
+                iconClassName="bg-pink-50 text-pink-600"
+                title="دعوت دوستان"
+                subtitle="دوستاتو دعوت کن، هدیه بگیر"
+                badge={referralRewardedCount || undefined}
+                badgeVariant="attention"
+              />
+            )}
           </div>
         </section>
 
