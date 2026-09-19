@@ -661,29 +661,51 @@ Details Page» (نه ادامه توالی قبلی Homepage). طبق دستور
   Clipboard) — طبق «Do not invent unnecessary actions»؛ بدون عنوان
   محصول (چون Title جزو این فاز نیست).
 - `src/components/storefront/product-image-gallery.tsx` +
-  `src/lib/storefront/product-gallery-math.ts` (منطق خالص، ۲۵ تست
-  Unit): گالری با ارتفاع پویا Progress-based (۰..۱ → `calc(40dvh +
-  progress*20dvh)`)؛ درگ عمودی رو به بالا آن‌را تا ۶۰vh باز می‌کند
-  (دنبال‌کردن زنده انگشت با نوشتن مستقیم روی `ref.style` بدون
-  Re-render، نه State در هر فریم)، رهاکردن با آستانه ۵۰٪ به یکی از
-  دو سر Snap می‌شود؛ اسکرول صفحه (نه درگ گالری) به‌تدریج از حالت باز
-  به ۴۰vh برمی‌گرداند. تشخیص جهت غالب (افقی=تغییر تصویر/عمودی=ارتفاع)
-  قبل از Commit به یک تعامل، با آستانه ۸px. اسلایدر افقی با
-  Pointer Events (نه فقط Touch) — دنبال‌کردن زنده + آستانه Swipe
-  ۵۰px، Dot Indicator، ناوبری کیبورد (Arrow Keys، هم‌سو با RTL).
-  بدون کتابخانه انیمیشن جدید (هیچ‌کدام در پروژه نصب نبود) — فقط
-  CSS Transform/Transition + Pointer Events خام.
-- **محدودیت مستندشده:** مدل `Product`/`Product.images` فیلد
-  `imageBlurDataUrl` ندارد (برخلاف Banner/Category) — پس Mesh Blur
-  واقعی داده‌محور فعلاً ممکن نیست. `get-product-detail.ts` همیشه
+  `src/lib/storefront/product-gallery-math.ts` — طراحی اولیه
+  Progress-based (درگ عمودی برای باز/بسته‌کردن ارتفاع ۴۰vh↔۶۰vh) که
+  بعداً کامل بازطراحی شد (نگاه کنید بلوک «بازطراحی» زیر برای طراحی
+  فعلی).
+- **محدودیت مستندشده (هنوز پابرجاست):** مدل `Product`/`Product.images`
+  فیلد `imageBlurDataUrl` ندارد (برخلاف Banner/Category) — پس Mesh
+  Blur واقعی داده‌محور فعلاً ممکن نیست. `get-product-detail.ts` همیشه
   `blurDataUrl: null` برمی‌گرداند؛ گالری به‌جایش یک Placeholder
-  سبک (`animate-pulse` با گرادیان خاکستری روشن، نه Skeleton خاکستری
-  تخت Generic) نشان می‌دهد تا Reveal تصویر پیاده شود. افزودن این
-  فیلد به مدل + تغییر جریان آپلود `ProductImageUploader` در Dashboard
-  یک تصمیم معماری جداست (تغییر گسترده در بخش دیگر) — منتظر اجازه
-  صریح کارفرما، خارج از Scope همین فاز.
-- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۳۶۹ تست، ۲۵ تست جدید
-  `product-gallery-math`)، Build ✅.
+  سبک (`animate-pulse` با گرادیان خاکستری روشن) نشان می‌دهد. افزودن
+  این فیلد به مدل + تغییر جریان آپلود `ProductImageUploader` در
+  Dashboard یک تصمیم معماری جداست — منتظر اجازه صریح کارفرما.
+
+**بازطراحی کامل گالری تصویر (به درخواست صریح کارفرما، جایگزین طراحی
+Progress-based بالا):**
+
+- طراحی جدید: بدون کانتینر/بک‌گراند سفید (فقط خود تصاویر گوشه‌گرد،
+  بی‌بک‌گراند). اگر یک تصویر باشد، در وسط کانتینر (حداکثر ۶۰٪ عرض
+  آن) قرار می‌گیرد؛ اگر بیشتر از یک تصویر باشد، یک لیست افقی
+  اسکرول‌شونده Native (نه Pointer دستی) نمایش داده می‌شود — تصویر
+  اول در سمت چپ (`dir="ltr"`، هم‌الگو با `HeroSlider`، تا در صفحه
+  RTL هم چیدمان طبیعی از چپ شروع شود) و بقیه با `gap` در ادامه.
+- **Focus با Tap یا Pinch-Zoom:** ضربه‌زدن (Tap با آستانه جابه‌جایی
+  ۶px تا بعد از اسکرول Native به‌اشتباه Tap تشخیص داده نشود) یا ژست
+  دو‌انگشتی Pinch-Zoom-In (تشخیص با `isPinchZoomGesture` در
+  `product-gallery-math.ts` — نسبت فاصله دو انگشت ≥ ۱٫۱۵ برابر
+  فاصله شروع) روی یک تصویر، آن را «Focus» می‌کند: عرض تا
+  `min(80vw, 90%)` بزرگ می‌شود (۸۰٪ عرض صفحه گوشی، هرگز بیشتر از
+  ۹۰٪ عرض خود کانتینر — تا در Desktop/`sm:max-w-md` سرریز نشود)،
+  ارتفاع به‌خاطر `aspect-[3/4]` به همان نسبت رشد می‌کند (بدون محاسبه
+  دستی JS)، و با `scrollIntoView({behavior:"smooth", inline:"center"})`
+  به وسط دید می‌آید؛ بقیه تصاویر به‌خاطر همان ردیف Flex به‌طور طبیعی
+  جابه‌جا می‌شوند. Tap دوباره روی تصویر Focus‌شده آن را برمی‌گرداند.
+- **بازنشانی با اسکرول صفحه:** اسکرول *صفحه* (نه خود گالری، تشخیص با
+  `window.scrollY`) رو‌به‌پایین (≥۴px نسبت به لحظه Focus‌شدن —
+  `shouldResetFocusOnScroll`) حالت Focus را بازنشانی می‌کند؛ اسکرول
+  رو‌به‌بالا تأثیری ندارد.
+- منطق قدیمی Progress-based (درگ عمودی ارتفاع + Swipe تک‌تصویری با
+  Pointer دستی + Dot Indicator) کامل حذف شد — دیگر بخشی از طراحی
+  فعلی نیست. `product-gallery-math.ts` هم‌کامل جایگزین شد: فقط سه
+  تابع خالص جدید (`getTouchDistance`، `isPinchZoomGesture`،
+  `shouldResetFocusOnScroll`) + ثابت‌های مرتبط.
+- بدون کتابخانه انیمیشن جدید — فقط CSS Transition روی `width` +
+  `scrollIntoView` نرم.
+- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۳۷۶ تست، ۱۴ تست جدید
+  `product-gallery-math` جایگزین ۲۵ تست قدیمی)، Build ✅.
 
 **Product Details — Phase 2 (عنوان + قیمت) انجام شد:**
 
@@ -705,8 +727,9 @@ Details Page» (نه ادامه توالی قبلی Homepage). طبق دستور
   Build ✅.
 
 **Branch فعلی:** `main`
-**Feature بعدی:** منتظر تأیید کاربر — Approve → ماژول بعدی Product
-Details؛ یا Changes Required؛ یا Rejected.
+**Feature بعدی:** منتظر تأیید کاربر روی بازطراحی گالری تصویر —
+Approve → ماژول بعدی Product Details؛ یا Changes Required؛ یا
+Rejected.
 
 ## 3. Completed Features
 

@@ -1,17 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
 import {
-  clampProgress,
-  progressToHeightCss,
-  resolveGestureDirection,
-  resolveReleaseProgress,
-  resolveSlideIndex,
-  scrollYToCollapsingProgress,
-  verticalDeltaToProgress,
-  type GestureDirection,
+  getTouchDistance,
+  isPinchZoomGesture,
+  shouldResetFocusOnScroll,
 } from "@/lib/storefront/product-gallery-math";
 
 export type ProductGalleryImage = {
@@ -31,178 +26,114 @@ type ProductImageGalleryProps = {
   productTitle: string;
 };
 
+const PINCH_RESET_DELAY_MS = 400;
+
 /**
- * گالری تصویر تعاملی صفحه جزئیات محصول — Phase 1.
+ * گالری تصویر تعاملی صفحه جزئیات محصول — بازطراحی کامل.
  *
- * دو نوع ژست روی خود گالری وجود دارد که باید بدون تداخل تشخیص داده
- * شوند (بند ۷ Master Prompt):
- * - افقی → تغییر تصویر فعال (Slider).
- * - عمودی (فقط رو به بالا) → گسترش ارتفاع Container از ۴۰vh به ۶۰vh.
+ * بدون کانتینر/بک‌گراند سفید؛ خود تصاویر گوشه‌گرد هستند. اگر فقط یک
+ * تصویر باشد، در وسط کانتینر (حداکثر ۶۰٪ عرض آن) قرار می‌گیرد. اگر
+ * بیش از یک تصویر باشد، یک لیست افقی Native (اسکرول با انگشت، بدون
+ * ردیابی دستی Pointer) نمایش داده می‌شود که تصویر اول در سمت چپ
+ * شروع می‌شود و بقیه با فاصله در ادامه (سمت راست) قرار می‌گیرند —
+ * دقیقاً مثل `dir="ltr"` در `HeroSlider`، تا در صفحه‌ی RTL هم چیدمان
+ * به‌صورت طبیعی از چپ شروع شود.
  *
- * ارتفاع با یک عدد بدون‌واحد «Progress» (۰..۱) مدل می‌شود
- * (`product-gallery-math.ts`) — در حین درگ مستقیماً دنبال انگشت
- * کاربر است (بدون CSS Transition، برای پاسخ فوری)، و در لحظه
- * رهاکردن با یک Transition نرم به یکی از دو سر بازه Snap می‌شود.
+ * ضربه‌زدن (Tap) یا ژست Pinch-Zoom با دو انگشت روی یک تصویر، آن را
+ * «Focus» می‌کند: عرض تا `min(80vw, 90%)` (۸۰٪ عرض صفحه گوشی، ولی
+ * هرگز بیشتر از عرض خود کانتینر) بزرگ می‌شود، ارتفاع به‌خاطر
+ * `aspect-[3/4]` به همان نسبت رشد می‌کند، و تصویر با اسکرول نرم به
+ * وسط دید می‌آید. بقیه تصاویر به‌خاطر همان ردیف Flex به‌طور طبیعی
+ * جابه‌جا می‌شوند — بدون نیاز به محاسبه دستی موقعیت. اسکرول *صفحه*
+ * (نه خود گالری) رو‌به‌پایین، حالت Focus را بازنشانی می‌کند.
  *
- * وقتی گالری در حالت باز است، اسکرول صفحه (نه درگ خود گالری) آن را
- * به‌تدریج و متصل به مقدار اسکرول به ۴۰vh برمی‌گرداند (بند ۸).
- *
- * بدون کتابخانه انیمیشن جدید — طبق بند ۱۸: «اگر کتابخانه‌ای از قبل
- * نصب است از همان استفاده کن»؛ چون هیچ‌کدام (Framer Motion و مشابه)
- * در پروژه نصب نیست، از Pointer Events خام + CSS Transform/Transition
- * استفاده شده (GPU-friendly، بدون Re-render غیرضروری در حین درگ —
- * مقدار زنده مستقیم روی DOM با `ref.style` نوشته می‌شود، نه State).
+ * بدون کتابخانه انیمیشن جدید (طبق بند ۱۸ Master Prompt) — فقط
+ * CSS Transition روی `width` + `scrollIntoView` نرم.
  */
 export function ProductImageGallery({ images, productTitle }: ProductImageGalleryProps) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [loadedFlags, setLoadedFlags] = useState<boolean[]>(() => images.map(() => false));
 
-  const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const scrollYAtFocusRef = useRef(0);
+  const pinchRef = useRef<{ index: number; startDistance: number } | null>(null);
+  const pointerDownRef = useRef<{ x: number; y: number } | null>(null);
 
-  // مقادیر زنده حین درگ — عمداً Ref (نه State) تا در حین Pointer Move
-  // Re-render رخ ندهد؛ فقط مستقیم روی Style نوشته می‌شوند.
-  const gestureRef = useRef<{
-    pointerId: number;
-    startX: number;
-    startY: number;
-    direction: GestureDirection;
-    /** Progress ارتفاع در لحظه شروع همین درگ (برای درگ عمودی). */
-    startProgress: number;
-    /** آخرین Progress محاسبه‌شده حین درگ عمودی — مرجع برای تصمیم Snap. */
-    liveProgress: number;
-    /** آخرین Delta X حین درگ افقی — مرجع برای تصمیم تغییر تصویر. */
-    liveDeltaX: number;
-  } | null>(null);
-
-  // Progress فعلی گالری — هم منبع ارتفاع، هم ورودی افکت اسکرول.
-  // به‌عنوان State نگه داشته می‌شود چون فقط در لحظات گسسته (شروع/پایان
-  // درگ، رویداد اسکرول) تغییر می‌کند، نه هر فریم درگ.
-  const [progress, setProgress] = useState(0);
-  const progressRef = useRef(0);
-  const scrollBaselineRef = useRef<{ scrollY: number; progressAtStart: number } | null>(null);
-
-  const setProgressBoth = useCallback((next: number) => {
-    progressRef.current = next;
-    setProgress(next);
-  }, []);
-
-  function applyHeight(nextProgress: number) {
-    if (containerRef.current) {
-      containerRef.current.style.height = progressToHeightCss(nextProgress);
-    }
-  }
-
-  function applyTrackTransform(index: number, deltaXPx: number) {
-    if (trackRef.current) {
-      trackRef.current.style.transform = `translateX(calc(${-index * 100}% + ${deltaXPx}px))`;
-    }
-  }
-
-  // --- اسکرول صفحه: بازگشت تدریجی از حالت باز به ۴۰vh ---
+  // --- بازنشانی Focus با اسکرول رو‌به‌پایین صفحه ---
   useEffect(() => {
+    if (focusedIndex === null) return;
+
     function handleScroll() {
-      if (isDragging) return;
-      if (progressRef.current <= 0 && !scrollBaselineRef.current) return;
-
-      if (!scrollBaselineRef.current) {
-        scrollBaselineRef.current = {
-          scrollY: window.scrollY,
-          progressAtStart: progressRef.current,
-        };
-      }
-
-      const baseline = scrollBaselineRef.current;
-      const scrolledPx = Math.max(0, window.scrollY - baseline.scrollY);
-      const next = scrollYToCollapsingProgress(scrolledPx, baseline.progressAtStart);
-      setProgressBoth(next);
-      applyHeight(next);
-
-      if (next <= 0 || window.scrollY <= baseline.scrollY) {
-        scrollBaselineRef.current = null;
+      if (shouldResetFocusOnScroll(scrollYAtFocusRef.current, window.scrollY)) {
+        setFocusedIndex(null);
       }
     }
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDragging]);
+  }, [focusedIndex]);
 
-  // --- شروع ژست (لمس/ماوس/قلم) ---
-  function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
-    if (event.button !== undefined && event.button !== 0) return;
-    scrollBaselineRef.current = null;
-    gestureRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      direction: null,
-      startProgress: progressRef.current,
-      liveProgress: progressRef.current,
-      liveDeltaX: 0,
+  // --- وسط‌چین‌کردن تصویر Focus‌شده با اسکرول نرم افقی ---
+  useEffect(() => {
+    if (focusedIndex === null) return;
+    const track = trackRef.current;
+    if (!track) return;
+    const target = track.children[focusedIndex] as HTMLElement | undefined;
+    target?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [focusedIndex]);
+
+  function focusImage(index: number) {
+    scrollYAtFocusRef.current = window.scrollY;
+    setFocusedIndex((current) => (current === index ? null : index));
+  }
+
+  // --- تشخیص ژست Pinch-Zoom با دو انگشت روی یک تصویر ---
+  function handleTouchStart(event: React.TouchEvent<HTMLDivElement>, index: number) {
+    if (event.touches.length !== 2) return;
+    const [t1, t2] = [event.touches[0], event.touches[1]];
+    pinchRef.current = {
+      index,
+      startDistance: getTouchDistance(t1.clientX, t1.clientY, t2.clientX, t2.clientY),
     };
-    event.currentTarget.setPointerCapture(event.pointerId);
   }
 
-  function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
-    const gesture = gestureRef.current;
-    if (!gesture || gesture.pointerId !== event.pointerId) return;
-
-    const deltaX = event.clientX - gesture.startX;
-    const deltaY = event.clientY - gesture.startY;
-
-    if (gesture.direction === null) {
-      const direction = resolveGestureDirection(deltaX, deltaY);
-      if (direction === null) return;
-      gesture.direction = direction;
-      if (direction === "vertical") setIsDragging(true);
-    }
-
-    if (gesture.direction === "vertical") {
-      // فقط کشیدن رو به بالا معنادار است؛ کشیدن رو به پایین وقتی از
-      // قبل در حالت عادی (Progress=۰) هستیم چیزی برای جمع‌کردن ندارد.
-      const next = verticalDeltaToProgress(deltaY, gesture.startProgress);
-      gesture.liveProgress = next;
-      applyHeight(next);
-    } else if (gesture.direction === "horizontal") {
-      gesture.liveDeltaX = deltaX;
-      applyTrackTransform(activeIndex, deltaX);
+  function handleTouchMove(event: React.TouchEvent<HTMLDivElement>) {
+    const pinch = pinchRef.current;
+    if (!pinch || event.touches.length !== 2) return;
+    const [t1, t2] = [event.touches[0], event.touches[1]];
+    const currentDistance = getTouchDistance(t1.clientX, t1.clientY, t2.clientX, t2.clientY);
+    if (isPinchZoomGesture(pinch.startDistance, currentDistance)) {
+      pinchRef.current = null;
+      focusImage(pinch.index);
     }
   }
 
-  function endGesture(event: React.PointerEvent<HTMLDivElement>) {
-    const gesture = gestureRef.current;
-    if (!gesture || gesture.pointerId !== event.pointerId) return;
-    gestureRef.current = null;
-
-    if (gesture.direction === "vertical") {
-      const finalProgress = clampProgress(resolveReleaseProgress(gesture.liveProgress));
-      setProgressBoth(finalProgress);
-      // یک فریم صبر می‌کنیم تا Transition (که با کلاس `isDragging=false` فعال می‌شود) واقعاً اعمال شود.
-      requestAnimationFrame(() => applyHeight(finalProgress));
-      setIsDragging(false);
-    } else if (gesture.direction === "horizontal") {
-      const nextIndex = resolveSlideIndex(activeIndex, gesture.liveDeltaX, images.length);
-      setActiveIndex(nextIndex);
-      requestAnimationFrame(() => applyTrackTransform(nextIndex, 0));
-    }
+  function handleTouchEnd() {
+    // یک تأخیر کوتاه تا `touchend` باقی‌مانده از یک Pinch نیمه‌کاره
+    // به‌اشتباه به‌عنوان Tap تفسیر نشود.
+    window.setTimeout(() => {
+      pinchRef.current = null;
+    }, PINCH_RESET_DELAY_MS);
   }
 
-  function goToSlide(index: number) {
-    setActiveIndex(index);
-    applyTrackTransform(index, 0);
+  // --- ضربه‌زدن (Tap/Click) — با آستانه جابه‌جایی، تا بعد از یک
+  // اسکرول با انگشت به‌اشتباه Tap تشخیص داده نشود ---
+  function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    pointerDownRef.current = { x: event.clientX, y: event.clientY };
   }
 
-  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-    if (images.length <= 1) return;
-    // در RTL، از نظر بصری «چپ» یعنی تصویر بعدی (هم‌جهت با Dot بعدی).
-    if (event.key === "ArrowLeft") {
-      const next = (activeIndex + 1) % images.length;
-      goToSlide(next);
-    } else if (event.key === "ArrowRight") {
-      const prev = (activeIndex - 1 + images.length) % images.length;
-      goToSlide(prev);
+  function handlePointerUp(event: React.PointerEvent<HTMLDivElement>, index: number) {
+    const start = pointerDownRef.current;
+    pointerDownRef.current = null;
+    if (!start) return;
+    const movedPx = Math.hypot(event.clientX - start.x, event.clientY - start.y);
+    if (movedPx < 6) focusImage(index);
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>, index: number) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      focusImage(index);
     }
   }
 
@@ -217,89 +148,71 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
 
   if (images.length === 0) {
     return (
-      <div className="mx-4 flex aspect-[3/4] max-h-[40dvh] items-center justify-center rounded-2xl bg-white text-sm text-gray-400 sm:mx-6">
-        تصویری برای این محصول ثبت نشده است
-      </div>
+      <section className="px-4 pt-4 sm:mx-auto sm:max-w-md sm:px-6">
+        <div className="mx-auto flex aspect-[3/4] w-[60%] items-center justify-center rounded-2xl border border-dashed border-gray-200 text-sm text-gray-400">
+          تصویری برای این محصول ثبت نشده است
+        </div>
+      </section>
     );
   }
 
   return (
     <section className="px-4 pt-4 sm:mx-auto sm:max-w-md sm:px-6">
       <div
-        ref={containerRef}
-        role="group"
-        aria-roledescription="گالری تصاویر محصول"
-        aria-label={`گالری تصاویر ${productTitle}`}
-        tabIndex={0}
-        onKeyDown={handleKeyDown}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={endGesture}
-        onPointerCancel={endGesture}
-        className="relative overflow-hidden rounded-2xl bg-white outline-none focus-visible:ring-2 focus-visible:ring-[var(--sf-accent)]"
-        style={{
-          height: progressToHeightCss(progress),
-          transition: isDragging ? "none" : "height 320ms cubic-bezier(0.22, 1, 0.36, 1)",
-          touchAction: "pan-y",
-        }}
+        ref={trackRef}
+        dir="ltr"
+        className={cn(
+          "flex gap-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+          images.length > 1 ? "overflow-x-auto" : "justify-center",
+        )}
       >
-        <div className="flex h-full items-center justify-center">
-          <div dir="ltr" className="relative h-full aspect-[3/4] overflow-hidden">
+        {images.map((image, index) => {
+          const isFocused = focusedIndex === index;
+          return (
             <div
-              ref={trackRef}
-              className="flex h-full"
-              style={{
-                transform: `translateX(${-activeIndex * 100}%)`,
-                transition: isDragging ? "none" : "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)",
-              }}
-            >
-              {images.map((image, index) => (
-                <div key={image.url + index} className="relative h-full w-full shrink-0">
-                  {!loadedFlags[index] && (
-                    <div
-                      aria-hidden="true"
-                      className="absolute inset-0 animate-pulse bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100"
-                    />
-                  )}
-                  <Image
-                    src={image.url}
-                    alt={`${productTitle} — تصویر ${index + 1} از ${images.length}`}
-                    fill
-                    priority={index === 0}
-                    draggable={false}
-                    placeholder={image.blurDataUrl ? "blur" : "empty"}
-                    blurDataURL={image.blurDataUrl ?? undefined}
-                    sizes="(min-width: 640px) 448px, 100vw"
-                    className={cn(
-                      "object-cover transition-opacity duration-300",
-                      loadedFlags[index] ? "opacity-100" : "opacity-0",
-                    )}
-                    onLoad={() => markLoaded(index)}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {images.length > 1 && (
-        <div className="mt-2 flex items-center justify-center gap-1.5">
-          {images.map((image, index) => (
-            <button
               key={image.url + index}
-              type="button"
-              aria-label={`تصویر ${index + 1}`}
-              aria-current={index === activeIndex}
-              onClick={() => goToSlide(index)}
+              role="button"
+              tabIndex={0}
+              aria-pressed={isFocused}
+              aria-label={`${isFocused ? "بستن بزرگ‌نمایی" : "بزرگ‌نمایی"} تصویر ${index + 1} از ${images.length} ${productTitle}`}
+              onPointerDown={handlePointerDown}
+              onPointerUp={(event) => handlePointerUp(event, index)}
+              onTouchStart={(event) => handleTouchStart(event, index)}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onKeyDown={(event) => handleKeyDown(event, index)}
               className={cn(
-                "h-1.5 rounded-full transition-all",
-                index === activeIndex ? "w-5 bg-[var(--sf-accent)]" : "w-1.5 bg-gray-300",
+                "relative aspect-[3/4] shrink-0 cursor-pointer overflow-hidden rounded-2xl outline-none",
+                "transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                "focus-visible:ring-2 focus-visible:ring-[var(--sf-accent)]",
+                isFocused ? "w-[min(80vw,90%)] shadow-lg" : "w-[60%]",
               )}
-            />
-          ))}
-        </div>
-      )}
+            >
+              {!loadedFlags[index] && (
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 animate-pulse bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100"
+                />
+              )}
+              <Image
+                src={image.url}
+                alt={`${productTitle} — تصویر ${index + 1} از ${images.length}`}
+                fill
+                priority={index === 0}
+                draggable={false}
+                placeholder={image.blurDataUrl ? "blur" : "empty"}
+                blurDataURL={image.blurDataUrl ?? undefined}
+                sizes="80vw"
+                className={cn(
+                  "object-cover transition-opacity duration-300",
+                  loadedFlags[index] ? "opacity-100" : "opacity-0",
+                )}
+                onLoad={() => markLoaded(index)}
+              />
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
 }
