@@ -5,8 +5,14 @@ import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
 import {
   clampPanOffsetPx,
+  clampScrollLeft,
   clampZoomScale,
+  getEdgeAlignedScrollLeft,
+  getFocusedSlideWidthPx,
+  getSlideOffsetLeftPx,
   getTouchDistance,
+  getTrackContentWidthPx,
+  shouldAlignSlideToRightEdge,
   shouldResetFocusOnScroll,
   ZOOM_MIN_SCALE,
 } from "@/lib/storefront/product-gallery-math";
@@ -52,8 +58,14 @@ const TAP_MOVE_THRESHOLD_PX = 6;
  *    عرض همه اسلایدها با هم تا `min(80vw, 90%)` بزرگ می‌شود (۸۰٪
  *    عرض صفحه گوشی، هرگز بیشتر از عرض کانتینر)، ارتفاع هرکدام
  *    به‌خاطر `aspect-[3/4]` خودش به همان نسبت رشد می‌کند (بدون
- *    محاسبه دستی JS)، و تصویری که Tap شده با `scrollIntoView` نرم
- *    به وسط می‌آید.
+ *    محاسبه دستی JS)، و اسکرول افقی گالری هم‌زمان با شروع همان
+ *    Transition عرض (نه بعد از تمام‌شدنش — چون اندازه‌گیری زنده DOM
+ *    وسط یک CSS Transition عرض هنوز واقعی نیست) به مقصد محاسبه‌شده
+ *    حرکت می‌کند: مقصد از روی عرض *نهایی* اسلایدها با توابع خالص
+ *    `product-gallery-math.ts` از قبل حساب می‌شود، و تصویر Tap‌شده
+ *    را کامل داخل دید می‌آورد — Align به همان لبه‌ای (راست یا چپ)
+ *    که قبل از رشد از آن سمت بیرون‌زده بود، نه صرفاً وسط‌چین (که
+ *    ممکن است لبه مقابل را بیرون بیندازد).
  * ۲. **Tap دوباره روی هر تصویری، وقتی همه بزرگ هستند** (فرقی نمی‌کند
  *    خود آن تصویر Zoom‌شده باشد یا نه) → همه تصاویر با هم به اندازه
  *    اولیه برمی‌گردند و هر Zoom فعالی هم پاک می‌شود.
@@ -114,11 +126,40 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
     return () => window.removeEventListener("scroll", handleScroll);
   }, [hasActiveState]);
 
-  function centerImageInTrack(index: number) {
+  function scrollFocusedSlideFullyIntoView(tappedIndex: number) {
     const track = trackRef.current;
     if (!track) return;
-    const target = track.children[index] as HTMLElement | undefined;
-    target?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+
+    const trackRect = track.getBoundingClientRect();
+    const itemEl = track.children[tappedIndex] as HTMLElement | undefined;
+    if (!itemEl) return;
+    const itemRectBeforeGrow = itemEl.getBoundingClientRect();
+
+    const containerWidthPx = track.clientWidth;
+    const gapPx = parseFloat(getComputedStyle(track).columnGap || "") || 12;
+    const focusedWidthPx = getFocusedSlideWidthPx(containerWidthPx, window.innerWidth);
+
+    const alignToRightEdge = shouldAlignSlideToRightEdge(
+      itemRectBeforeGrow.left,
+      itemRectBeforeGrow.right,
+      trackRect.left,
+      trackRect.right,
+    );
+
+    const offsetLeftPx = getSlideOffsetLeftPx(tappedIndex, focusedWidthPx, gapPx);
+    const rawScrollLeft = getEdgeAlignedScrollLeft(
+      offsetLeftPx,
+      focusedWidthPx,
+      containerWidthPx,
+      alignToRightEdge,
+    );
+    const maxScrollLeftPx =
+      getTrackContentWidthPx(images.length, focusedWidthPx, gapPx) - containerWidthPx;
+    const targetScrollLeft = clampScrollLeft(rawScrollLeft, maxScrollLeftPx);
+
+    // بلافاصله (نه بعد از پایان Transition عرض) — تا اسکرول هم‌زمان
+    // با بزرگ‌شدن عرض شروع شود، نه با یک تأخیر محسوس بعدش.
+    track.scrollTo({ left: targetScrollLeft, behavior: "smooth" });
   }
 
   // --- Tap: باز/بسته‌کردن Focus برای همه تصاویر با هم ---
@@ -140,8 +181,10 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
       return;
     }
 
+    // اندازه‌گیری *قبل* از تغییر State — چون بعد از آن، عرض شروع به
+    // Transition می‌کند و اندازه‌گیری زنده دیگر واقعی نیست.
+    scrollFocusedSlideFullyIntoView(index);
     setIsFocused(true);
-    requestAnimationFrame(() => centerImageInTrack(index));
   }
 
   // --- ضربه‌زدن (Tap/Click) — با آستانه جابه‌جایی، تا بعد از یک

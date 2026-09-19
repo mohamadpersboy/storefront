@@ -691,9 +691,25 @@ Progress-based بالا):**
   با هم تا `min(80vw, 90%)` بزرگ می‌شود (۸۰٪ عرض صفحه گوشی، هرگز
   بیشتر از ۹۰٪ عرض خود کانتینر — تا در Desktop/`sm:max-w-md` سرریز
   نشود)، ارتفاع هرکدام به‌خاطر `aspect-[3/4]` خودش به همان نسبت رشد
-  می‌کند (بدون محاسبه دستی JS)، و تصویری که Tap شده با
-  `scrollIntoView({behavior:"smooth", inline:"center"})` به وسط دید
-  می‌آید.
+  می‌کند (بدون محاسبه دستی JS).
+- **باگ رفع‌شده (طبق اسکرین‌شات کارفرما — تصویر Focus‌شده نصفش بیرون
+  از دید می‌ماند):** قبلاً مقصد اسکرول با `scrollIntoView(center)`
+  *بعد از* شروع Transition عرض محاسبه می‌شد — چون اندازه‌گیری زنده
+  DOM وسط یک CSS Width Transition هنوز به مقدار نهایی نرسیده،
+  محاسبه بر اساس عرض ناقص/اولیه انجام می‌شد و نتیجه اشتباه از آب
+  درمی‌آمد. رفع شد با محاسبه مقصد از روی فرمول عرض *نهایی* (نه
+  اندازه‌گیری زنده) — توابع خالص جدید در `product-gallery-math.ts`:
+  `getFocusedSlideWidthPx`، `getSlideOffsetLeftPx`،
+  `getTrackContentWidthPx`، `shouldAlignSlideToRightEdge`،
+  `getEdgeAlignedScrollLeft`، `clampScrollLeft`. هم‌زمان با Tap،
+  `track.scrollTo({left, behavior:"smooth"})` صدا زده می‌شود (نه بعد
+  از پایان Transition عرض) تا اسکرول و بزرگ‌شدن هم‌زمان انجام شوند،
+  طبق درخواست صریح کارفرما. به‌علاوه دیگر Center نمی‌کند — Align به
+  همان لبه‌ای (راست یا چپ) که تصویر Tap‌شده *قبل* از رشد از آن سمت
+  دید (Track) بیرون‌زده بود (`shouldAlignSlideToRightEdge` بر اساس
+  `getBoundingClientRect` اندازه‌گیری‌شده پیش از تغییر State، نه
+  بعدش)؛ اگر از قبل کامل داخل دید بود، نزدیک‌ترین لبه بر اساس مرکز
+  انتخاب می‌شود.
 - **Tap دوباره روی هر تصویری، وقتی همه Focus‌اند، همه را با هم
   می‌بندد:** فرقی نمی‌کند خود همان تصویر Zoom‌شده باشد یا نه — این
   Tap همیشه هم `isFocused` را `false` می‌کند هم هر Zoom فعالی را پاک
@@ -725,18 +741,65 @@ Progress-based بالا):**
   اسکرول رو‌به‌بالا تأثیری ندارد.
 - منطق قدیمی Progress-based (درگ عمودی ارتفاع + Swipe تک‌تصویری با
   Pointer دستی + Dot Indicator) کامل حذف شد — دیگر بخشی از طراحی
-  فعلی نیست. `product-gallery-math.ts` هم‌کامل جایگزین شد: توابع
-  خالص `getTouchDistance`، `shouldResetFocusOnScroll`،
-  `clampZoomScale`، `getMaxPanOffsetPx`، `clampPanOffsetPx` +
-  ثابت‌های مرتبط.
+  فعلی نیست. `product-gallery-math.ts` توابع خالص دارد:
+  `getTouchDistance`، `shouldResetFocusOnScroll`، `clampZoomScale`،
+  `getMaxPanOffsetPx`، `clampPanOffsetPx`، `getFocusedSlideWidthPx`،
+  `getSlideOffsetLeftPx`، `getTrackContentWidthPx`،
+  `shouldAlignSlideToRightEdge`، `getEdgeAlignedScrollLeft`،
+  `clampScrollLeft` + ثابت‌های مرتبط.
 - بدون کتابخانه انیمیشن جدید — فقط CSS Transition روی `width`/
-  `transform` + `scrollIntoView` نرم. برای رعایت React Compiler ESLint
-  Rule («Cannot access refs during render»)، تصمیم Transition
+  `transform` + `Element.scrollTo` نرم. برای رعایت React Compiler
+  ESLint Rule («Cannot access refs during render»)، تصمیم Transition
   زنده/نرم روی Transform با یک State جدا (`isLiveGesture`) گرفته
   می‌شود، نه خواندن مستقیم Ref حین Render.
-- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۳۸۴ تست)، Build ✅.
+- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۳۹ تست در
+  `product-gallery-math`)، Build ✅.
+
+**Top Bar — دو دکمه اضافه‌شده با دستور صریح بعدی کارفرما (علاقه‌مندی
++ نمودار قیمت)، کنار دکمه اشتراک‌گذاری:**
+
+- **`ProductFavoriteButton`** (`src/components/storefront/product-favorite-button.tsx`):
+  دکمه قلب Toggle، Optimistic UI. مدل جدید `Favorite` (`user`+`product`،
+  Index یکتا) + `POST /api/v1/favorites/toggle`
+  (`requireAuthenticatedUser`، هم‌الگو با Auth خود `Cart` — بدون
+  Permission خاص RBAC چون منبع متعلق به خود کاربر است). این مدل/API
+  از قبل در بند «In Progress» CLAUDE.md به‌عنوان زیرساخت مورد انتظار
+  خودِ Storefront مستند بود، نه یک تصمیم معماری تازه. کاربر مهمان
+  (۴۰۱) به `/login` هدایت می‌شود (بدون Query Param بازگشت — صفحه
+  فعلاً پشتیبانی نمی‌کند). وضعیت اولیه (`initialIsFavorite`) در خودِ
+  `page.tsx` (Server Component) با `getIsProductFavorited` +
+  `getCurrentUser` خوانده می‌شود — بدون Round-trip اضافه از Client.
+  رنگ حالت Favorite‌شده: `--sf-cherry` (هم‌رنگ Badge تخفیف، نه رنگ
+  تازه).
+- **`ProductPriceChartButton`** (`src/components/storefront/product-price-chart-button.tsx`):
+  دکمه نمودار، پاپ‌آپ تمام‌عرض/Bottom-Sheet (Backdrop + Escape +
+  کلیک بیرون برای بستن) با `recharts` `AreaChart` — هم‌الگوی بصری با
+  `SalesTrendChart` داشبورد (گرادیان زیر خط، همان شکل Grid/Tooltip)،
+  فقط با رنگ `--sf-accent` و فرمت قیمت/تومان هم‌الگو با
+  `ProductInfoHeader` (`formatNumber`+`TOMAN_GLYPH`).
+  **داده Mock است** — `getMockWeeklyPriceHistory` در
+  `src/lib/storefront/get-price-history.ts` (۸ تست): هیچ مدل
+  Backend‌ای برای تاریخچه واقعی قیمت وجود ندارد (نیازمند یک
+  Snapshot هفتگی/Cron که یک **تصمیم معماری جداست** و نیاز به تأیید
+  صریح کارفرما دارد، طبق بند ۱۳ سند Storefront: «از Mock Data فقط
+  جایی استفاده کن که هنوز API واقعی آماده نیست»). نوسان Mock
+  بر اساس Seed پایدار `productId` است (نه واقعاً تصادفی هر Reload)؛
+  هفته آخر همیشه دقیقاً برابر `finalPrice` واقعی محصول است. شکل
+  داده (`{weekLabel, price}`) عمداً با آنچه یک API واقعی برمی‌گرداند
+  هماهنگ نگه داشته شده تا بعداً بدون Rewrite UI جایگزین شود.
+- بند «Do NOT design or implement: ... Wishlist» در Docstring
+  `page.tsx` مربوط به فاز اولیه صفحه جزئیات محصول بود؛ کارفرما صریحاً
+  دستور بعدی داد این دو دکمه اضافه شوند — override همان محدودیت فاز
+  اول، نه نقض قانون «بدون تأیید من به ماژول بعدی نرو» (چون خودِ
+  تأیید/دستور صریح بود).
+- صفحه کامل `/favorites` (لیست علاقه‌مندی‌ها که Bottom Nav به آن لینک
+  می‌دهد) هنوز ساخته نشده — فقط Toggle/وضعیت تکی روی همین صفحه
+  محصول کار می‌کند. این هم یک ماژول جداست، هنوز تأییدنشده.
+- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۴۱۲ تست کل پروژه — ۵ تست
+  `favorites` Validation + ۶ تست `get-price-history`)، Build ✅.
 
 **Product Details — Phase 2 (عنوان + قیمت) انجام شد:**
+
 
 - `src/components/storefront/product-info-header.tsx`: فقط عنوان
   (`h1`) + قیمت — Variant/ویژگی/موجودی/افزودن به سبد/توضیحات/
@@ -1751,12 +1814,13 @@ UI مرحله ۱ آن Discard شد).
   Checkout/Login-OTP/Account/Orders/Address (بند ۶۹) — Checkout باید
   به مدل‌های موجود `Order`/`Payment` وصل شود، نه بازنویسی
 
-**نکته معماری مهم کشف‌شده حین بررسی:** مدل‌های `Cart` و
-`Favorite/Wishlist` هنوز در Backend وجود ندارند. طبق بند ۵۱ Master
-Prompt این‌جا ثبت می‌شود: این دو باید به‌عنوان بخشی از خودِ کار
-Storefront ساخته شوند (نه پیش‌نیاز مسدودکننده)، چون در فهرست بند ۶۹
-جزو صفحات Storefront‌اند نه Dashboard. Header فعلی بج سبد را با عدد
-واقعی صفر (نه ساختگی) نشان می‌دهد تا مدل Cart ساخته شود.
+**نکته معماری مهم کشف‌شده حین بررسی:** مدل `Cart` از قبل ساخته شده
+(نگاه کنید بخش ۹). مدل `Favorite` هم اضافه شد (نگاه کنید Product
+Details → Top Bar در بخش ۲) — طبق بند ۵۱ Master Prompt این‌جا ثبت
+شده بود: این دو باید به‌عنوان بخشی از خودِ کار Storefront ساخته
+شوند (نه پیش‌نیاز مسدودکننده)، چون در فهرست بند ۶۹ جزو صفحات
+Storefront‌اند نه Dashboard. صفحه کامل `/favorites` (لیست) هنوز
+ساخته نشده — فقط Toggle/وضعیت تکی محصول کار می‌کند.
 
 ## 6. Architecture
 
@@ -2241,6 +2305,13 @@ find-then-create، تا دو درخواست همزمان اول هرگز دو س
 (تومان، پیش‌فرض ۵۰۰۰۰۰ فقط به‌عنوان مقدار پیشنهادی اولیه). مصرف در
 Storefront: `FreeShippingBanner` روی صفحه اصلی، فقط اگر
 `freeShippingEnabled === true`.
+
+### Favorite
+`user` (ref User) + `product` (ref Product)، Index یکتا روی
+`(user, product)` — یک ردیف به‌ازای هر علاقه‌مندی. فقط `createdAt`
+(بدون `updatedAt`). Toggle از `POST /api/v1/favorites/toggle`
+(`requireAuthenticatedUser`). مصرف: دکمه قلب Top Bar صفحه محصول
+(بخش ۲) — صفحه کامل لیست `/favorites` هنوز ساخته نشده.
 
 ### Order.discount (Snapshot)
 `source` (`"coupon"` | `"payment_reward"`)، `amount`،
@@ -3037,9 +3108,14 @@ Commitِ قبلی، یا تست قبل از فعال‌کردن `enabled` در �
   این‌ها باید از پنل مدیریت شوند، نه Environment Variable؛ فعلاً در
   Footer (مرحله ۷ Storefront) Placeholder گذاشته خواهد شد تا این
   بخش Settings ساخته شود
-- [ ] مدل `Cart` (مهمان + کاربر لاگین‌شده) و `Favorite`/Wishlist —
-  پیش‌نیاز مراحل بعدی Storefront (بج‌های واقعی Header، افزودن به
-  سبد، علاقه‌مندی)
+- [x] مدل `Cart` (کاربر لاگین‌شده) — ساخته شد (بخش ۹)
+- [x] مدل `Favorite` (Watchlist محصول تکی) — ساخته شد (Product
+  Details → Top Bar، بخش ۲)
+- [ ] صفحه کامل `/favorites` (لیست علاقه‌مندی‌های کاربر) — فقط
+  Toggle/وضعیت تکی روی صفحه محصول کار می‌کند، لیست کامل هنوز نه
+- [ ] مدل واقعی تاریخچه هفتگی قیمت (Snapshot + Cron) — نمودار قیمت
+  صفحه محصول فعلاً از داده Mock استفاده می‌کند (بخش ۲)؛ این یک
+  تصمیم معماری جداست و نیاز به تأیید صریح کارفرما دارد
 
 ## 16. Do Not Change (بدون دلیل قوی)
 

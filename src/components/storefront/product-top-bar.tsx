@@ -4,31 +4,45 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Share2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { ProductFavoriteButton } from "@/components/storefront/product-favorite-button";
+import { ProductPriceChartButton } from "@/components/storefront/product-price-chart-button";
+import type { WeeklyPricePoint } from "@/lib/storefront/get-price-history";
 
 type ProductTopBarProps = {
   /** برای Share (عنوان صفحه هنوز در این فاز رندر نمی‌شود — ماژول جداست). */
   shareTitle: string;
+  productId: string;
+  initialIsFavorite: boolean;
+  priceHistory: WeeklyPricePoint[];
 };
 
 const COPIED_FEEDBACK_MS = 1500;
 
 /**
- * Top Bar صفحه جزئیات محصول — حداقلی، طبق بند ۲ Product Details
- * Phase 1: «Do not invent unnecessary actions». فقط دو اکشن دارد:
+ * Top Bar صفحه جزئیات محصول.
+ *
+ * پنج اکشن دارد:
  *
  * ۱. بازگشت — هم‌الگو با `PageHeader` (`router.back()`، نه یک
  *    مقصد ثابت، چون کاربر ممکن است از مسیرهای مختلف رسیده باشد).
- * ۲. اشتراک‌گذاری — تنها اکشن معنادار دیگر مستقل از ماژول‌های خارج
- *    از Scope همین فاز (عنوان/قیمت/Variant/افزودن به سبد/
- *    علاقه‌مندی همگی در فازهای بعدی هستند). با Web Share API روی
- *    مرورگرهایی که پشتیبانی می‌کنند (بیشتر موبایل)، وگرنه Fallback
- *    به کپی لینک در Clipboard با بازخورد کوتاه بصری.
+ * ۲. اشتراک‌گذاری — Web Share API روی مرورگرهایی که پشتیبانی می‌کنند
+ *    (بیشتر موبایل)، وگرنه Fallback به کپی لینک در Clipboard با
+ *    بازخورد کوتاه بصری.
+ * ۳. افزودن/حذف از علاقه‌مندی‌ها (`ProductFavoriteButton`) — به
+ *    درخواست صریح کارفرما.
+ * ۴. نمودار قیمت (`ProductPriceChartButton`) — به درخواست صریح
+ *    کارفرما؛ پاپ‌آپ تغییرات ۸ هفته اخیر قیمت.
  *
- * برخلاف `MobileTopBar` (فقط صفحه اصلی) و مشابه `PageHeader`
- * (صفحات داخلی)، اما بدون عنوان وسط — چون Product Title جزو این
- * فاز نیست و نمایش آن زودتر از موعد گمراه‌کننده است.
+ * بند «Do NOT design or implement: ... Wishlist» در `page.tsx` مربوط
+ * به فاز اولیه صفحه جزئیات محصول بود؛ این دو دکمه با دستور صریح
+ * بعدی کارفرما اضافه شدند و آن محدودیت فاز اول را override می‌کنند.
  */
-export function ProductTopBar({ shareTitle }: ProductTopBarProps) {
+export function ProductTopBar({
+  shareTitle,
+  productId,
+  initialIsFavorite,
+  priceHistory,
+}: ProductTopBarProps) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
 
@@ -72,18 +86,22 @@ export function ProductTopBar({ shareTitle }: ProductTopBarProps) {
           <ArrowRight className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
         </button>
 
-        <button
-          type="button"
-          onClick={handleShare}
-          aria-label={copied ? "لینک کپی شد" : "اشتراک‌گذاری"}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-500 active:bg-gray-200"
-        >
-          {copied ? (
-            <Check className="h-5 w-5 text-[var(--color-success)]" strokeWidth={2} aria-hidden="true" />
-          ) : (
-            <Share2 className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <ProductPriceChartButton history={priceHistory} />
+          <ProductFavoriteButton productId={productId} initialIsFavorite={initialIsFavorite} />
+          <button
+            type="button"
+            onClick={handleShare}
+            aria-label={copied ? "لینک کپی شد" : "اشتراک‌گذاری"}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-500 active:bg-gray-200"
+          >
+            {copied ? (
+              <Check className="h-5 w-5 text-[var(--color-success)]" strokeWidth={2} aria-hidden="true" />
+            ) : (
+              <Share2 className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
