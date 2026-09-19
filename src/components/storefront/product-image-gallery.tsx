@@ -46,19 +46,26 @@ const TAP_MOVE_THRESHOLD_PX = 6;
  * بخورند؛ با `items-start` هر اسلاید فقط با عرض/نسبت خودش
  * (`aspect-[3/4]`) بلند می‌شود.
  *
- * دو ژست کاملاً مستقل روی هر تصویر:
+ * سه ژست روی هر تصویر:
  *
- * ۱. **Tap** → آن تصویر را «Focus» می‌کند: عرض اسلاید تا
- *    `min(80vw, 90%)` بزرگ می‌شود (۸۰٪ عرض صفحه گوشی، هرگز بیشتر از
- *    عرض کانتینر)، ارتفاع به‌خاطر `aspect-[3/4]` به همان نسبت رشد
- *    می‌کند، و با `scrollIntoView` نرم به وسط می‌آید. Tap دوباره روی
- *    همان تصویر آن را به اندازه اولیه برمی‌گرداند (Toggle).
- * ۲. **Pinch با دو انگشت** → اندازه خود اسلاید/Layout را تغییر
- *    نمی‌دهد؛ به‌جایش محتوای تصویر *داخل همان کانتینر* Zoom می‌شود
- *    (`transform: translate() scale()` روی خود `<Image>`، کانتینر
- *    `overflow-hidden` دارد) و با یک انگشت (وقتی Zoom‌شده) می‌توان
- *    نقاط مختلف تصویر را Pan/جابه‌جا کرد — جابه‌جایی همیشه محدود به
- *    لبه‌های تصویر است (`clampPanOffsetPx`، بدون فاصله خالی).
+ * ۱. **Tap** → تمام تصاویر با هم «Focus» می‌شوند (نه فقط همان یکی):
+ *    عرض همه اسلایدها با هم تا `min(80vw, 90%)` بزرگ می‌شود (۸۰٪
+ *    عرض صفحه گوشی، هرگز بیشتر از عرض کانتینر)، ارتفاع هرکدام
+ *    به‌خاطر `aspect-[3/4]` خودش به همان نسبت رشد می‌کند (بدون
+ *    محاسبه دستی JS)، و تصویری که Tap شده با `scrollIntoView` نرم
+ *    به وسط می‌آید.
+ * ۲. **Tap دوباره روی هر تصویری، وقتی همه بزرگ هستند** (فرقی نمی‌کند
+ *    خود آن تصویر Zoom‌شده باشد یا نه) → همه تصاویر با هم به اندازه
+ *    اولیه برمی‌گردند و هر Zoom فعالی هم پاک می‌شود.
+ * ۳. **Pinch با دو انگشت** (در حالت عادی یا Focus‌شده، فرقی ندارد) →
+ *    اندازه خود اسلاید/Layout را تغییر نمی‌دهد؛ به‌جایش محتوای تصویر
+ *    *داخل همان کانتینر* Zoom می‌شود (`transform: translate() scale()`
+ *    روی خود `<Image>`، کانتینر `overflow-hidden` دارد) و با یک
+ *    انگشت (وقتی Zoom‌شده) می‌توان نقاط مختلف تصویر را Pan/جابه‌جا
+ *    کرد — جابه‌جایی همیشه محدود به لبه‌های تصویر است
+ *    (`clampPanOffsetPx`، بدون فاصله خالی). وقتی همه تصاویر در حالت
+ *    عادی‌اند (Focus نشده) و کاربر روی یک تصویر Zoom‌شده Tap کند،
+ *    آن Tap فقط همان Zoom را می‌بندد (بدون Focus‌کردن همه).
  *
  * اسکرول *صفحه* (نه خود گالری) رو‌به‌پایین، هم Focus و هم Zoom را
  * بازنشانی می‌کند. وقتی تصویری Zoom‌شده، اسکرول افقی گالری موقتاً
@@ -68,7 +75,9 @@ const TAP_MOVE_THRESHOLD_PX = 6;
  * CSS Transition/Transform + Touch/Pointer Events خام.
  */
 export function ProductImageGallery({ images, productTitle }: ProductImageGalleryProps) {
-  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+  // `isFocused` مشترک بین همه تصاویر است — با یک Tap، همه با هم
+  // بزرگ/کوچک می‌شوند، نه فقط تصویر Tap‌شده.
+  const [isFocused, setIsFocused] = useState(false);
   const [zoom, setZoom] = useState<ZoomState | null>(null);
   const [loadedFlags, setLoadedFlags] = useState<boolean[]>(() => images.map(() => false));
   // فقط برای تصمیم Transition روی Transform زوم — `true` حین خود
@@ -88,7 +97,7 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
   } | null>(null);
   const panRef = useRef<{ index: number; lastX: number; lastY: number } | null>(null);
 
-  const hasActiveState = focusedIndex !== null || zoom !== null;
+  const hasActiveState = isFocused || zoom !== null;
 
   // --- بازنشانی Focus/Zoom با اسکرول رو‌به‌پایین صفحه ---
   useEffect(() => {
@@ -96,7 +105,7 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
 
     function handleScroll() {
       if (shouldResetFocusOnScroll(scrollYAtActiveRef.current, window.scrollY)) {
-        setFocusedIndex(null);
+        setIsFocused(false);
         setZoom(null);
       }
     }
@@ -105,19 +114,34 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
     return () => window.removeEventListener("scroll", handleScroll);
   }, [hasActiveState]);
 
-  // --- وسط‌چین‌کردن تصویر Focus‌شده با اسکرول نرم افقی ---
-  useEffect(() => {
-    if (focusedIndex === null) return;
+  function centerImageInTrack(index: number) {
     const track = trackRef.current;
     if (!track) return;
-    const target = track.children[focusedIndex] as HTMLElement | undefined;
+    const target = track.children[index] as HTMLElement | undefined;
     target?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-  }, [focusedIndex]);
+  }
 
-  function focusImage(index: number) {
+  // --- Tap: باز/بسته‌کردن Focus برای همه تصاویر با هم ---
+  function toggleFocusFromTap(index: number) {
     scrollYAtActiveRef.current = window.scrollY;
-    setZoom(null);
-    setFocusedIndex((current) => (current === index ? null : index));
+
+    if (isFocused) {
+      // بزرگ هستیم — این Tap (روی هر تصویری، Zoom‌شده یا نه) همه را
+      // به حالت اولیه برمی‌گرداند و Zoom را هم پاک می‌کند.
+      setIsFocused(false);
+      setZoom(null);
+      return;
+    }
+
+    // در حالت عادی هستیم — اگر همین تصویر Zoom‌شده، اول فقط همان
+    // Zoom بسته می‌شود (Focus‌کردن همه در همین Tap انجام نمی‌شود).
+    if (zoom !== null && zoom.index === index) {
+      setZoom(null);
+      return;
+    }
+
+    setIsFocused(true);
+    requestAnimationFrame(() => centerImageInTrack(index));
   }
 
   // --- ضربه‌زدن (Tap/Click) — با آستانه جابه‌جایی، تا بعد از یک
@@ -132,20 +156,13 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
     if (!start || pinchRef.current || panRef.current) return;
     const movedPx = Math.hypot(event.clientX - start.x, event.clientY - start.y);
     if (movedPx >= TAP_MOVE_THRESHOLD_PX) return;
-
-    // اگر تصویری Zoom‌شده، اولین Tap فقط همان را می‌بندد (رفتار
-    // مرسوم Viewer عکس)؛ Focus را در همین ضربه تغییر نمی‌دهد.
-    if (zoom !== null) {
-      setZoom(null);
-      return;
-    }
-    focusImage(index);
+    toggleFocusFromTap(index);
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>, index: number) {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      focusImage(index);
+      toggleFocusFromTap(index);
     }
   }
 
@@ -263,7 +280,6 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
         )}
       >
         {images.map((image, index) => {
-          const isFocused = focusedIndex === index;
           const isZoomedHere = zoom !== null && zoom.index === index;
           const zoomScale = isZoomedHere ? zoom.scale : ZOOM_MIN_SCALE;
           const zoomPanX = isZoomedHere ? zoom.panX : 0;
