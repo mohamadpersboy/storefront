@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
 import {
+  clampPanOffsetPx,
+  clampZoomScale,
   getTouchDistance,
-  isPinchZoomGesture,
   shouldResetFocusOnScroll,
+  ZOOM_MIN_SCALE,
 } from "@/lib/storefront/product-gallery-math";
 
 export type ProductGalleryImage = {
@@ -26,52 +28,82 @@ type ProductImageGalleryProps = {
   productTitle: string;
 };
 
-const PINCH_RESET_DELAY_MS = 400;
+type ZoomState = { index: number; scale: number; panX: number; panY: number };
+
+const TAP_MOVE_THRESHOLD_PX = 6;
 
 /**
- * گالری تصویر تعاملی صفحه جزئیات محصول — بازطراحی کامل.
+ * گالری تصویر تعاملی صفحه جزئیات محصول.
  *
  * بدون کانتینر/بک‌گراند سفید؛ خود تصاویر گوشه‌گرد هستند. اگر فقط یک
  * تصویر باشد، در وسط کانتینر (حداکثر ۶۰٪ عرض آن) قرار می‌گیرد. اگر
- * بیش از یک تصویر باشد، یک لیست افقی Native (اسکرول با انگشت، بدون
- * ردیابی دستی Pointer) نمایش داده می‌شود که تصویر اول در سمت چپ
- * شروع می‌شود و بقیه با فاصله در ادامه (سمت راست) قرار می‌گیرند —
- * دقیقاً مثل `dir="ltr"` در `HeroSlider`، تا در صفحه‌ی RTL هم چیدمان
- * به‌صورت طبیعی از چپ شروع شود.
+ * بیش از یک تصویر باشد، یک لیست افقی Native (اسکرول با انگشت) نمایش
+ * داده می‌شود که تصویر اول در سمت چپ شروع می‌شود و بقیه با فاصله در
+ * ادامه (سمت راست) قرار می‌گیرند — `dir="ltr"` مثل `HeroSlider`، تا
+ * در صفحه RTL هم چیدمان از چپ شروع شود. `items-start` روی ردیف Flex
+ * عمداً لازم است — بدون آن، Stretch پیش‌فرض Flexbox باعث می‌شود همه
+ * اسلایدها با ارتفاع بلندترین (یعنی اسلاید Focus‌شده) کشیده/برش
+ * بخورند؛ با `items-start` هر اسلاید فقط با عرض/نسبت خودش
+ * (`aspect-[3/4]`) بلند می‌شود.
  *
- * ضربه‌زدن (Tap) یا ژست Pinch-Zoom با دو انگشت روی یک تصویر، آن را
- * «Focus» می‌کند: عرض تا `min(80vw, 90%)` (۸۰٪ عرض صفحه گوشی، ولی
- * هرگز بیشتر از عرض خود کانتینر) بزرگ می‌شود، ارتفاع به‌خاطر
- * `aspect-[3/4]` به همان نسبت رشد می‌کند، و تصویر با اسکرول نرم به
- * وسط دید می‌آید. بقیه تصاویر به‌خاطر همان ردیف Flex به‌طور طبیعی
- * جابه‌جا می‌شوند — بدون نیاز به محاسبه دستی موقعیت. اسکرول *صفحه*
- * (نه خود گالری) رو‌به‌پایین، حالت Focus را بازنشانی می‌کند.
+ * دو ژست کاملاً مستقل روی هر تصویر:
+ *
+ * ۱. **Tap** → آن تصویر را «Focus» می‌کند: عرض اسلاید تا
+ *    `min(80vw, 90%)` بزرگ می‌شود (۸۰٪ عرض صفحه گوشی، هرگز بیشتر از
+ *    عرض کانتینر)، ارتفاع به‌خاطر `aspect-[3/4]` به همان نسبت رشد
+ *    می‌کند، و با `scrollIntoView` نرم به وسط می‌آید. Tap دوباره روی
+ *    همان تصویر آن را به اندازه اولیه برمی‌گرداند (Toggle).
+ * ۲. **Pinch با دو انگشت** → اندازه خود اسلاید/Layout را تغییر
+ *    نمی‌دهد؛ به‌جایش محتوای تصویر *داخل همان کانتینر* Zoom می‌شود
+ *    (`transform: translate() scale()` روی خود `<Image>`، کانتینر
+ *    `overflow-hidden` دارد) و با یک انگشت (وقتی Zoom‌شده) می‌توان
+ *    نقاط مختلف تصویر را Pan/جابه‌جا کرد — جابه‌جایی همیشه محدود به
+ *    لبه‌های تصویر است (`clampPanOffsetPx`، بدون فاصله خالی).
+ *
+ * اسکرول *صفحه* (نه خود گالری) رو‌به‌پایین، هم Focus و هم Zoom را
+ * بازنشانی می‌کند. وقتی تصویری Zoom‌شده، اسکرول افقی گالری موقتاً
+ * غیرفعال می‌شود تا با ژست Pan یک‌انگشتی تداخل نکند.
  *
  * بدون کتابخانه انیمیشن جدید (طبق بند ۱۸ Master Prompt) — فقط
- * CSS Transition روی `width` + `scrollIntoView` نرم.
+ * CSS Transition/Transform + Touch/Pointer Events خام.
  */
 export function ProductImageGallery({ images, productTitle }: ProductImageGalleryProps) {
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+  const [zoom, setZoom] = useState<ZoomState | null>(null);
   const [loadedFlags, setLoadedFlags] = useState<boolean[]>(() => images.map(() => false));
+  // فقط برای تصمیم Transition روی Transform زوم — `true` حین خود
+  // ژست (Pinch/Pan زنده، بدون تأخیر CSS)، `false` بعد از رهاکردن
+  // (برگشت نرم). عمداً State است، نه خواندن مستقیم Ref حین Render.
+  const [isLiveGesture, setIsLiveGesture] = useState(false);
 
   const trackRef = useRef<HTMLDivElement>(null);
-  const scrollYAtFocusRef = useRef(0);
-  const pinchRef = useRef<{ index: number; startDistance: number } | null>(null);
+  const scrollYAtActiveRef = useRef(0);
   const pointerDownRef = useRef<{ x: number; y: number } | null>(null);
+  const pinchRef = useRef<{
+    index: number;
+    startDistance: number;
+    baseScale: number;
+    basePanX: number;
+    basePanY: number;
+  } | null>(null);
+  const panRef = useRef<{ index: number; lastX: number; lastY: number } | null>(null);
 
-  // --- بازنشانی Focus با اسکرول رو‌به‌پایین صفحه ---
+  const hasActiveState = focusedIndex !== null || zoom !== null;
+
+  // --- بازنشانی Focus/Zoom با اسکرول رو‌به‌پایین صفحه ---
   useEffect(() => {
-    if (focusedIndex === null) return;
+    if (!hasActiveState) return;
 
     function handleScroll() {
-      if (shouldResetFocusOnScroll(scrollYAtFocusRef.current, window.scrollY)) {
+      if (shouldResetFocusOnScroll(scrollYAtActiveRef.current, window.scrollY)) {
         setFocusedIndex(null);
+        setZoom(null);
       }
     }
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [focusedIndex]);
+  }, [hasActiveState]);
 
   // --- وسط‌چین‌کردن تصویر Focus‌شده با اسکرول نرم افقی ---
   useEffect(() => {
@@ -83,41 +115,13 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
   }, [focusedIndex]);
 
   function focusImage(index: number) {
-    scrollYAtFocusRef.current = window.scrollY;
+    scrollYAtActiveRef.current = window.scrollY;
+    setZoom(null);
     setFocusedIndex((current) => (current === index ? null : index));
   }
 
-  // --- تشخیص ژست Pinch-Zoom با دو انگشت روی یک تصویر ---
-  function handleTouchStart(event: React.TouchEvent<HTMLDivElement>, index: number) {
-    if (event.touches.length !== 2) return;
-    const [t1, t2] = [event.touches[0], event.touches[1]];
-    pinchRef.current = {
-      index,
-      startDistance: getTouchDistance(t1.clientX, t1.clientY, t2.clientX, t2.clientY),
-    };
-  }
-
-  function handleTouchMove(event: React.TouchEvent<HTMLDivElement>) {
-    const pinch = pinchRef.current;
-    if (!pinch || event.touches.length !== 2) return;
-    const [t1, t2] = [event.touches[0], event.touches[1]];
-    const currentDistance = getTouchDistance(t1.clientX, t1.clientY, t2.clientX, t2.clientY);
-    if (isPinchZoomGesture(pinch.startDistance, currentDistance)) {
-      pinchRef.current = null;
-      focusImage(pinch.index);
-    }
-  }
-
-  function handleTouchEnd() {
-    // یک تأخیر کوتاه تا `touchend` باقی‌مانده از یک Pinch نیمه‌کاره
-    // به‌اشتباه به‌عنوان Tap تفسیر نشود.
-    window.setTimeout(() => {
-      pinchRef.current = null;
-    }, PINCH_RESET_DELAY_MS);
-  }
-
   // --- ضربه‌زدن (Tap/Click) — با آستانه جابه‌جایی، تا بعد از یک
-  // اسکرول با انگشت به‌اشتباه Tap تشخیص داده نشود ---
+  // اسکرول/Pinch/Pan با انگشت به‌اشتباه Tap تشخیص داده نشود ---
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
     pointerDownRef.current = { x: event.clientX, y: event.clientY };
   }
@@ -125,15 +129,104 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
   function handlePointerUp(event: React.PointerEvent<HTMLDivElement>, index: number) {
     const start = pointerDownRef.current;
     pointerDownRef.current = null;
-    if (!start) return;
+    if (!start || pinchRef.current || panRef.current) return;
     const movedPx = Math.hypot(event.clientX - start.x, event.clientY - start.y);
-    if (movedPx < 6) focusImage(index);
+    if (movedPx >= TAP_MOVE_THRESHOLD_PX) return;
+
+    // اگر تصویری Zoom‌شده، اولین Tap فقط همان را می‌بندد (رفتار
+    // مرسوم Viewer عکس)؛ Focus را در همین ضربه تغییر نمی‌دهد.
+    if (zoom !== null) {
+      setZoom(null);
+      return;
+    }
+    focusImage(index);
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>, index: number) {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       focusImage(index);
+    }
+  }
+
+  // --- Pinch-Zoom-and-Pan داخل کانتینر خود تصویر ---
+  function handleTouchStart(event: React.TouchEvent<HTMLDivElement>, index: number) {
+    const container = event.currentTarget;
+    if (event.touches.length === 2) {
+      const [t1, t2] = [event.touches[0], event.touches[1]];
+      const current = zoom && zoom.index === index ? zoom : { scale: ZOOM_MIN_SCALE, panX: 0, panY: 0 };
+      pinchRef.current = {
+        index,
+        startDistance: getTouchDistance(t1.clientX, t1.clientY, t2.clientX, t2.clientY),
+        baseScale: current.scale,
+        basePanX: current.panX,
+        basePanY: current.panY,
+      };
+      panRef.current = null;
+    } else if (event.touches.length === 1) {
+      const current = zoom && zoom.index === index ? zoom : null;
+      if (current && current.scale > ZOOM_MIN_SCALE + 0.01) {
+        panRef.current = { index, lastX: event.touches[0].clientX, lastY: event.touches[0].clientY };
+      }
+    }
+    if (pinchRef.current || panRef.current) setIsLiveGesture(true);
+    void container;
+  }
+
+  function handleTouchMove(event: React.TouchEvent<HTMLDivElement>, index: number) {
+    const container = event.currentTarget;
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+
+    if (event.touches.length === 2 && pinchRef.current && pinchRef.current.index === index) {
+      const [t1, t2] = [event.touches[0], event.touches[1]];
+      const currentDistance = getTouchDistance(t1.clientX, t1.clientY, t2.clientX, t2.clientY);
+      const scale = clampZoomScale(
+        pinchRef.current.baseScale * (currentDistance / pinchRef.current.startDistance),
+      );
+      const panX = clampPanOffsetPx(pinchRef.current.basePanX, containerWidth, scale);
+      const panY = clampPanOffsetPx(pinchRef.current.basePanY, containerHeight, scale);
+      setZoom({ index, scale, panX, panY });
+      return;
+    }
+
+    if (event.touches.length === 1 && panRef.current && panRef.current.index === index) {
+      const touch = event.touches[0];
+      const dx = touch.clientX - panRef.current.lastX;
+      const dy = touch.clientY - panRef.current.lastY;
+      panRef.current.lastX = touch.clientX;
+      panRef.current.lastY = touch.clientY;
+      setZoom((current) => {
+        if (!current || current.index !== index) return current;
+        return {
+          index,
+          scale: current.scale,
+          panX: clampPanOffsetPx(current.panX + dx / current.scale, containerWidth, current.scale),
+          panY: clampPanOffsetPx(current.panY + dy / current.scale, containerHeight, current.scale),
+        };
+      });
+    }
+  }
+
+  function handleTouchEnd(event: React.TouchEvent<HTMLDivElement>, index: number) {
+    if (event.touches.length === 0) {
+      pinchRef.current = null;
+      panRef.current = null;
+      setIsLiveGesture(false);
+      scrollYAtActiveRef.current = window.scrollY;
+      setZoom((current) => {
+        if (!current || current.index !== index) return current;
+        return current.scale <= ZOOM_MIN_SCALE + 0.01 ? null : current;
+      });
+    } else if (event.touches.length === 1) {
+      // یک انگشت از دو انگشت Pinch جدا شده — اگر هنوز Zoom هستیم،
+      // ادامه به‌صورت Pan با همان انگشت باقی‌مانده.
+      pinchRef.current = null;
+      if (zoom && zoom.index === index && zoom.scale > ZOOM_MIN_SCALE + 0.01) {
+        panRef.current = { index, lastX: event.touches[0].clientX, lastY: event.touches[0].clientY };
+      } else {
+        setIsLiveGesture(false);
+      }
     }
   }
 
@@ -156,18 +249,26 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
     );
   }
 
+  const isTrackScrollLocked = zoom !== null && zoom.scale > ZOOM_MIN_SCALE + 0.01;
+
   return (
     <section className="px-4 pt-4 sm:mx-auto sm:max-w-md sm:px-6">
       <div
         ref={trackRef}
         dir="ltr"
         className={cn(
-          "flex gap-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
-          images.length > 1 ? "overflow-x-auto" : "justify-center",
+          "flex items-start gap-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+          images.length > 1 && !isTrackScrollLocked ? "overflow-x-auto" : "overflow-x-hidden",
+          images.length === 1 && "justify-center",
         )}
       >
         {images.map((image, index) => {
           const isFocused = focusedIndex === index;
+          const isZoomedHere = zoom !== null && zoom.index === index;
+          const zoomScale = isZoomedHere ? zoom.scale : ZOOM_MIN_SCALE;
+          const zoomPanX = isZoomedHere ? zoom.panX : 0;
+          const zoomPanY = isZoomedHere ? zoom.panY : 0;
+
           return (
             <div
               key={image.url + index}
@@ -178,9 +279,10 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
               onPointerDown={handlePointerDown}
               onPointerUp={(event) => handlePointerUp(event, index)}
               onTouchStart={(event) => handleTouchStart(event, index)}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
+              onTouchMove={(event) => handleTouchMove(event, index)}
+              onTouchEnd={(event) => handleTouchEnd(event, index)}
               onKeyDown={(event) => handleKeyDown(event, index)}
+              style={{ touchAction: isZoomedHere && zoomScale > ZOOM_MIN_SCALE + 0.01 ? "none" : undefined }}
               className={cn(
                 "relative aspect-[3/4] shrink-0 cursor-pointer overflow-hidden rounded-2xl outline-none",
                 "transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
@@ -207,6 +309,10 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
                   "object-cover transition-opacity duration-300",
                   loadedFlags[index] ? "opacity-100" : "opacity-0",
                 )}
+                style={{
+                  transform: `translate(${zoomPanX}px, ${zoomPanY}px) scale(${zoomScale})`,
+                  transition: isLiveGesture ? "none" : "transform 200ms ease-out",
+                }}
                 onLoad={() => markLoaded(index)}
               />
             </div>

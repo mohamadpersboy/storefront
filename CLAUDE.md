@@ -682,30 +682,49 @@ Progress-based بالا):**
   اسکرول‌شونده Native (نه Pointer دستی) نمایش داده می‌شود — تصویر
   اول در سمت چپ (`dir="ltr"`، هم‌الگو با `HeroSlider`، تا در صفحه
   RTL هم چیدمان طبیعی از چپ شروع شود) و بقیه با `gap` در ادامه.
-- **Focus با Tap یا Pinch-Zoom:** ضربه‌زدن (Tap با آستانه جابه‌جایی
-  ۶px تا بعد از اسکرول Native به‌اشتباه Tap تشخیص داده نشود) یا ژست
-  دو‌انگشتی Pinch-Zoom-In (تشخیص با `isPinchZoomGesture` در
-  `product-gallery-math.ts` — نسبت فاصله دو انگشت ≥ ۱٫۱۵ برابر
-  فاصله شروع) روی یک تصویر، آن را «Focus» می‌کند: عرض تا
-  `min(80vw, 90%)` بزرگ می‌شود (۸۰٪ عرض صفحه گوشی، هرگز بیشتر از
-  ۹۰٪ عرض خود کانتینر — تا در Desktop/`sm:max-w-md` سرریز نشود)،
-  ارتفاع به‌خاطر `aspect-[3/4]` به همان نسبت رشد می‌کند (بدون محاسبه
-  دستی JS)، و با `scrollIntoView({behavior:"smooth", inline:"center"})`
-  به وسط دید می‌آید؛ بقیه تصاویر به‌خاطر همان ردیف Flex به‌طور طبیعی
-  جابه‌جا می‌شوند. Tap دوباره روی تصویر Focus‌شده آن را برمی‌گرداند.
+- **Focus با Tap (فقط):** ضربه‌زدن (Tap با آستانه جابه‌جایی ۶px تا
+  بعد از اسکرول/Pinch/Pan با انگشت به‌اشتباه Tap تشخیص داده نشود)
+  روی یک تصویر، آن را «Focus» می‌کند: عرض تا `min(80vw, 90%)` بزرگ
+  می‌شود (۸۰٪ عرض صفحه گوشی، هرگز بیشتر از ۹۰٪ عرض خود کانتینر — تا
+  در Desktop/`sm:max-w-md` سرریز نشود)، ارتفاع به‌خاطر `aspect-[3/4]`
+  به همان نسبت رشد می‌کند (بدون محاسبه دستی JS)، و با
+  `scrollIntoView({behavior:"smooth", inline:"center"})` به وسط دید
+  می‌آید؛ بقیه تصاویر به‌خاطر همان ردیف Flex به‌طور طبیعی جابه‌جا
+  می‌شوند. Tap دوباره روی تصویر Focus‌شده آن را برمی‌گرداند.
+- **باگ رفع‌شده (بعد از تأیید اولیه، طبق اسکرین‌شات کارفرما):** ردیف
+  Flex گالری بدون `items-start` از Stretch پیش‌فرض Flexbox رنج
+  می‌برد — همه اسلایدها با ارتفاع بلندترین (اسلاید Focus‌شده) کشیده/
+  برش می‌خوردند. با افزودن `items-start`، هر اسلاید فقط با عرض/نسبت
+  خودش (`aspect-[3/4]`) ارتفاع می‌گیرد.
+- **Pinch-Zoom-and-Pan واقعی (جایگزین طراحی اولیه که Pinch را معادل
+  Focus می‌گرفت — به درخواست صریح کارفرما):** ژست دو‌انگشتی روی یک
+  تصویر دیگر باعث Focus‌شدن/تغییر Layout آن نمی‌شود؛ به‌جایش خودِ
+  محتوای تصویر *داخل همان کانتینر* (چه در حالت عادی ۶۰٪ چه
+  Focus‌شده ۸۰vw) با `transform: translate() scale()` روی خود
+  `<Image>` بزرگ‌نمایی می‌شود (Scale بین ۱ تا ۳، `clampZoomScale`).
+  وقتی Scale > ۱، با یک انگشت می‌توان تصویر را در همان کانتینر
+  Pan/جابه‌جا کرد تا نقاط مختلف دیده شود — جابه‌جایی همیشه با
+  `clampPanOffsetPx` محدود به لبه‌های تصویر است (فرمول
+  `containerSize*(scale-1)/(2*scale)`، بدون فاصله خالی). وقتی
+  تصویری Zoom‌شده، اسکرول افقی خود گالری موقتاً `overflow-hidden`
+  می‌شود تا با Pan یک‌انگشتی تداخل نکند؛ اولین Tap روی تصویر
+  Zoom‌شده فقط آن را می‌بندد (بدون تغییر Focus در همان ضربه).
 - **بازنشانی با اسکرول صفحه:** اسکرول *صفحه* (نه خود گالری، تشخیص با
-  `window.scrollY`) رو‌به‌پایین (≥۴px نسبت به لحظه Focus‌شدن —
-  `shouldResetFocusOnScroll`) حالت Focus را بازنشانی می‌کند؛ اسکرول
-  رو‌به‌بالا تأثیری ندارد.
+  `window.scrollY`) رو‌به‌پایین (≥۴px نسبت به لحظه Focus/Zoom‌شدن —
+  `shouldResetFocusOnScroll`) هم Focus و هم Zoom را بازنشانی می‌کند؛
+  اسکرول رو‌به‌بالا تأثیری ندارد.
 - منطق قدیمی Progress-based (درگ عمودی ارتفاع + Swipe تک‌تصویری با
   Pointer دستی + Dot Indicator) کامل حذف شد — دیگر بخشی از طراحی
-  فعلی نیست. `product-gallery-math.ts` هم‌کامل جایگزین شد: فقط سه
-  تابع خالص جدید (`getTouchDistance`، `isPinchZoomGesture`،
-  `shouldResetFocusOnScroll`) + ثابت‌های مرتبط.
-- بدون کتابخانه انیمیشن جدید — فقط CSS Transition روی `width` +
-  `scrollIntoView` نرم.
-- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۳۷۶ تست، ۱۴ تست جدید
-  `product-gallery-math` جایگزین ۲۵ تست قدیمی)، Build ✅.
+  فعلی نیست. `product-gallery-math.ts` هم‌کامل جایگزین شد: توابع
+  خالص `getTouchDistance`، `shouldResetFocusOnScroll`،
+  `clampZoomScale`، `getMaxPanOffsetPx`، `clampPanOffsetPx` +
+  ثابت‌های مرتبط.
+- بدون کتابخانه انیمیشن جدید — فقط CSS Transition روی `width`/
+  `transform` + `scrollIntoView` نرم. برای رعایت React Compiler ESLint
+  Rule («Cannot access refs during render»)، تصمیم Transition
+  زنده/نرم روی Transform با یک State جدا (`isLiveGesture`) گرفته
+  می‌شود، نه خواندن مستقیم Ref حین Render.
+- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۳۸۴ تست)، Build ✅.
 
 **Product Details — Phase 2 (عنوان + قیمت) انجام شد:**
 

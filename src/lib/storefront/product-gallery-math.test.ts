@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   getTouchDistance,
-  isPinchZoomGesture,
   shouldResetFocusOnScroll,
-  PINCH_ZOOM_IN_SCALE_THRESHOLD,
+  clampZoomScale,
+  getMaxPanOffsetPx,
+  clampPanOffsetPx,
   SCROLL_RESET_THRESHOLD_PX,
+  ZOOM_MIN_SCALE,
+  ZOOM_MAX_SCALE,
 } from "@/lib/storefront/product-gallery-math";
 
 describe("getTouchDistance", () => {
@@ -22,29 +25,6 @@ describe("getTouchDistance", () => {
 
   it("computes diagonal (Euclidean) distance", () => {
     expect(getTouchDistance(0, 0, 3, 4)).toBe(5);
-  });
-});
-
-describe("isPinchZoomGesture", () => {
-  it("is false when the start distance is zero or invalid", () => {
-    expect(isPinchZoomGesture(0, 100)).toBe(false);
-    expect(isPinchZoomGesture(-10, 100)).toBe(false);
-  });
-
-  it("is false when fingers stay close to the starting distance", () => {
-    expect(isPinchZoomGesture(100, 105)).toBe(false);
-  });
-
-  it("is true right at the threshold scale factor", () => {
-    expect(isPinchZoomGesture(100, 100 * PINCH_ZOOM_IN_SCALE_THRESHOLD)).toBe(true);
-  });
-
-  it("is true when fingers move apart well beyond the threshold", () => {
-    expect(isPinchZoomGesture(100, 250)).toBe(true);
-  });
-
-  it("is false when fingers move closer together (zoom out / pinch in)", () => {
-    expect(isPinchZoomGesture(200, 100)).toBe(false);
   });
 });
 
@@ -67,5 +47,67 @@ describe("shouldResetFocusOnScroll", () => {
 
   it("is true for a large downward scroll", () => {
     expect(shouldResetFocusOnScroll(500, 900)).toBe(true);
+  });
+});
+
+describe("clampZoomScale", () => {
+  it("clamps below the minimum to the minimum", () => {
+    expect(clampZoomScale(0.5)).toBe(ZOOM_MIN_SCALE);
+  });
+
+  it("clamps above the maximum to the maximum", () => {
+    expect(clampZoomScale(10)).toBe(ZOOM_MAX_SCALE);
+  });
+
+  it("passes through in-range values unchanged", () => {
+    expect(clampZoomScale(2)).toBe(2);
+  });
+
+  it("treats NaN as the minimum", () => {
+    expect(clampZoomScale(Number.NaN)).toBe(ZOOM_MIN_SCALE);
+  });
+});
+
+describe("getMaxPanOffsetPx", () => {
+  it("is 0 at the minimum scale (nothing to pan)", () => {
+    expect(getMaxPanOffsetPx(300, ZOOM_MIN_SCALE)).toBe(0);
+  });
+
+  it("is 0 below the minimum scale", () => {
+    expect(getMaxPanOffsetPx(300, 0.5)).toBe(0);
+  });
+
+  it("grows with scale", () => {
+    const at1_5 = getMaxPanOffsetPx(300, 1.5);
+    const at2 = getMaxPanOffsetPx(300, 2);
+    expect(at2).toBeGreaterThan(at1_5);
+    expect(at1_5).toBeGreaterThan(0);
+  });
+
+  it("matches the known formula at scale 2", () => {
+    // containerSize * (scale-1) / (2*scale) = 300 * 1 / 4 = 75
+    expect(getMaxPanOffsetPx(300, 2)).toBeCloseTo(75);
+  });
+
+  it("scales proportionally with container size", () => {
+    expect(getMaxPanOffsetPx(600, 2)).toBeCloseTo(150);
+  });
+});
+
+describe("clampPanOffsetPx", () => {
+  it("clamps to 0 at the minimum scale regardless of offset", () => {
+    expect(clampPanOffsetPx(999, 300, ZOOM_MIN_SCALE)).toBe(0);
+  });
+
+  it("passes through an offset within bounds", () => {
+    expect(clampPanOffsetPx(10, 300, 2)).toBe(10);
+  });
+
+  it("clamps a too-large positive offset to the max", () => {
+    expect(clampPanOffsetPx(500, 300, 2)).toBeCloseTo(75);
+  });
+
+  it("clamps a too-large negative offset to the negative max", () => {
+    expect(clampPanOffsetPx(-500, 300, 2)).toBeCloseTo(-75);
   });
 });
