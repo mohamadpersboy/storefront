@@ -692,24 +692,39 @@ Progress-based بالا):**
   بیشتر از ۹۰٪ عرض خود کانتینر — تا در Desktop/`sm:max-w-md` سرریز
   نشود)، ارتفاع هرکدام به‌خاطر `aspect-[3/4]` خودش به همان نسبت رشد
   می‌کند (بدون محاسبه دستی JS).
-- **باگ رفع‌شده (طبق اسکرین‌شات کارفرما — تصویر Focus‌شده نصفش بیرون
-  از دید می‌ماند):** قبلاً مقصد اسکرول با `scrollIntoView(center)`
-  *بعد از* شروع Transition عرض محاسبه می‌شد — چون اندازه‌گیری زنده
-  DOM وسط یک CSS Width Transition هنوز به مقدار نهایی نرسیده،
-  محاسبه بر اساس عرض ناقص/اولیه انجام می‌شد و نتیجه اشتباه از آب
-  درمی‌آمد. رفع شد با محاسبه مقصد از روی فرمول عرض *نهایی* (نه
-  اندازه‌گیری زنده) — توابع خالص جدید در `product-gallery-math.ts`:
-  `getFocusedSlideWidthPx`، `getSlideOffsetLeftPx`،
-  `getTrackContentWidthPx`، `shouldAlignSlideToRightEdge`،
-  `getEdgeAlignedScrollLeft`، `clampScrollLeft`. هم‌زمان با Tap،
-  `track.scrollTo({left, behavior:"smooth"})` صدا زده می‌شود (نه بعد
-  از پایان Transition عرض) تا اسکرول و بزرگ‌شدن هم‌زمان انجام شوند،
-  طبق درخواست صریح کارفرما. به‌علاوه دیگر Center نمی‌کند — Align به
-  همان لبه‌ای (راست یا چپ) که تصویر Tap‌شده *قبل* از رشد از آن سمت
-  دید (Track) بیرون‌زده بود (`shouldAlignSlideToRightEdge` بر اساس
+- **باگ رفع‌شده #۱ (طبق اسکرین‌شات کارفرما — تصویر Focus‌شده نصفش
+  بیرون از دید می‌ماند):** قبلاً مقصد اسکرول با
+  `scrollIntoView(center)` *بعد از* شروع Transition عرض محاسبه
+  می‌شد — چون اندازه‌گیری زنده DOM وسط یک CSS Width Transition هنوز
+  به مقدار نهایی نرسیده، محاسبه بر اساس عرض ناقص/اولیه انجام
+  می‌شد و نتیجه اشتباه از آب درمی‌آمد. رفع شد با محاسبه مقصد از
+  روی فرمول عرض *نهایی* (نه اندازه‌گیری زنده) — توابع خالص جدید در
+  `product-gallery-math.ts`: `getFocusedSlideWidthPx`،
+  `getSlideOffsetLeftPx`، `getTrackContentWidthPx`،
+  `shouldAlignSlideToRightEdge`، `getEdgeAlignedScrollLeft`،
+  `clampScrollLeft`. دیگر Center نمی‌کند — Align به همان لبه‌ای
+  (راست یا چپ) که تصویر Tap‌شده *قبل* از رشد از آن سمت دید (Track)
+  بیرون‌زده بود (`shouldAlignSlideToRightEdge` بر اساس
   `getBoundingClientRect` اندازه‌گیری‌شده پیش از تغییر State، نه
   بعدش)؛ اگر از قبل کامل داخل دید بود، نزدیک‌ترین لبه بر اساس مرکز
   انتخاب می‌شود.
+- **باگ رفع‌شده #۲ (طبق گزارش کارفرما — با ۳ اسلاید، Tap روی
+  سومی/آخرین باعث می‌شد دومی وسط بیاید، نه سومی):** علت،
+  `track.scrollTo({left, behavior:"smooth"})` *بومی* بود که هم‌زمان
+  با شروع Tap صدا زده می‌شد — در همان لحظه `track.scrollWidth` هنوز
+  کوچک بود (Transition عرض تازه شروع شده)، پس مرورگر مقصد را همان
+  لحظه به حداکثر *فعلی* (کوچک) Clamp می‌کرد و دیگر با رشد بعدی عرض
+  آن Clamp را دوباره حساب نمی‌کرد — نتیجه یک Undershoot دائمی بود،
+  بیشتر برای اسلایدهای آخر (بیشترین فاصله لازم). رفع شد با یک
+  انیمیشن اسکرول *دستی* (`animateScrollTo` با
+  `requestAnimationFrame`، تابعی جدا از خودِ Component تا قانون
+  Purity ESLint — «Cannot call impure function during render» —
+  رعایت شود): هر فریم `track.scrollLeft` را نسبت به
+  `track.scrollWidth` *تازه‌خوانده‌شده* همان لحظه Clamp می‌کند؛ چون
+  هم‌مدت با Transition عرض CSS است (`FOCUS_SCROLL_ANIMATION_MS` =
+  `duration-500`)، در فریم آخر عرض کاملاً رشد کرده و دیگر Clamp
+  نمی‌شود. توابع خالص جدید: `easeOutCubic`،
+  `getInterpolatedScrollLeft`.
 - **Tap دوباره روی هر تصویری، وقتی همه Focus‌اند، همه را با هم
   می‌بندد:** فرقی نمی‌کند خود همان تصویر Zoom‌شده باشد یا نه — این
   Tap همیشه هم `isFocused` را `false` می‌کند هم هر Zoom فعالی را پاک
@@ -746,13 +761,19 @@ Progress-based بالا):**
   `getMaxPanOffsetPx`، `clampPanOffsetPx`، `getFocusedSlideWidthPx`،
   `getSlideOffsetLeftPx`، `getTrackContentWidthPx`،
   `shouldAlignSlideToRightEdge`، `getEdgeAlignedScrollLeft`،
-  `clampScrollLeft` + ثابت‌های مرتبط.
+  `clampScrollLeft`، `easeOutCubic`، `getInterpolatedScrollLeft` +
+  ثابت‌های مرتبط.
 - بدون کتابخانه انیمیشن جدید — فقط CSS Transition روی `width`/
-  `transform` + `Element.scrollTo` نرم. برای رعایت React Compiler
-  ESLint Rule («Cannot access refs during render»)، تصمیم Transition
-  زنده/نرم روی Transform با یک State جدا (`isLiveGesture`) گرفته
+  `transform` + یک انیمیشن اسکرول دستی با `requestAnimationFrame`
+  (نه `Element.scrollTo` بومی — نگاه کنید باگ #۲ بالا برای دلیل).
+  برای رعایت React Compiler ESLint Rule Purity («Cannot call impure
+  function during render»)، تابع `animateScrollTo` (که
+  `performance.now`/`requestAnimationFrame` صدا می‌زند) عمداً
+  *بیرون* از بدنه Component تعریف شده، نه یک تابع داخلی؛ و برای
+  («Cannot access refs during render»)، تصمیم Transition زنده/نرم
+  روی Transform Pinch-Zoom با یک State جدا (`isLiveGesture`) گرفته
   می‌شود، نه خواندن مستقیم Ref حین Render.
-- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۳۹ تست در
+- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۴۹ تست در
   `product-gallery-math`)، Build ✅.
 
 **Top Bar — دو دکمه اضافه‌شده با دستور صریح بعدی کارفرما (علاقه‌مندی
@@ -787,6 +808,18 @@ Progress-based بالا):**
   هفته آخر همیشه دقیقاً برابر `finalPrice` واقعی محصول است. شکل
   داده (`{weekLabel, price}`) عمداً با آنچه یک API واقعی برمی‌گرداند
   هماهنگ نگه داشته شده تا بعداً بدون Rewrite UI جایگزین شود.
+- **باگ رفع‌شده (طبق اسکرین‌شات کارفرما — نمودار داخل خودِ نوار Top
+  Bar نمایش داده می‌شد، نه به‌عنوان پاپ‌آپ روی کل صفحه):** علتش
+  `backdrop-blur-xl` روی خودِ `ProductTopBar` بود — طبق مشخصات CSS،
+  هر عنصر با `backdrop-filter` (درست مثل `filter`/`transform`) یک
+  Containing Block تازه برای فرزندان `position: fixed` می‌سازد؛ چون
+  این پاپ‌آپ از داخل همان Top Bar رندر می‌شد، `fixed inset-0`‌اش
+  نسبت به خودِ نوار Top Bar (نه کل Viewport) محاسبه می‌شد. رفع شد با
+  `createPortal` به `document.body`. برای این‌که Render اول سمت
+  Client دقیقاً هم‌شکل Server بماند (بدون Hydration Mismatch)، وجود
+  `document` با `useSyncExternalStore` (نه `useEffect`+`setState`
+  دستی که قانون Purity ESLint پروژه رد می‌کند) بررسی می‌شود؛ پاپ‌آپ
+  فقط از اولین Render *بعد* از Hydration ساخته می‌شود.
 - بند «Do NOT design or implement: ... Wishlist» در Docstring
   `page.tsx` مربوط به فاز اولیه صفحه جزئیات محصول بود؛ کارفرما صریحاً
   دستور بعدی داد این دو دکمه اضافه شوند — override همان محدودیت فاز
@@ -795,8 +828,9 @@ Progress-based بالا):**
 - صفحه کامل `/favorites` (لیست علاقه‌مندی‌ها که Bottom Nav به آن لینک
   می‌دهد) هنوز ساخته نشده — فقط Toggle/وضعیت تکی روی همین صفحه
   محصول کار می‌کند. این هم یک ماژول جداست، هنوز تأییدنشده.
-- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۴۱۲ تست کل پروژه — ۵ تست
-  `favorites` Validation + ۶ تست `get-price-history`)، Build ✅.
+- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۴۲۲ تست کل پروژه — ۵ تست
+  `favorites` Validation + ۶ تست `get-price-history` + ۴۹ تست
+  `product-gallery-math`)، Build ✅.
 
 **Product Details — Phase 2 (عنوان + قیمت) انجام شد:**
 

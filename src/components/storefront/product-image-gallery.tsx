@@ -7,8 +7,10 @@ import {
   clampPanOffsetPx,
   clampScrollLeft,
   clampZoomScale,
+  FOCUS_SCROLL_ANIMATION_MS,
   getEdgeAlignedScrollLeft,
   getFocusedSlideWidthPx,
+  getInterpolatedScrollLeft,
   getSlideOffsetLeftPx,
   getTouchDistance,
   getTrackContentWidthPx,
@@ -39,6 +41,56 @@ type ZoomState = { index: number; scale: number; panX: number; panY: number };
 const TAP_MOVE_THRESHOLD_PX = 6;
 
 /**
+ * اسکرول *دستی* با requestAnimationFrame — نه `track.scrollTo` بومی.
+ * عمداً بیرون از خودِ Component (نه یک تابع داخلی که به State/Props
+ * Closure کند) تعریف شده تا React Compiler آن را بخشی از بدنه
+ * Render نداند (قانون Purity ESLint اجازه فراخوانی `performance.now`
+ * را داخل بدنه Component نمی‌دهد، حتی اگر واقعاً فقط از یک
+ * Event Handler صدا زده شود).
+ *
+ * چرا اصلاً لازم است؟ چون هدف اسکرول از روی عرض *نهایی* (بعد از
+ * تمام‌شدن Transition عرض) محاسبه می‌شود، اما اگر همین حالا
+ * `scrollTo` بومی صدا زده شود، `track.scrollWidth` هنوز کوچک است
+ * (Transition تازه شروع شده) و مرورگر مقصد را به همان حداکثر
+ * *فعلی* (کوچک) Clamp می‌کند — این Clamp دیگر با رشد بعدی عرض
+ * دوباره حساب نمی‌شود، پس نتیجه یک Undershoot دائمی است (بیشتر
+ * برای اسلایدهای آخر که بیشترین فاصله لازم دارند؛ دقیقاً همان
+ * باگی که با Tap روی اسلاید سوم، اسلاید دوم را به‌جایش وسط
+ * می‌آورد). با این انیمیشن دستی، هر فریم نسبت به
+ * `track.scrollWidth` *تازه‌خوانده‌شده* همان لحظه Clamp می‌کنیم؛
+ * چون هر دو انیمیشن (عرض CSS و این اسکرول) هم‌مدت‌اند
+ * (`FOCUS_SCROLL_ANIMATION_MS` = `duration-500`)، در فریم آخر عرض
+ * کاملاً رشد کرده و مقصد واقعی دیگر Clamp نمی‌شود.
+ */
+function animateScrollTo(
+  track: HTMLDivElement,
+  targetScrollLeft: number,
+  frameRef: React.MutableRefObject<number | null>,
+) {
+  if (frameRef.current !== null) {
+    cancelAnimationFrame(frameRef.current);
+  }
+
+  const startScrollLeft = track.scrollLeft;
+  const startTime = performance.now();
+
+  function step(now: number) {
+    const t = (now - startTime) / FOCUS_SCROLL_ANIMATION_MS;
+    const desired = getInterpolatedScrollLeft(startScrollLeft, targetScrollLeft, t);
+    const liveMaxScrollLeft = track.scrollWidth - track.clientWidth;
+    track.scrollLeft = clampScrollLeft(desired, liveMaxScrollLeft);
+
+    if (t < 1) {
+      frameRef.current = requestAnimationFrame(step);
+    } else {
+      frameRef.current = null;
+    }
+  }
+
+  frameRef.current = requestAnimationFrame(step);
+}
+
+/**
  * گالری تصویر تعاملی صفحه جزئیات محصول.
  *
  * بدون کانتینر/بک‌گراند سفید؛ خود تصاویر گوشه‌گرد هستند. اگر فقط یک
@@ -59,13 +111,16 @@ const TAP_MOVE_THRESHOLD_PX = 6;
  *    عرض صفحه گوشی، هرگز بیشتر از عرض کانتینر)، ارتفاع هرکدام
  *    به‌خاطر `aspect-[3/4]` خودش به همان نسبت رشد می‌کند (بدون
  *    محاسبه دستی JS)، و اسکرول افقی گالری هم‌زمان با شروع همان
- *    Transition عرض (نه بعد از تمام‌شدنش — چون اندازه‌گیری زنده DOM
- *    وسط یک CSS Transition عرض هنوز واقعی نیست) به مقصد محاسبه‌شده
- *    حرکت می‌کند: مقصد از روی عرض *نهایی* اسلایدها با توابع خالص
- *    `product-gallery-math.ts` از قبل حساب می‌شود، و تصویر Tap‌شده
- *    را کامل داخل دید می‌آورد — Align به همان لبه‌ای (راست یا چپ)
- *    که قبل از رشد از آن سمت بیرون‌زده بود، نه صرفاً وسط‌چین (که
- *    ممکن است لبه مقابل را بیرون بیندازد).
+ *    Transition عرض (نه بعد از تمام‌شدنش) با یک انیمیشن *دستی*
+ *    (`animateScrollTo`، نه `Element.scrollTo` بومی — نگاه کنید
+ *    توضیح `easeOutCubic` در `product-gallery-math.ts` برای این‌که
+ *    چرا نسخه بومی مقصد را به Scroll Width لحظه فراخوانی Clamp
+ *    می‌کند و برای اسلایدهای دورتر Undershoot می‌دهد) به مقصد
+ *    محاسبه‌شده حرکت می‌کند: مقصد از روی عرض *نهایی* اسلایدها با
+ *    توابع خالص `product-gallery-math.ts` از قبل حساب می‌شود، و
+ *    تصویر Tap‌شده را کامل داخل دید می‌آورد — Align به همان لبه‌ای
+ *    (راست یا چپ) که قبل از رشد از آن سمت بیرون‌زده بود، نه صرفاً
+ *    وسط‌چین (که ممکن است لبه مقابل را بیرون بیندازد).
  * ۲. **Tap دوباره روی هر تصویری، وقتی همه بزرگ هستند** (فرقی نمی‌کند
  *    خود آن تصویر Zoom‌شده باشد یا نه) → همه تصاویر با هم به اندازه
  *    اولیه برمی‌گردند و هر Zoom فعالی هم پاک می‌شود.
@@ -108,8 +163,18 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
     basePanY: number;
   } | null>(null);
   const panRef = useRef<{ index: number; lastX: number; lastY: number } | null>(null);
+  const scrollAnimationFrameRef = useRef<number | null>(null);
 
   const hasActiveState = isFocused || zoom !== null;
+
+  // در Unmount، هر انیمیشن اسکرول در حال اجرا متوقف شود.
+  useEffect(() => {
+    return () => {
+      if (scrollAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(scrollAnimationFrameRef.current);
+      }
+    };
+  }, []);
 
   // --- بازنشانی Focus/Zoom با اسکرول رو‌به‌پایین صفحه ---
   useEffect(() => {
@@ -159,7 +224,7 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
 
     // بلافاصله (نه بعد از پایان Transition عرض) — تا اسکرول هم‌زمان
     // با بزرگ‌شدن عرض شروع شود، نه با یک تأخیر محسوس بعدش.
-    track.scrollTo({ left: targetScrollLeft, behavior: "smooth" });
+    animateScrollTo(track, targetScrollLeft, scrollAnimationFrameRef);
   }
 
   // --- Tap: باز/بسته‌کردن Focus برای همه تصاویر با هم ---
@@ -169,6 +234,10 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
     if (isFocused) {
       // بزرگ هستیم — این Tap (روی هر تصویری، Zoom‌شده یا نه) همه را
       // به حالت اولیه برمی‌گرداند و Zoom را هم پاک می‌کند.
+      if (scrollAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(scrollAnimationFrameRef.current);
+        scrollAnimationFrameRef.current = null;
+      }
       setIsFocused(false);
       setZoom(null);
       return;

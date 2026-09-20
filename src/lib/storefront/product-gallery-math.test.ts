@@ -11,6 +11,8 @@ import {
   shouldAlignSlideToRightEdge,
   getEdgeAlignedScrollLeft,
   clampScrollLeft,
+  easeOutCubic,
+  getInterpolatedScrollLeft,
   SCROLL_RESET_THRESHOLD_PX,
   ZOOM_MIN_SCALE,
   ZOOM_MAX_SCALE,
@@ -197,5 +199,53 @@ describe("clampScrollLeft", () => {
 
   it("treats a negative max as 0 (nothing to scroll)", () => {
     expect(clampScrollLeft(50, -20)).toBe(0);
+  });
+});
+
+describe("easeOutCubic", () => {
+  it("is 0 at the start", () => {
+    expect(easeOutCubic(0)).toBe(0);
+  });
+
+  it("is 1 at the end", () => {
+    expect(easeOutCubic(1)).toBe(1);
+  });
+
+  it("is monotonically increasing", () => {
+    expect(easeOutCubic(0.25)).toBeLessThan(easeOutCubic(0.5));
+    expect(easeOutCubic(0.5)).toBeLessThan(easeOutCubic(0.75));
+  });
+
+  it("clamps input below 0 to the start value", () => {
+    expect(easeOutCubic(-1)).toBe(0);
+  });
+
+  it("clamps input above 1 to the end value", () => {
+    expect(easeOutCubic(2)).toBe(1);
+  });
+
+  it("front-loads progress (ease-out: past the midpoint before t=0.5)", () => {
+    expect(easeOutCubic(0.5)).toBeGreaterThan(0.5);
+  });
+});
+
+describe("getInterpolatedScrollLeft", () => {
+  it("is the start value at t=0", () => {
+    expect(getInterpolatedScrollLeft(100, 500, 0)).toBe(100);
+  });
+
+  it("is the target value at t=1", () => {
+    expect(getInterpolatedScrollLeft(100, 500, 1)).toBe(500);
+  });
+
+  it("moves toward the target as t increases", () => {
+    const atQuarter = getInterpolatedScrollLeft(0, 1000, 0.25);
+    const atHalf = getInterpolatedScrollLeft(0, 1000, 0.5);
+    expect(atHalf).toBeGreaterThan(atQuarter);
+  });
+
+  it("works when the target is smaller than the start (scrolling backward)", () => {
+    const result = getInterpolatedScrollLeft(500, 100, 1);
+    expect(result).toBe(100);
   });
 });

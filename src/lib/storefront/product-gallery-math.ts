@@ -18,6 +18,8 @@
  *    شروع Transition عرض اسکرول را هم شروع می‌کنیم — تا هر دو با هم
  *    تمام شوند و کل تصویر داخل دید (به‌جای Center، Align به لبه‌ای
  *    که تصویر قبلاً از همان سمت بیرون‌زده بود) قرار بگیرد.
+ * ۴. Easing برای انیمیشن دستی اسکرول (نه `Element.scrollTo` بومی —
+ *    نگاه کنید توضیح `easeOutCubic` برای دلیل).
  */
 
 /** نسبت عرض هر اسلاید نسبت به عرض کانتینر، در حالت عادی (غیر Focus). */
@@ -151,4 +153,41 @@ export function getEdgeAlignedScrollLeft(
 export function clampScrollLeft(scrollLeftPx: number, maxScrollLeftPx: number): number {
   const max = Math.max(0, maxScrollLeftPx);
   return Math.min(max, Math.max(0, scrollLeftPx));
+}
+
+// --- Easing برای انیمیشن دستی اسکرول ---
+
+/** مدت زمان انیمیشن اسکرول Focus — دقیقاً هم‌مدت با `duration-500` (کلاس Transition عرض خودِ اسلاید). */
+export const FOCUS_SCROLL_ANIMATION_MS = 500;
+
+/**
+ * چرا انیمیشن اسکرول دستی (نه `Element.scrollTo({behavior:"smooth"})`
+ * بومی مرورگر)؟ چون هدف اسکرول از روی عرض *نهایی* (بعد از تمام‌شدن
+ * Transition عرض) محاسبه می‌شود، اما وقتی `scrollTo` صدا زده
+ * می‌شود، `scrollWidth` واقعی هنوز کوچک است (Transition تازه شروع
+ * شده) — مرورگر مقصد را همان لحظه به حداکثر *فعلی* (کوچک) Clamp
+ * می‌کند و دیگر با رشد بعدی عرض، آن Clamp را دوباره حساب نمی‌کند؛
+ * نتیجه یک Undershoot دائمی است (مخصوصاً برای اسلایدهای آخر که
+ * بیشترین فاصله را نیاز دارند) — دقیقاً همان باگی که باعث می‌شد با
+ * Tap روی اسلاید سوم، اسلاید دوم به‌جایش وسط بیاید. راه‌حل: به‌جای
+ * یک `scrollTo` تکی، هر فریم با `requestAnimationFrame` مقدار
+ * `scrollLeft` را دستی به مقصد نزدیک‌تر می‌کنیم و هر بار نسبت به
+ * حداکثر *زنده* همان لحظه (`clampScrollLeft` با `track.scrollWidth`
+ * تازه‌خوانده‌شده) محدودش می‌کنیم؛ چون هر دو انیمیشن (عرض CSS و این
+ * اسکرول دستی) هم‌مدت‌اند (`FOCUS_SCROLL_ANIMATION_MS` =
+ * `duration-500`)، در فریم آخر عرض کاملاً رشد کرده و مقصد واقعی
+ * دیگر Clamp نمی‌شود.
+ */
+export function easeOutCubic(t: number): number {
+  const clamped = Math.min(1, Math.max(0, t));
+  return 1 - (1 - clamped) ** 3;
+}
+
+/** مقدار میان‌یابی‌شده `scrollLeft` در پیشرفت `t` (۰ تا ۱) بین شروع و مقصد، با Easing خروجی-کوبیک. */
+export function getInterpolatedScrollLeft(
+  startScrollLeftPx: number,
+  targetScrollLeftPx: number,
+  t: number,
+): number {
+  return startScrollLeftPx + (targetScrollLeftPx - startScrollLeftPx) * easeOutCubic(t);
 }
