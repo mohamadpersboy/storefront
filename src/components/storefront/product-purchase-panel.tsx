@@ -17,18 +17,22 @@ type ProductPurchasePanelProps = {
 };
 
 /**
- * پنل خرید صفحه محصول — قیمت/موجودی + انتخاب Variant + ریز
- * مشخصات + Stepper تعداد + نوار پایین چسبان افزودن به سبد. یک
- * Client Component واحد چون این بخش‌ها State مشترک دارند (Variant
+ * پنل خرید صفحه محصول — قیمت + انتخاب Variant + ریز مشخصات +
+ * Stepper تعداد + نوار پایین چسبان افزودن به سبد. یک Client
+ * Component واحد چون این بخش‌ها State مشترک دارند (Variant
  * انتخاب‌شده و تعداد).
  *
  * **اصلاح‌شده طبق بازخورد کارفرما (نسخه قبلی رنگ/ویژگی‌ها را داخل
  * خودِ Pill می‌گذاشت):** برچسب هر Pill حالا دقیقاً `unit` خودِ
  * Variant است (نگاه کنید `ProductVariantSelector`)، نه ترکیبی از
  * رنگ+ویژگی. رنگ و ویژگی‌های فنی Variant *انتخاب‌شده* در یک خط
- * جدا (`ProductVariantDetails`) زیر Pillها نشان داده می‌شوند —
- * رنگ (اگر ثبت شده) با یک دایره هم‌رنگ، بعدش هر ویژگی با عنوان و
- * مقدار با هم («عرض: ۲ متر»)، با «-» جدا از هم.
+ * جدا (`ProductVariantDetails`) زیر Pillها نشان داده می‌شوند.
+ *
+ * **اصلاح دوم طبق بازخورد کارفرما:** بخش قیمت دیگر کارت
+ * (بک‌گراند/سایه) نیست — بدون بک‌گراند، همه اطلاعاتش وسط‌چین. ردیف
+ * وضعیت موجودی («موجود در انبار»/نقطه سبز) کامل حذف شد؛ خودِ منطق
+ * `isOutOfStock` (غیرفعال‌کردن Stepper/دکمه افزودن به سبد) دست‌نخورده
+ * ماند — فقط آن سطر *نمایشی* حذف شد.
  *
  * تغییر Variant، تعداد را به ۱ برمی‌گرداند — موجودی Variant قبلی
  * ربطی به Variant تازه ندارد، پس ادامه‌دادن با همان عدد قبلی
@@ -79,9 +83,9 @@ export function ProductPurchasePanel({
   return (
     <>
       <section className="flex flex-col gap-3 px-4 pt-3 sm:mx-auto sm:max-w-md sm:px-6">
-        {/* قیمت + موجودی */}
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
-          <div className="flex items-baseline gap-2">
+        {/* قیمت — بدون بک‌گراند، وسط‌چین (طبق دستور صریح کارفرما) */}
+        <div className="flex flex-col items-center gap-2 py-1 text-center">
+          <div className="flex items-baseline justify-center gap-2">
             <p className="text-2xl font-extrabold text-[var(--sf-ink)]">
               {formatNumber(selectedVariant.finalPrice)}{" "}
               <span className="text-xs font-medium text-gray-400">{TOMAN_GLYPH}</span>
@@ -94,7 +98,7 @@ export function ProductPurchasePanel({
           </div>
 
           {hasRealDiscount && (
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <span className="text-xs text-gray-400 line-through">
                 {formatNumber(selectedVariant.price)}
               </span>
@@ -103,16 +107,6 @@ export function ProductPurchasePanel({
               </span>
             </div>
           )}
-
-          <div className="mt-3 flex items-center gap-1.5 border-t border-gray-100 pt-3 text-xs font-medium">
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${isOutOfStock ? "bg-gray-300" : "bg-green-500"}`}
-              aria-hidden="true"
-            />
-            <span className={isOutOfStock ? "text-gray-400" : "text-green-600"}>
-              {isOutOfStock ? "ناموجود" : "موجود در انبار"}
-            </span>
-          </div>
         </div>
 
         <ProductVariantSelector
