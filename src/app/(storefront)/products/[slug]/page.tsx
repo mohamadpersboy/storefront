@@ -35,6 +35,11 @@ type ProductDetailPageProps = {
  * `MobileBottomBar` سراسری در این صفحه با `StorefrontChrome`
  * مخفی می‌شود؛ به‌جایش `ProductAddToCartBar` نوار پایین چسبان
  * اختصاصی خودِ همین صفحه است (نگاه کنید `ProductPurchasePanel`).
+ * فضای رزروشده برای آن نوار (`pb-24` پایین‌تر) عمداً روی همین
+ * ریشه صفحه است، نه داخل `ProductPurchasePanel` — باگ رفع‌شده:
+ * قبلاً آن فاصله بین Stepper تعداد و کارت توضیحات (که *بعد* از
+ * پنل رندر می‌شود) یک شکاف بزرگ بی‌معنی ایجاد می‌کرد؛ حالا فقط
+ * زیر *آخرین* بخش واقعی صفحه (هرچه باشد) رزرو می‌شود.
  *
  * وضعیت اولیه علاقه‌مندی این‌جا (Server Component) با `getCurrentUser`
  * خوانده می‌شود تا دکمه از همان اولین Render درست باشد؛ تاریخچه قیمت
@@ -61,7 +66,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     : [];
 
   return (
-    <div>
+    <div className="pb-24">
       <ProductTopBar
         shareTitle={product.title}
         productId={product.id}

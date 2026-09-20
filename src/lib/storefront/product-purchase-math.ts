@@ -22,23 +22,36 @@ export function computeSelectionTotal(finalUnitPrice: number, quantity: number):
   return finalUnitPrice * quantity;
 }
 
-export type VariantLabelInput = {
+export type VariantDetailSegment =
+  | { type: "color"; name: string; hex: string | null }
+  | { type: "attribute"; name: string; value: string };
+
+export type VariantDetailInput = {
   colorName: string | null;
+  colorHex: string | null;
   attributes: { name: string; value: string }[];
-  unit: string;
 };
 
 /**
- * برچسب نمایشی یک Variant روی Pill انتخاب — اولویت با رنگ + مقادیر
- * ویژگی‌ها (مثلاً «لاکی — ۶×۴ متر»)؛ اگر Variant هیچ رنگ/ویژگی‌ای
- * نداشت (Variant ساده تک‌حالته)، به‌جایش خودِ واحد فروش
- * (`unit`, مثلاً «تخته») نمایش داده می‌شود تا Pill هرگز خالی نماند.
+ * ریز مشخصات Variant انتخاب‌شده — برای خط جداگانه زیر Pillهای
+ * انتخاب واحد فروش (طبق دستور صریح کارفرما، جایگزین نسخه قبلی که
+ * این اطلاعات را داخل خودِ Pill می‌گذاشت). رنگ (اگر ثبت شده باشد)
+ * همیشه اول است؛ بعدش هر ویژگی فنی که هم نام و هم مقدار دارد،
+ * به‌ترتیب ثبت‌شده. Component این آرایه را با جداکننده «-» به هم
+ * وصل می‌کند و بخش رنگ را با یک دایره رنگی رندر می‌کند.
  */
-export function getVariantDisplayLabel(variant: VariantLabelInput): string {
-  const parts: string[] = [];
-  if (variant.colorName) parts.push(variant.colorName);
-  for (const attribute of variant.attributes) {
-    if (attribute.value) parts.push(attribute.value);
+export function getVariantDetailSegments(variant: VariantDetailInput): VariantDetailSegment[] {
+  const segments: VariantDetailSegment[] = [];
+
+  if (variant.colorName) {
+    segments.push({ type: "color", name: variant.colorName, hex: variant.colorHex });
   }
-  return parts.length > 0 ? parts.join(" — ") : variant.unit;
+
+  for (const attribute of variant.attributes) {
+    if (attribute.name && attribute.value) {
+      segments.push({ type: "attribute", name: attribute.name, value: attribute.value });
+    }
+  }
+
+  return segments;
 }

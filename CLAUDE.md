@@ -881,10 +881,9 @@ Progress-based بالا):**
   - کارت قیمت/موجودی: قیمت نهایی + Badge تخفیف + قیمت خط‌خورده +
     مبلغ صرفه‌جویی + نقطه/برچسب موجودی (سبز «موجود در انبار» /
     خاکستری «ناموجود»).
-  - **`ProductVariantSelector`**: به‌جای «واحد فروش» ساده رفرنس
-    (کیلوگرم/جعبه)، Pill تخت از رنگ+ویژگی‌های خودِ Variant
-    (`getVariantDisplayLabel` در `product-purchase-math.ts` —
-    مثلاً «لاکی — ۶×۴ متر»)؛ در نبود رنگ/ویژگی به `unit` برمی‌گردد.
+  - **`ProductVariantSelector`**: Pill تخت، برچسبش دقیقاً `unit`
+    خودِ Variant (چیزی که هنگام ثبت محصول وارد شده، مثلاً «۱۲
+    متری») — **نسخه اولیه اشتباه بود** (نگاه کنید بلوک اصلاح زیر).
     عمداً Pill تخت، نه Matrix رنگ×اندازه — رفرنس هم همین سطح
     سادگی را دارد (۲ گزینه تخت)، Matrix یک بازطراحی بزرگ‌تر بود، نه
     «تغییر جزئی». فقط وقتی بیش از ۱ Variant باشد رندر می‌شود.
@@ -931,6 +930,39 @@ Progress-based بالا):**
   کارفرما که هیچ Tab Bar سراسری در پایین صفحه محصول نداشت.
   `MobileBottomBar` خودش تغییری نکرد.
 - تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۴۴۲ تست کل پروژه)،
+  Build ✅.
+
+**اصلاح Product Details طبق بازخورد کارفرما (نسخه اولیه چند مشکل داشت):**
+
+- **باگ رفع‌شده — فاصله بزرگ بی‌معنی بین Stepper تعداد و کارت
+  توضیحات:** علتش این بود که فضای رزروشده برای نوار پایین چسبان
+  (`h-24`) *داخل* `ProductPurchasePanel` گذاشته شده بود — یعنی بین
+  Stepper تعداد و کارت توضیحات (که *بعد* از پنل رندر می‌شود)، نه
+  لزوماً بعد از *آخرین* بخش صفحه. رفع شد با انتقال آن فضا
+  (`pb-24`) به ریشه خودِ `page.tsx` — حالا هرچه آخرین بخش واقعی
+  صفحه باشد (با/بدون توضیحات)، فقط زیر همان یکی رزرو می‌شود.
+- **اصلاح Pill انتخاب واحد فروش (اشتباه نسخه قبلی):** برچسب Pill
+  رنگ+ویژگی‌ها را نشان می‌داد (مثلاً «فیلی — ۲/۵ متر — ۳/۵ متر»)؛
+  کارفرما گفت باید دقیقاً خودِ `unit` باشد (مثلاً «۱۲ متری») — چیزی
+  که موقع ثبت محصول وارد شده. `getVariantDisplayLabel` حذف شد؛
+  `ProductVariantSelector` مستقیم `variant.unit` را نشان می‌دهد.
+- **`ProductVariantDetails` (کامپوننت جدید):** یک خط جدا زیر
+  Pillهای انتخاب واحد فروش، بالای Stepper تعداد — رنگ Variant
+  *انتخاب‌شده* (اگر ثبت شده باشد؛ اگر نه، هیچ‌چیز برای رنگ نشان
+  داده نمی‌شود) با یک دایره هم‌رنگ + نام رنگ، بعدش هر ویژگی فنی
+  *مختص همان Variant* با عنوان و مقدار با هم («عرض: ۲ متر»)، همه با
+  «-» جدا از هم. تابع خالص جدید در `product-purchase-math.ts`:
+  `getVariantDetailSegments` (رنگ همیشه اول، بعد ویژگی‌ها به ترتیب
+  ثبت‌شده؛ ویژگی بدون نام یا بدون مقدار نادیده گرفته می‌شود).
+- **بازطراحی بصری کارت قیمت** (کارفرما: «جالب و حرفه‌ای نیست»):
+  قیمت نهایی بزرگ‌تر (`text-2xl`) با Badge تخفیف بلافاصله بعدش (نه
+  قبلش — در RTL یعنی Badge حالا سمت چپ قیمت دیده می‌شود، ترتیب
+  خواندن طبیعی‌تر)؛ قیمت خط‌خورده + مبلغ صرفه‌جویی به یک ردیف با
+  هم، مبلغ صرفه‌جویی حالا یک Pill رنگی (`--sf-cherry-soft`/
+  `--sf-cherry`) به‌جای متن ساده؛ یک خط جداکننده (`border-t`) قبل
+  از ردیف موجودی، برای سلسله‌مراتب بصری واضح‌تر.
+- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۴۴۵ تست کل پروژه — جایگزینی
+  ۴ تست `getVariantDisplayLabel` با ۷ تست `getVariantDetailSegments`)،
   Build ✅.
 
 **Branch فعلی:** `main`
@@ -2110,8 +2142,9 @@ src/
                   + StorefrontChrome (تصمیم نمایش MobileBottomBar بر اساس مسیر)
                   + ProductTopBar/ProductImageGallery/ProductInfoHeader
                   + ProductPurchasePanel/ProductVariantSelector/
-                    ProductQuantityStepper/ProductAddToCartBar/
-                    ProductDescriptionCard (Product Details)
+                    ProductVariantDetails/ProductQuantityStepper/
+                    ProductAddToCartBar/ProductDescriptionCard
+                    (Product Details)
                   + ProductFavoriteButton/ProductPriceChartButton (Top Bar)
   config/env.ts
   fonts/index.ts

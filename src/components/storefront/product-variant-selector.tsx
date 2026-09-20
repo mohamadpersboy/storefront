@@ -1,7 +1,6 @@
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatNumber, TOMAN_GLYPH } from "@/lib/utils/format";
-import { getVariantDisplayLabel } from "@/lib/storefront/product-purchase-math";
 import type { ProductDetailVariant } from "@/lib/storefront/get-product-detail";
 
 type ProductVariantSelectorProps = {
@@ -11,13 +10,13 @@ type ProductVariantSelectorProps = {
 };
 
 /**
- * انتخاب Variant — به‌صورت Pill تخت (نه Matrix ویژگی‌ها/رنگ)، چون
- * رفرنس کارفرما (میوه‌فروشی) هم دقیقاً همین سطح ساده را دارد («۱
- * کیلوگرم» / «۱ جعبه»، نه یک انتخاب‌گر چندمرحله‌ای رنگ+اندازه) —
- * طبق درخواست «تغییرات جزئی»، نه بازطراحی کامل الگوی انتخاب. هر
- * Pill برچسبش را از `getVariantDisplayLabel` می‌گیرد (رنگ + مقادیر
- * ویژگی‌ها، یا در نبود آن‌ها خودِ واحد فروش) و قیمت نهایی همان
- * Variant را زیرش نشان می‌دهد. Variant غیرفعال یا ناموجود، غیرقابل
+ * انتخاب Variant — به‌صورت Pill تخت، برچسبش دقیقاً خودِ `unit`
+ * همان Variant است (چیزی که هنگام ثبت محصول در Dashboard وارد شده،
+ * مثلاً «۱۲ متری»/«۶ متری») — نه ترکیبی از رنگ/ویژگی‌ها (طبق
+ * اصلاح صریح کارفرما، چون آن ترکیب گمراه‌کننده بود). رنگ و
+ * ویژگی‌های فنی Variant انتخاب‌شده جای دیگری، در یک خط جدا زیر
+ * همین Pillها، نشان داده می‌شوند (نگاه کنید `ProductVariantDetails`
+ * در `ProductPurchasePanel`). Variant غیرفعال یا ناموجود، غیرقابل
  * انتخاب و کم‌رنگ است، با برچسب «ناموجود».
  */
 export function ProductVariantSelector({
@@ -34,7 +33,6 @@ export function ProductVariantSelector({
         {variants.map((variant) => {
           const isSelected = variant.id === selectedVariantId;
           const isDisabled = !variant.isActive || variant.stock === 0;
-          const label = getVariantDisplayLabel(variant);
 
           return (
             <button
@@ -57,7 +55,7 @@ export function ProductVariantSelector({
                   <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} aria-hidden="true" />
                 </span>
               )}
-              <span className="block text-xs font-bold">{label}</span>
+              <span className="block text-xs font-bold">{variant.unit}</span>
               <span className={cn("mt-0.5 block text-[11px]", isSelected ? "text-white/90" : "text-gray-500")}>
                 {isDisabled ? "ناموجود" : `${formatNumber(variant.finalPrice)} ${TOMAN_GLYPH}`}
               </span>

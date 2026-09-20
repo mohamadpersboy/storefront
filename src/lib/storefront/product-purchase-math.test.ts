@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampQuantity, computeSelectionTotal, getVariantDisplayLabel } from "./product-purchase-math";
+import { clampQuantity, computeSelectionTotal, getVariantDetailSegments } from "./product-purchase-math";
 
 describe("clampQuantity", () => {
   it("passes through an in-range quantity", () => {
@@ -39,39 +39,65 @@ describe("computeSelectionTotal", () => {
   });
 });
 
-describe("getVariantDisplayLabel", () => {
-  it("uses color + attribute values when both are present", () => {
-    const label = getVariantDisplayLabel({
+describe("getVariantDetailSegments", () => {
+  it("puts the color segment first when a color is set", () => {
+    const segments = getVariantDetailSegments({
       colorName: "لاکی",
-      attributes: [{ name: "اندازه", value: "۶×۴ متر" }],
-      unit: "تخته",
+      colorHex: "#7a1f2b",
+      attributes: [{ name: "عرض", value: "۲ متر" }],
     });
-    expect(label).toBe("لاکی — ۶×۴ متر");
+    expect(segments[0]).toEqual({ type: "color", name: "لاکی", hex: "#7a1f2b" });
+    expect(segments[1]).toEqual({ type: "attribute", name: "عرض", value: "۲ متر" });
   });
 
-  it("joins multiple attribute values", () => {
-    const label = getVariantDisplayLabel({
+  it("omits the color segment entirely when no color was set", () => {
+    const segments = getVariantDetailSegments({
       colorName: null,
+      colorHex: null,
+      attributes: [{ name: "عرض", value: "۲ متر" }],
+    });
+    expect(segments).toEqual([{ type: "attribute", name: "عرض", value: "۲ متر" }]);
+  });
+
+  it("includes every attribute that has both a name and a value", () => {
+    const segments = getVariantDetailSegments({
+      colorName: null,
+      colorHex: null,
       attributes: [
-        { name: "اندازه", value: "۶×۴ متر" },
-        { name: "شانه", value: "۱۲۰۰" },
+        { name: "عرض", value: "۲ متر" },
+        { name: "طول", value: "۴ متر" },
       ],
-      unit: "تخته",
     });
-    expect(label).toBe("۶×۴ متر — ۱۲۰۰");
+    expect(segments).toEqual([
+      { type: "attribute", name: "عرض", value: "۲ متر" },
+      { type: "attribute", name: "طول", value: "۴ متر" },
+    ]);
   });
 
-  it("falls back to the unit when there is no color or attributes", () => {
-    const label = getVariantDisplayLabel({ colorName: null, attributes: [], unit: "عدد" });
-    expect(label).toBe("عدد");
+  it("skips an attribute missing a value", () => {
+    const segments = getVariantDetailSegments({
+      colorName: null,
+      colorHex: null,
+      attributes: [{ name: "عرض", value: "" }],
+    });
+    expect(segments).toEqual([]);
   });
 
-  it("skips attributes with an empty value", () => {
-    const label = getVariantDisplayLabel({
-      colorName: "لاکی",
-      attributes: [{ name: "اندازه", value: "" }],
-      unit: "تخته",
+  it("skips an attribute missing a name", () => {
+    const segments = getVariantDetailSegments({
+      colorName: null,
+      colorHex: null,
+      attributes: [{ name: "", value: "۲ متر" }],
     });
-    expect(label).toBe("لاکی");
+    expect(segments).toEqual([]);
+  });
+
+  it("is an empty array when there is no color and no attributes", () => {
+    expect(getVariantDetailSegments({ colorName: null, colorHex: null, attributes: [] })).toEqual([]);
+  });
+
+  it("allows a color with no hex code (dot falls back to a neutral color in the UI)", () => {
+    const segments = getVariantDetailSegments({ colorName: "کرم", colorHex: null, attributes: [] });
+    expect(segments).toEqual([{ type: "color", name: "کرم", hex: null }]);
   });
 });
