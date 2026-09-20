@@ -1,14 +1,16 @@
 import type { Viewport } from "next";
-import { MobileBottomBar } from "@/components/storefront/mobile-bottom-bar";
+import { StorefrontChrome } from "@/components/storefront/storefront-chrome";
 
 /**
  * Layout ریشه Storefront (کلاس `storefront` برای فعال‌سازی Token های
  * مستقل `--sf-*` در globals.css — جدا از Token های Dashboard).
  *
- * `pb-[76px]` روی موبایل فضای لازم برای Bottom Bar ثابت (ارتفاع
- * ۶۸px + کمی حاشیه برای Safe Area) را رزرو می‌کند تا محتوای صفحه
- * زیر آن پنهان نشود؛ روی `sm` به بالا صفر می‌شود چون Bottom Bar
- * آنجا نمایش داده نمی‌شود.
+ * `MobileBottomBar` سراسری + فضای `pb-[76px]` رزروشده برایش، از
+ * طریق `StorefrontChrome` رندر می‌شوند — که بر اساس مسیر فعلی
+ * تصمیم می‌گیرد نمایشش بدهد یا نه (صفحه محصول نوار پایین چسبان
+ * اختصاصی خودش را دارد، نگاه کنید `ProductAddToCartBar`). این
+ * تصمیم به `usePathname` نیاز دارد، پس در یک Client Component جدا
+ * است، نه مستقیم این‌جا (این Layout خودش Server Component می‌ماند).
  *
  * `bg-gray-100`: بک‌گراند کل صفحات Storefront خاکستری کم‌رنگ است
  * (طبق درخواست کارفرما) — نه سفید. کارت‌ها/بخش‌های سفید (مثل خود
@@ -41,8 +43,7 @@ export default function StorefrontLayout({
 }) {
   return (
     <div className="storefront min-h-dvh bg-gray-100">
-      <div className="pb-[76px] sm:pb-0">{children}</div>
-      <MobileBottomBar />
+      <StorefrontChrome>{children}</StorefrontChrome>
     </div>
   );
 }

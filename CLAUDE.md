@@ -852,6 +852,87 @@ Progress-based بالا):**
 - تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۳۷۳ تست، ۴ تست جدید)،
   Build ✅.
 
+**Price Chart Popup — انیمیشن + Drag-to-Dismiss + رفع تداخل برچسب (به درخواست صریح کارفرما):**
+
+- ورود پاپ‌آپ با اسلاید از پایین + خروج با اسلاید به پایین (چه با
+  دکمه بستن/Backdrop، چه با درگ رو‌به‌پایین بیشتر از آستانه) —
+  `translateY(100%)` ↔ `translateY(0)`؛ یک Handle Bar بالای پاپ‌آپ،
+  کل نوار عنوان ناحیه درگ است. توابع خالص جدید در
+  `bottom-sheet-math.ts`: `clampDragOffsetPx`،
+  `shouldDismissBottomSheet` (آستانه = حداکثر ۳۰٪ ارتفاع خودِ
+  Sheet یا ۸۰px، هرکدام بزرگ‌تر بود — برای Sheetهای کوتاه).
+- باگ رفع‌شده: برچسب‌های هفته پایین نمودار با برچسب قیمت `0م`
+  تداخل داشتند — `tickMargin={12}` روی XAxis اضافه شد.
+- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۸ تست جدید
+  `bottom-sheet-math`)، Build ✅.
+
+**Product Details — بقیه صفحه (قیمت/موجودی + Variant + تعداد + توضیحات + افزودن به سبد)، مطابق رفرنس کارفرما با تغییرات مرتبط با فرش:**
+
+رفرنس کارفرما یک اسکرین‌شات صفحه محصول میوه‌فروشی بود (قیمت/موجودی،
+انتخاب واحد فروش، Stepper تعداد، توضیحات، نوار پایین چسبان افزودن
+به سبد). طبق دستور صریح («تغییرات جزئی مرتبط با فرش»، نه کپی کامل):
+
+- **`ProductInfoHeader`** بازنویسی شد: فقط Category Chip (از
+  `product.category` Populate‌شده) + عنوان. قیمت از این‌جا حذف شد
+  (به `ProductPurchasePanel` منتقل شد، چون حالا به Variant
+  انتخاب‌شده وابسته است، نه یک عدد ثابت).
+- **`ProductPurchasePanel`** (Client، هماهنگ‌کننده State مشترک —
+  `selectedVariantId` + `quantity`):
+  - کارت قیمت/موجودی: قیمت نهایی + Badge تخفیف + قیمت خط‌خورده +
+    مبلغ صرفه‌جویی + نقطه/برچسب موجودی (سبز «موجود در انبار» /
+    خاکستری «ناموجود»).
+  - **`ProductVariantSelector`**: به‌جای «واحد فروش» ساده رفرنس
+    (کیلوگرم/جعبه)، Pill تخت از رنگ+ویژگی‌های خودِ Variant
+    (`getVariantDisplayLabel` در `product-purchase-math.ts` —
+    مثلاً «لاکی — ۶×۴ متر»)؛ در نبود رنگ/ویژگی به `unit` برمی‌گردد.
+    عمداً Pill تخت، نه Matrix رنگ×اندازه — رفرنس هم همین سطح
+    سادگی را دارد (۲ گزینه تخت)، Matrix یک بازطراحی بزرگ‌تر بود، نه
+    «تغییر جزئی». فقط وقتی بیش از ۱ Variant باشد رندر می‌شود.
+  - **`ProductQuantityStepper`**: +/- (دکمه «+» طبق RTL در DOM
+    آخرین فرزند تا واقعاً سمت چپ دیده شود، مطابق رفرنس) + «مبلغ
+    این انتخاب» زنده (`computeSelectionTotal`). «+» در `stock`
+    Variant انتخاب‌شده غیرفعال می‌شود؛ انتخاب Variant تازه، تعداد
+    را به ۱ برمی‌گرداند (موجودی جدید ممکن است کمتر از تعداد قبلی
+    باشد).
+  - **`ProductAddToCartBar`**: نوار پایین چسبان — «مبلغ قابل
+    پرداخت» + دکمه افزودن به سبد، به `POST /api/v1/cart/items`
+    **واقعی** وصل (نه Mock — همان Route/Model Cart که از قبل کامل
+    بود). خطای برگشتی خودِ API (مثلاً «موجودی کافی نیست…») مستقیم
+    نمایش داده می‌شود؛ ۴۰۱ (مهمان) → هدایت به `/login`؛ موفقیت →
+    بازخورد کوتاه «افزوده شد» (هم‌الگو با بازخورد کپی‌شدن لینک در
+    `ProductTopBar`).
+  - توابع خالص جدید در `product-purchase-math.ts`: `clampQuantity`،
+    `computeSelectionTotal`، `getVariantDisplayLabel` (۱۲ تست).
+- **`ProductDescriptionCard`**: فقط اگر `product.description`
+  (فیلد واقعی، متن آزاد) مقدار داشته باشد رندر می‌شود؛ `page.tsx`
+  خودش این شرط را چک می‌کند، نه یک حالت خالی داخل Component.
+- **عمداً اضافه نشد (طبق دستور صریح کارفرما):**
+  - توضیحات/ویژگی‌های فنی (`technicalDescription`/
+    `technicalSpecifications`) — فیلدها در مدل هستند، ولی کارفرما
+    گفت «فعلاً طراحی نکن تا خودم توضیح بدم». منتظر دستور بعدی.
+  - نظرات، ریتینگ، محصولات مشابه، «دیگران خریده‌اند» — کارفرما
+    گفت اینها فاز بعدی‌اند.
+  - «خاستگاه» (مثل رفرنس میوه‌فروشی) — نه `Product` نه
+    `Brand`/`Category` هیچ فیلد مکان/خاستگاهی دارند؛ اختراع نشد.
+  - Badge نوع «پرفروش»/«فصلی» رفرنس — «فصلی» هیچ معادلی در مدل
+    فرش ندارد؛ «پرفروش» یک رتبه‌بندی محاسبه‌شده از Orderهاست (نه
+    فیلد ذخیره‌شده روی Product)، افزودنش به این صفحه یک Query/تصمیم
+    جداست، اختراع نشد.
+- **`get-product-detail.ts` گسترش یافت:** `category` (Populate
+  `name`)، `description`، `variants` کامل (نه فقط نماینده — هرکدام
+  با `colorName`/`colorHex` از Populate `variants.colorId`،
+  `attributes`، `finalPrice` محاسبه‌شده)، `defaultVariantId`. `price`
+  نماینده قبلی برای Render اول/نمودار قیمت نگه داشته شد.
+- **`StorefrontChrome`** (کامپوننت Client جدید، جایگزین رندر مستقیم
+  `MobileBottomBar` در `layout.tsx`): تصمیم نمایش/عدم‌نمایش نوار
+  پایین سراسری بر اساس مسیر — در `/products/*` مخفی می‌شود (و فضای
+  `pb-[76px]` رزروشده هم حذف می‌شود) چون آن صفحه نوار پایین چسبان
+  اختصاصی خودش را دارد (`ProductAddToCartBar`)، دقیقاً مطابق رفرنس
+  کارفرما که هیچ Tab Bar سراسری در پایین صفحه محصول نداشت.
+  `MobileBottomBar` خودش تغییری نکرد.
+- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۴۴۲ تست کل پروژه)،
+  Build ✅.
+
 **Branch فعلی:** `main`
 **Feature بعدی:** منتظر تأیید کاربر روی بازطراحی گالری تصویر —
 Approve → ماژول بعدی Product Details؛ یا Changes Required؛ یا
@@ -2026,7 +2107,12 @@ src/
     auth/       - OtpLoginForm
     storefront/ - MobileTopBar/MobileBottomBar/HeroSlider/ProductCard/
                   SectionHeader/PageHeader/Footer/... (Homepage + Account)
-                  + ProductTopBar/ProductImageGallery (Product Details Phase ۱)
+                  + StorefrontChrome (تصمیم نمایش MobileBottomBar بر اساس مسیر)
+                  + ProductTopBar/ProductImageGallery/ProductInfoHeader
+                  + ProductPurchasePanel/ProductVariantSelector/
+                    ProductQuantityStepper/ProductAddToCartBar/
+                    ProductDescriptionCard (Product Details)
+                  + ProductFavoriteButton/ProductPriceChartButton (Top Bar)
   config/env.ts
   fonts/index.ts
   lib/
@@ -2048,7 +2134,10 @@ src/
     products/   resolve-categories.ts (resolveProductCategories — جایگزین امن populate("category")
                 در برابر category خراب در DB؛ نگاه کنید Known Issues)
     storefront/ homepage-products.ts, get-product-detail.ts,
-                product-gallery-math.ts (منطق خالص گالری محصول)
+                get-is-favorite.ts, get-price-history.ts (Mock),
+                product-gallery-math.ts (منطق خالص گالری محصول)،
+                product-purchase-math.ts (Variant/Quantity/Total)،
+                bottom-sheet-math.ts (Drag-to-Dismiss پاپ‌آپ قیمت)
     import/     parse-excel.ts, validate-province-city-rows.ts (تابع خالص),
                 import-provinces-cities.ts
     neshan/     config.ts (NEXT_PUBLIC_NESHAN_API_KEY + آدرس‌های پایه API)

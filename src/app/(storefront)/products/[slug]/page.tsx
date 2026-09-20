@@ -6,21 +6,35 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { ProductTopBar } from "@/components/storefront/product-top-bar";
 import { ProductImageGallery } from "@/components/storefront/product-image-gallery";
 import { ProductInfoHeader } from "@/components/storefront/product-info-header";
+import { ProductPurchasePanel } from "@/components/storefront/product-purchase-panel";
+import { ProductDescriptionCard } from "@/components/storefront/product-description-card";
 
 type ProductDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
 
 /**
- * صفحه جزئیات محصول — Phase 1 (Top Bar + Gallery) + Phase 2 (عنوان +
- * قیمت) + دو دکمه Top Bar اضافه‌شده با دستور صریح بعدی (علاقه‌مندی +
- * نمودار قیمت).
+ * صفحه جزئیات محصول.
  *
- * طبق دستور صریح فاز اول («Do NOT design or implement: ... Variants,
- * Attributes, Add to cart, Product description, Related products,
- * Reviews»)، بقیهٔ محتوای این صفحه عمداً اینجا نیست و در ماژول‌های
- * بعدی اضافه می‌شود. Wishlist از این محدودیت مستثنا شد چون کارفرما
- * صریحاً دکمه آن را (به‌عنوان بخشی از Top Bar) درخواست کرد.
+ * فازهای قبلی: Top Bar + Gallery (Phase 1)، عنوان + قیمت (Phase 2)،
+ * دکمه‌های علاقه‌مندی/نمودار قیمت در Top Bar (دستور صریح بعدی).
+ *
+ * این فاز: بقیه بخش‌های صفحه، مطابق رفرنس کارفرما (اسکرین‌شات یک
+ * صفحه میوه‌فروشی) با تغییرات مرتبط با فرش — `ProductPurchasePanel`
+ * (قیمت/موجودی + انتخاب Variant + Stepper تعداد + نوار پایین
+ * چسبان افزودن به سبد، هر سه به `POST /api/v1/cart/items` واقعی
+ * وصل) + `ProductDescriptionCard` (فقط اگر محصول توضیحات واقعی
+ * داشته باشد).
+ *
+ * عمداً اینجا نیست (طبق دستور صریح کارفرما):
+ * - توضیحات/ویژگی‌های فنی (`technicalDescription`/
+ *   `technicalSpecifications`) — منتظر دستور بعدی.
+ * - نظرات، ریتینگ، محصولات مشابه، «دیگران خریده‌اند» — فاز بعدی.
+ * - «خاستگاه» رفرنس — هیچ فیلد معادلی در مدل فرش وجود ندارد.
+ *
+ * `MobileBottomBar` سراسری در این صفحه با `StorefrontChrome`
+ * مخفی می‌شود؛ به‌جایش `ProductAddToCartBar` نوار پایین چسبان
+ * اختصاصی خودِ همین صفحه است (نگاه کنید `ProductPurchasePanel`).
  *
  * وضعیت اولیه علاقه‌مندی این‌جا (Server Component) با `getCurrentUser`
  * خوانده می‌شود تا دکمه از همان اولین Render درست باشد؛ تاریخچه قیمت
@@ -55,7 +69,13 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
         priceHistory={priceHistory}
       />
       <ProductImageGallery images={product.images} productTitle={product.title} />
-      <ProductInfoHeader title={product.title} price={product.price} />
+      <ProductInfoHeader title={product.title} categoryName={product.categoryName} />
+      <ProductPurchasePanel
+        productId={product.id}
+        variants={product.variants}
+        defaultVariantId={product.defaultVariantId}
+      />
+      {product.description && <ProductDescriptionCard description={product.description} />}
     </div>
   );
 }
