@@ -8,6 +8,7 @@ import { ProductImageGallery } from "@/components/storefront/product-image-galle
 import { ProductInfoHeader } from "@/components/storefront/product-info-header";
 import { ProductPurchasePanel } from "@/components/storefront/product-purchase-panel";
 import { ProductDescriptionCard } from "@/components/storefront/product-description-card";
+import { ProductTechnicalSpecsCard } from "@/components/storefront/product-technical-specs-card";
 
 type ProductDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -26,9 +27,13 @@ type ProductDetailPageProps = {
  * وصل) + `ProductDescriptionCard` (فقط اگر محصول توضیحات واقعی
  * داشته باشد).
  *
+ * `ProductTechnicalSpecsCard` (جدول ویژگی‌های فنی، طبق دستور دقیق
+ * بعدی کارفرما) هم به همین فاز اضافه شد — فقط اگر محصول حداقل یک
+ * ردیف `technicalSpecifications` واقعی داشته باشد.
+ *
  * عمداً اینجا نیست (طبق دستور صریح کارفرما):
- * - توضیحات/ویژگی‌های فنی (`technicalDescription`/
- *   `technicalSpecifications`) — منتظر دستور بعدی.
+ * - `technicalDescription` (متن آزاد فنی، جدا از جدول
+ *   `technicalSpecifications` بالا) — منتظر دستور بعدی.
  * - نظرات، ریتینگ، محصولات مشابه، «دیگران خریده‌اند» — فاز بعدی.
  * - «خاستگاه» رفرنس — هیچ فیلد معادلی در مدل فرش وجود ندارد.
  *
@@ -81,6 +86,9 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
         defaultVariantId={product.defaultVariantId}
       />
       {product.description && <ProductDescriptionCard description={product.description} />}
+      {product.technicalSpecifications.length > 0 && (
+        <ProductTechnicalSpecsCard specs={product.technicalSpecifications} />
+      )}
     </div>
   );
 }

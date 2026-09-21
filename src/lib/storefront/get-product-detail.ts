@@ -21,13 +21,18 @@ export type ProductDetailData = {
   title: string;
   images: ProductGalleryImage[];
   categoryName: string | null;
-  /**
-   * فعلاً فقط از فیلد واقعی `Product.description` — هرگز از
-   * `technicalDescription`/`technicalSpecifications` (طبق دستور
-   * صریح کارفرما: بخش توضیحات/ویژگی‌های فنی فعلاً طراحی نشود تا
-   * دستور بعدی).
-   */
   description: string | null;
+  /**
+   * ویژگی‌های فنی *عمومی محصول* (`Product.technicalSpecifications`،
+   * فیلدهای `key`/`value`) — طبق دستور صریح کارفرما اضافه شد. اگر
+   * محصول هیچ ردیفی نداشته باشد، آرایه خالی است؛ `page.tsx` در آن
+   * حالت `ProductTechnicalSpecsCard` را اصلاً رندر نمی‌کند.
+   *
+   * هنوز عمداً اضافه نشده: `Product.technicalDescription` (متن آزاد
+   * جدا از همین جدول) — کارفرما فقط دستور جدول ویژگی‌ها را داد،
+   * منتظر دستور بعدی برای آن.
+   */
+  technicalSpecifications: { key: string; value: string }[];
   variants: ProductDetailVariant[];
   /** شناسه Variant نماینده (`pickRepresentativeVariant`) — انتخاب اولیه در Variant Selector. */
   defaultVariantId: string | null;
@@ -41,7 +46,8 @@ export type ProductDetailData = {
 };
 
 /** فیلدهای لازم برای این فاز. */
-const PRODUCT_DETAIL_FIELDS = "title images variants description category";
+const PRODUCT_DETAIL_FIELDS =
+  "title images variants description technicalSpecifications category";
 
 type LeanCategoryRef = { _id: unknown; name: string } | null;
 type LeanColorRef = { _id: unknown; name: string; hexCode: string } | null;
@@ -131,6 +137,10 @@ export async function getProductDetailBySlug(
     })),
     categoryName: categoryRef?.name ?? null,
     description: product.description?.trim() || null,
+    technicalSpecifications: product.technicalSpecifications.map((spec) => ({
+      key: spec.key,
+      value: spec.value,
+    })),
     variants,
     defaultVariantId: representativeVariant ? String(representativeVariant._id) : null,
     price,
