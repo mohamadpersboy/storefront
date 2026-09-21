@@ -179,6 +179,10 @@ const ProductSchema = new Schema<IProduct>(
   { timestamps: true },
 );
 
+// برای «محصولات مشابه» صفحه محصول (رتبه‌بندی بر اساس شباهت عنوان —
+// نگاه کنید `getSimilarProductCards` در `get-related-products.ts`).
+ProductSchema.index({ title: "text" });
+
 ProductSchema.plugin(mongoosePaginate);
 
 // Soft delete: exclude deleted products from default queries.

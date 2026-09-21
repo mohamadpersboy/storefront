@@ -18,14 +18,17 @@ type ProductVariantSelectorProps = {
  * همین Pillها، نشان داده می‌شوند (نگاه کنید `ProductVariantDetails`
  * در `ProductPurchasePanel`). Variant غیرفعال یا ناموجود، غیرقابل
  * انتخاب و کم‌رنگ است، با برچسب «ناموجود».
+ *
+ * **اصلاح‌شده طبق بازخورد کارفرما:** حتی وقتی محصول فقط یک Variant
+ * دارد، این بخش کامل حذف نمی‌شود — چون همان یک Pill تنها جایی است
+ * که واحد فروش (`unit`) محصول نمایش داده می‌شود؛ حذف کل بخش یعنی
+ * آن اطلاعات هیچ‌جا دیده نشود.
  */
 export function ProductVariantSelector({
   variants,
   selectedVariantId,
   onSelect,
 }: ProductVariantSelectorProps) {
-  if (variants.length <= 1) return null;
-
   return (
     <div>
       <p className="mb-2 text-sm font-semibold text-[var(--sf-ink)]">انتخاب واحد فروش</p>

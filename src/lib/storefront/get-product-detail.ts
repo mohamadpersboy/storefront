@@ -16,23 +16,33 @@ export type ProductDetailVariant = {
   isActive: boolean;
 };
 
+export type ProductDetailCategory = { name: string; slug: string };
+
 export type ProductDetailData = {
   id: string;
   title: string;
   images: ProductGalleryImage[];
-  categoryName: string | null;
-  description: string | null;
   /**
-   * ویژگی‌های فنی *عمومی محصول* (`Product.technicalSpecifications`،
-   * فیلدهای `key`/`value`) — طبق دستور صریح کارفرما اضافه شد. اگر
-   * محصول هیچ ردیفی نداشته باشد، آرایه خالی است؛ `page.tsx` در آن
-   * حالت `ProductTechnicalSpecsCard` را اصلاً رندر نمی‌کند.
-   *
-   * هنوز عمداً اضافه نشده: `Product.technicalDescription` (متن آزاد
-   * جدا از همین جدول) — کارفرما فقط دستور جدول ویژگی‌ها را داد،
-   * منتظر دستور بعدی برای آن.
+   * دسته‌بندی محصول به‌ترتیب سلسله‌مراتب — طبق دستور صریح کارفرما:
+   * اگر دسته‌بندی محصول یک والد هم داشته باشد (فقط تا سطح دوم؛
+   * دسته‌بندی‌های این پروژه حداکثر دو سطح‌اند، نگاه کنید مدل
+   * `Category`)، هر دو کنار هم برگردانده می‌شوند — عنصر ۰ = والد
+   * (اگر وجود داشته باشد)، آخرین عنصر = خودِ دسته‌بندی محصول. هرکدام
+   * به‌عنوان یک Chip لینک‌شده به `/categories/{slug}` نمایش داده
+   * می‌شود (نگاه کنید `ProductInfoHeader`).
    */
+  categories: ProductDetailCategory[];
+  /** فقط اگر محصول برند داشته باشد (`Product.brand`)؛ در غیر این صورت `null`. */
+  brandName: string | null;
+  description: string | null;
+  /** ویژگی‌های فنی *عمومی محصول* (`Product.technicalSpecifications`، فیلدهای `key`/`value`). */
   technicalSpecifications: { key: string; value: string }[];
+  /**
+   * ملاحظات فنی آزاد (`Product.technicalDescription`) — جدا از
+   * `description` بالا و جدا از جدول `technicalSpecifications`؛ فقط
+   * اگر محصول این فیلد را پر کرده باشد مقدار دارد.
+   */
+  technicalDescription: string | null;
   variants: ProductDetailVariant[];
   /** شناسه Variant نماینده (`pickRepresentativeVariant`) — انتخاب اولیه در Variant Selector. */
   defaultVariantId: string | null;
@@ -47,10 +57,18 @@ export type ProductDetailData = {
 
 /** فیلدهای لازم برای این فاز. */
 const PRODUCT_DETAIL_FIELDS =
-  "title images variants description technicalSpecifications category";
+  "title images variants description technicalSpecifications technicalDescription category brand";
 
-type LeanCategoryRef = { _id: unknown; name: string } | null;
+type LeanParentCategoryRef = { _id: unknown; name: string; slug: string } | null;
+type LeanCategoryRef =
+  | { _id: unknown; name: string; slug: string; parentId: LeanParentCategoryRef }
+  | null;
+type LeanBrandRef = { _id: unknown; name: string } | null;
 type LeanColorRef = { _id: unknown; name: string; hexCode: string } | null;
+
+function isPopulatedRef<T>(value: unknown): value is T {
+  return !!value && typeof value === "object";
+}
 
 /**
  * محصول منتشرشده را با `slug` می‌خواند — مستقیم از DB (نه از
@@ -70,8 +88,7 @@ type LeanColorRef = { _id: unknown; name: string; hexCode: string } | null;
  *
  * **بدون «خاستگاه» (Origin):** برخلاف رفرنس میوه‌فروشی کارفرما، نه
  * `Product` و نه `Brand`/`Category` هیچ فیلد مکان/خاستگاهی ندارند —
- * پس این خط عمداً اضافه نشده (طبق همان اصل «داده نداریم، اختراع
- * نمی‌کنیم» که برای بخش توضیحات فنی هم رعایت شده).
+ * پس این خط عمداً اضافه نشده.
  */
 export async function getProductDetailBySlug(
   slug: string,
@@ -80,7 +97,12 @@ export async function getProductDetailBySlug(
 
   const product = await Product.findOne({ slug, status: "published" })
     .select(PRODUCT_DETAIL_FIELDS)
-    .populate<{ category: LeanCategoryRef }>({ path: "category", select: "name" })
+    .populate<{ category: LeanCategoryRef }>({
+      path: "category",
+      select: "name slug parentId",
+      populate: { path: "parentId", select: "name slug" },
+    })
+    .populate<{ brand: LeanBrandRef }>({ path: "brand", select: "name" })
     .populate<{ "variants.colorId": LeanColorRef }>({
       path: "variants.colorId",
       select: "name hexCode",
@@ -102,10 +124,9 @@ export async function getProductDetailBySlug(
     : null;
 
   const variants: ProductDetailVariant[] = product.variants.map((variant) => {
-    const color =
-      variant.colorId && typeof variant.colorId === "object" && "hexCode" in variant.colorId
-        ? (variant.colorId as unknown as LeanColorRef)
-        : null;
+    const color = isPopulatedRef<NonNullable<LeanColorRef>>(variant.colorId)
+      ? variant.colorId
+      : null;
 
     return {
       id: String(variant._id),
@@ -123,10 +144,24 @@ export async function getProductDetailBySlug(
     };
   });
 
-  const categoryRef =
-    product.category && typeof product.category === "object" && "name" in product.category
-      ? (product.category as unknown as LeanCategoryRef)
-      : null;
+  const categoryRef = isPopulatedRef<NonNullable<LeanCategoryRef>>(product.category)
+    ? product.category
+    : null;
+  const parentCategoryRef = isPopulatedRef<NonNullable<LeanParentCategoryRef>>(
+    categoryRef?.parentId,
+  )
+    ? categoryRef.parentId
+    : null;
+
+  const categories: ProductDetailCategory[] = [];
+  if (parentCategoryRef) {
+    categories.push({ name: parentCategoryRef.name, slug: parentCategoryRef.slug });
+  }
+  if (categoryRef) {
+    categories.push({ name: categoryRef.name, slug: categoryRef.slug });
+  }
+
+  const brandRef = isPopulatedRef<NonNullable<LeanBrandRef>>(product.brand) ? product.brand : null;
 
   return {
     id: String(product._id),
@@ -135,12 +170,14 @@ export async function getProductDetailBySlug(
       url: image.url,
       blurDataUrl: null,
     })),
-    categoryName: categoryRef?.name ?? null,
+    categories,
+    brandName: brandRef?.name ?? null,
     description: product.description?.trim() || null,
     technicalSpecifications: product.technicalSpecifications.map((spec) => ({
       key: spec.key,
       value: spec.value,
     })),
+    technicalDescription: product.technicalDescription?.trim() || null,
     variants,
     defaultVariantId: representativeVariant ? String(representativeVariant._id) : null,
     price,

@@ -16,7 +16,7 @@ import type { ProductCardData } from "@/components/storefront/product-card";
  * پروژه) چون فقط داخل همین Server Component مصرف می‌شوند.
  */
 
-type LeanProductForCard = {
+export type LeanProductForCard = {
   _id: Types.ObjectId;
   title: string;
   slug: string;
@@ -27,7 +27,7 @@ type LeanProductForCard = {
 };
 
 /** فیلدهای مشترک `select()` برای هر Query‌ای که قرار است کارت محصول از آن ساخته شود. */
-const PRODUCT_CARD_FIELDS = "title slug images variants sortOrder";
+export const PRODUCT_CARD_FIELDS = "title slug images variants sortOrder";
 
 /**
  * بزرگ‌کردن Candidate Pool قبل از اعمال «اولویت نمایش» — چون
@@ -91,7 +91,7 @@ export function pickRepresentativeVariant(variants: IProductVariant[]): IProduct
 }
 
 /** رنگ‌های دیگر همین محصول (از روی Variantهای فعال دیگر) برای نقطه‌های رنگی روی کارت. */
-async function buildColorsMap(
+export async function buildColorsMap(
   products: { variants: IProductVariant[] }[],
 ): Promise<Map<string, { id: string; hexCode: string }>> {
   const colorIds = new Set<string>();
@@ -155,12 +155,12 @@ function toProductCard(
 }
 
 /** محصولاتی که حداقل یک تصویر و حداقل یک Variant قابل‌نمایش دارند. */
-function isDisplayable(p: LeanProductForCard): boolean {
+export function isDisplayable(p: LeanProductForCard): boolean {
   return p.images.length > 0 && p.variants.length > 0;
 }
 
 /** تبدیل دسته‌ای محصولات به کارت — منطق مشترک هر سه ردیف/بخش این فایل. */
-function toDisplayableCards(
+export function toDisplayableCards(
   products: LeanProductForCard[],
   colorsMap: Map<string, { id: string; hexCode: string }>,
 ): ProductCardData[] {

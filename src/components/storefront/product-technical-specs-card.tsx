@@ -6,7 +6,8 @@ type ProductTechnicalSpecsCardProps = {
 };
 
 /**
- * کارت «ویژگی‌های فنی» — Grid دو‌ستونه (نه یک `<table>` واقعی؛
+ * کارت «ویژگی‌های محصول» (عنوان روی صفحه — طبق اصلاح صریح کارفرما،
+ * قبلاً «ویژگی‌های فنی» بود) — Grid دو‌ستونه (نه یک `<table>` واقعی؛
  * برای اینکه هر خانه هم‌زمان گوشه‌گرد باشد هم ۴px از خانه‌های
  * اطرافش فاصله داشته باشد، CSS Grid با `gap` قابل‌اطمینان‌تر از
  * `border-spacing` روی یک Table واقعی است — HTML خروجی بصری همان
@@ -41,7 +42,7 @@ export function ProductTechnicalSpecsCard({ specs }: ProductTechnicalSpecsCardPr
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--sf-accent-soft)] text-[var(--sf-accent)]">
             <ListChecks className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
           </span>
-          <p className="text-sm font-semibold text-[var(--sf-ink)]">ویژگی‌های فنی</p>
+          <p className="text-sm font-semibold text-[var(--sf-ink)]">ویژگی‌های محصول</p>
         </div>
 
         <div className="grid grid-cols-[1fr_2fr] gap-1 rounded-xl bg-white p-1">
