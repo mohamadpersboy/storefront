@@ -16,15 +16,18 @@ type ProductTechnicalSpecsCardProps = {
  * - ستون عنوان ⅓ عرض کل، ستون مقدار ⅔ عرض کل
  *   (`grid-cols-[1fr_2fr]`).
  * - هر سطر/ستون ۴px فاصله (`gap-1` = ۰٫۲۵rem = ۴px).
- * - خانه‌ها گوشه‌گرد و بک‌گراند سفید.
+ * - خانه‌ها گوشه‌گرد؛ بک‌گراند خاکستری روشن (خودِ ناحیه Grid سفید
+ *   می‌ماند — نگاه کنید یادداشت اصلاح زیر).
  * - ستون عنوان وسط‌چین، ستون مقدار راست‌چین.
  * - «هدر سراسری» (عنوان کل بخش، نه هدر هر ستون) هم بک‌گراند سفید و
  *   گوشه‌گرد — هم‌الگو با `ProductDescriptionCard` (آیکن در دایره
  *   رنگی + عنوان Bold).
  *
- * خودِ ناحیه Grid یک بک‌گراند خاکستری روشن دارد (`bg-gray-100`) تا
- * فاصله ۴px بین خانه‌های سفید واقعاً *دیده* شود — روی یک بک‌گراند
- * کاملاً سفید (هم‌رنگ کارت)، آن فاصله‌ها اصلاً قابل‌تشخیص نبودند.
+ * **اصلاح‌شده طبق بازخورد کارفرما (برعکسِ نسخه اول):** ناحیه Grid
+ * دیگر بک‌گراند خاکستری ندارد (سفید می‌ماند، هم‌رنگ خودِ کارت)؛
+ * این خانه‌ها هستند که حالا بک‌گراند خاکستری روشن دارند
+ * (`bg-gray-100`) و فاصله ۴px بینشان همان سفیدِ زمینه کارت را نشان
+ * می‌دهد — دقیقاً برعکس قبل.
  *
  * فقط از `Product.technicalSpecifications` (`key`/`value`) —
  * `Product.technicalDescription` (متن آزاد جدا) هنوز طراحی نشده،
@@ -41,13 +44,13 @@ export function ProductTechnicalSpecsCard({ specs }: ProductTechnicalSpecsCardPr
           <p className="text-sm font-semibold text-[var(--sf-ink)]">ویژگی‌های فنی</p>
         </div>
 
-        <div className="grid grid-cols-[1fr_2fr] gap-1 rounded-xl bg-gray-100 p-1">
+        <div className="grid grid-cols-[1fr_2fr] gap-1 rounded-xl bg-white p-1">
           {specs.map((spec, index) => (
             <Fragment key={index}>
-              <div className="rounded-lg bg-white px-3 py-2.5 text-center text-xs font-medium text-[var(--sf-ink)]">
+              <div className="rounded-lg bg-gray-100 px-3 py-2.5 text-center text-xs font-medium text-[var(--sf-ink)]">
                 {spec.key}
               </div>
-              <div className="rounded-lg bg-white px-3 py-2.5 text-right text-xs text-gray-600">
+              <div className="rounded-lg bg-gray-100 px-3 py-2.5 text-right text-xs text-gray-600">
                 {spec.value}
               </div>
             </Fragment>
