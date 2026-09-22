@@ -111,7 +111,7 @@ export async function getProductDetailBySlug(
 
   if (!product) return null;
 
-  const representativeVariant = pickRepresentativeVariant(product.variants);
+  const representativeVariant = pickRepresentativeVariant(product.variants ?? []);
   const price = representativeVariant
     ? {
         basePrice: representativeVariant.price,
@@ -123,7 +123,7 @@ export async function getProductDetailBySlug(
       }
     : null;
 
-  const variants: ProductDetailVariant[] = product.variants.map((variant) => {
+  const variants: ProductDetailVariant[] = (product.variants ?? []).map((variant) => {
     const color = isPopulatedRef<NonNullable<LeanColorRef>>(variant.colorId)
       ? variant.colorId
       : null;
@@ -133,7 +133,7 @@ export async function getProductDetailBySlug(
       unit: variant.unit,
       colorName: color?.name ?? null,
       colorHex: color?.hexCode ?? null,
-      attributes: variant.attributes.map((attribute) => ({
+      attributes: (variant.attributes ?? []).map((attribute) => ({
         name: attribute.name,
         value: attribute.value,
       })),
@@ -166,14 +166,14 @@ export async function getProductDetailBySlug(
   return {
     id: String(product._id),
     title: product.title,
-    images: product.images.map((image) => ({
+    images: (product.images ?? []).map((image) => ({
       url: image.url,
       blurDataUrl: null,
     })),
     categories,
     brandName: brandRef?.name ?? null,
     description: product.description?.trim() || null,
-    technicalSpecifications: product.technicalSpecifications.map((spec) => ({
+    technicalSpecifications: (product.technicalSpecifications ?? []).map((spec) => ({
       key: spec.key,
       value: spec.value,
     })),
