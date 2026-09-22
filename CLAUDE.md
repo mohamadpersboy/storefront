@@ -2196,17 +2196,53 @@ Phaseهای Homepage):**
     باقیمانده (اگر باشد) را برطرف نمی‌کند، فقط از این پس به‌جای
     کرش خام، یک صفحه Retry آشنا نشان می‌دهد و خطا را Log می‌کند.
 
-  **توصیه برای دفعه بعد که این علامت دوباره دیده شد:** اگر
-  «Reload» مشکل را حل کرد و فقط گاهی/بعد از هر Deploy تازه پیش
-  می‌آید → به‌احتمال زیاد یک مشکل گذرای Cold Start (اتصال Mongo/
-  ایندکس)، نه یک باگ کد. اگر فقط روی *یک محصول خاص* همیشه (حتی بعد
-  از Reload) پیش می‌آید → داده همان محصول را در Dashboard بررسی کن؛
-  احتمالاً یکی از فیلدهای Array آن سند واقعاً خالی/نامعتبر است.
+  فایل تغییریافته (این دور): `get-product-detail.ts`. فایل جدید:
+  `(storefront)/error.tsx`.
 
-  فایل تغییریافته: `get-product-detail.ts`. فایل جدید:
-  `(storefront)/error.tsx`. تست خاصی نیاز نداشت (طبق قانون پروژه،
-  Query های DB-touching تست خالص ندارند؛ `error.tsx` هم صرفاً UI
-  است). TypeScript/ESLint/Vitest (۴۵۰ تست، بدون تغییر)/Build همه سبز.
+- ✅ **علت واقعی همان باگ بالا پیدا شد (کارفرما Log واقعی Production
+  را فرستاد) — تشخیص قبلی (Array بدون Guard) درست بود اما ناقص؛
+  علت اصلی چیز دیگری بود:**
+
+  ```
+  MissingSchemaError: Schema hasn't been registered for model "Brand".
+  Use mongoose.model(name, schema)
+  ```
+
+  **علت ریشه‌ای واقعی:** `getProductDetailBySlug` روی `Product`
+  یک `.populate({ path: "brand" })` اجرا می‌کند، اما خودِ فایل
+  `get-product-detail.ts` (و هیچ‌کدام از Importهای آن — فقط
+  `Product` و `homepage-products.ts`) هیچ‌جا مدل `Brand` را Import
+  نمی‌کنند. `homepage-products.ts` به‌طور تصادفی `Category`/`Color`
+  را (برای کار خودش) Import می‌کند، پس آن دو Populate همیشه کار
+  می‌کردند، اما `Brand` هیچ‌جای زنجیره Import همین صفحه ثبت
+  نمی‌شد. چون هر صفحه App Router عملاً Bundle جدای خودش را دارد،
+  روی هر Cold Start سرورلس که این Bundle مدل Brand را از یک
+  Route دیگر (مثلاً صفحه اصلی، که Brand را مستقیم Import می‌کند)
+  به ارث نبرده باشد، `mongoose.model("Brand")` هرگز صدا زده
+  نشده و Populate با همین خطا رد می‌شود — دقیقاً به همین دلیل رفتار
+  «گاهی کار می‌کند، گاهی نه» را داشت (به این‌که کدام Route قبلاً
+  همان Instance سرورلس را گرم کرده بود بستگی داشت).
+
+  **رفع:** یک `import "@/models/Brand";` (فقط برای Side Effect
+  ثبت مدل، بدون استفاده مستقیم) به `get-product-detail.ts` اضافه
+  شد. همه Populate های دیگر Storefront (`get-referral-summary.ts` →
+  `invitee`/`User`، `homepage-products.ts` → `productId`/`Product`)
+  به‌صورت مشابه بررسی و امن تأیید شدند (`User` همیشه از طریق
+  `getCurrentUser` در همان صفحه ثبت می‌شود).
+
+  **بازطراحی صفحات خطا (طبق بازخورد صریح کارفرما — نسخه اول
+  `error.tsx` «متناسب و زیبا» با ظاهر سایت نبود):**
+  - `(storefront)/error.tsx`: آیکون قرمز/خاکستری ژنریک با یک دایره
+    گرادیانی نرم با توکن‌های خودِ سایت (`--sf-accent-soft` →
+    سفید) جایگزین شد؛ یک دکمه دومِ «بازگشت به فروشگاه» هم اضافه شد.
+  - `(storefront)/not-found.tsx` (فایل جدید — قبلاً کل این گروه
+    ۴۰۴ اختصاصی نداشت، پس `notFound()` به صفحه پیش‌فرض خنثای
+    Next.js می‌رسید): هم‌ساختار با `error.tsx` بالا.
+
+  فایل‌های این دور: `get-product-detail.ts` (Import جدید)،
+  `(storefront)/error.tsx` (بازطراحی)، `(storefront)/not-found.tsx`
+  (جدید). تست خاصی نیاز نداشت (Import صرفاً Side-Effect، UI صرف).
+  TypeScript/ESLint/Vitest (۴۵۰ تست، بدون تغییر)/Build همه سبز.
 
 ## 4. In Progress
 

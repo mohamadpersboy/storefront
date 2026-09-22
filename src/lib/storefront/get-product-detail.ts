@@ -1,5 +1,17 @@
 import { connectToDatabase } from "@/lib/db/connect";
 import { Product } from "@/models/Product";
+// این Import ظاهراً بلااستفاده است، اما ضروری است: `.populate({path:
+// "brand"})` پایین‌تر به این نیاز دارد که Mongoose مدل "Brand" را از
+// قبل ثبت کرده باشد. `Category`/`Color` تصادفاً از مسیر
+// `homepage-products.ts` (زیر) ثبت می‌شوند، اما هیچ‌جای دیگر این
+// فایل/زنجیره Import آن، مدل Brand را نمی‌آورد. روی هر Cold Start
+// سرورلس که این صفحه اولین درخواستی باشد که به این Bundle می‌رسد
+// (یعنی مسیرهایی که Brand را مستقیم Import می‌کنند — مثل صفحه اصلی —
+// هنوز در همان Instance اجرا نشده باشند)، این باعث
+// `MissingSchemaError: Schema hasn't been registered for model
+// "Brand"` می‌شود — دقیقاً همان خطای Production گزارش‌شده روی صفحه
+// جزئیات محصول.
+import "@/models/Brand";
 import { computeFinalPrice } from "@/lib/utils/pricing";
 import { pickRepresentativeVariant } from "@/lib/storefront/homepage-products";
 import type { ProductGalleryImage } from "@/components/storefront/product-image-gallery";
