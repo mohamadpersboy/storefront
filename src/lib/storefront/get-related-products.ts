@@ -20,6 +20,18 @@ const OVER_FETCH_MULTIPLIER = 3;
  * `$meta: "textScore"` مرتب می‌شود — بالاترین امتیاز یعنی
  * بیشترین همپوشانی کلمات با عنوان محصول فعلی.
  *
+ * **باگ رفع‌شده (خطای سرور واقعی گزارش‌شده روی همین صفحه بعد از
+ * Deploy):** Text Index تازه (بالا) روی یک Collection که از قبل
+ * داده دارد، توسط خودِ Mongoose در پس‌زمینه ساخته می‌شود
+ * (`autoIndex` پیش‌فرض `true`)، نه فوری. اولین درخواست‌هایی که
+ * درست همان لحظه اول (قبل از تمام‌شدن ساخت Index) به این تابع
+ * می‌رسند، با خطای مونگو «text index required for $text query» رد
+ * می‌شوند. رفع شد با `await Product.init()` — یک Promise که مطابق
+ * مستندات خودِ Mongoose دقیقاً وقتی Resolve می‌شود که ساخت Index
+ * (اگر در حال انجام باشد) تمام شده باشد؛ صدازدن چندبارهٔ آن (هر
+ * درخواست) بی‌خطر و تقریباً بی‌هزینه است (بعد از اولین بار، از
+ * Cache داخلی خودِ Mongoose بلافاصله Resolve می‌شود).
+ *
  * حداکثر ۱۰ محصول، بدون دکمه «مشاهده بیشتر» (طبق دستور صریح
  * کارفرما — نگاه کنید `RelatedProductsCarousel`، بدون `seeAllHref`).
  */
@@ -28,6 +40,8 @@ export async function getSimilarProductCards(
   currentTitle: string,
   limit = 10,
 ): Promise<ProductCardData[]> {
+  await Product.init();
+
   const results = await Product.find(
     {
       _id: { $ne: new Types.ObjectId(currentProductId) },

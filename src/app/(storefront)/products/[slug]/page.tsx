@@ -56,6 +56,15 @@ type ProductDetailPageProps = {
  * هنوز در Storefront ساخته نشده — نگاه کنید یادداشت در
  * `ProductInfoHeader`.
  *
+ * **باگ رفع‌شده (خطای سرور واقعی گزارش‌شده روی همین صفحه):** دو
+ * Query ردیف‌های محصول مرتبط با `Promise.allSettled` (نه
+ * `Promise.all`) اجرا می‌شوند — یک خطای گذرا در هرکدام (مثلاً
+ * Race توضیح‌داده‌شده در `getSimilarProductCards` درست بعد از هر
+ * Deploy، قبل از تمام‌شدن ساخت Text Index تازه) دیگر کل صفحه را
+ * پایین نمی‌کشد؛ فقط همان ردیف خالی می‌ماند (Log می‌شود، Throw
+ * نمی‌شود). این دو ردیف تکمیلی‌اند، نه بخش حیاتی صفحه (گالری/قیمت/
+ * افزودن به سبد)، پس نباید بتوانند کل Render را خراب کنند.
+ *
  * `MobileBottomBar` سراسری در این صفحه با `StorefrontChrome` مخفی
  * می‌شود؛ به‌جایش `ProductAddToCartBar` نوار پایین چسبان اختصاصی
  * خودِ همین صفحه است (نگاه کنید `ProductPurchasePanel`).
@@ -80,10 +89,27 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   const priceHistory = product.price
     ? getMockWeeklyPriceHistory(product.id, product.price.finalPrice)
     : [];
-  const [similarProducts, boughtTogetherProducts] = await Promise.all([
+
+  // این دو ردیف صرفاً تکمیلی‌اند — یک خطای گذرا در هرکدام (مثلاً
+  // Race شرح‌داده‌شده در `getSimilarProductCards`) نباید کل صفحه
+  // محصول (گالری، قیمت، افزودن به سبد) را از کار بیندازد. با
+  // `allSettled` به‌جای `all`، خطای یکی مستقل از دیگری می‌ماند و در
+  // بدترین حالت فقط همان ردیف خالی می‌شود (Component خودش با آرایه
+  // خالی چیزی رندر نمی‌کند).
+  const [similarProductsResult, boughtTogetherProductsResult] = await Promise.allSettled([
     getSimilarProductCards(product.id, product.title),
     getFrequentlyBoughtTogetherCards(product.id),
   ]);
+  const similarProducts =
+    similarProductsResult.status === "fulfilled" ? similarProductsResult.value : [];
+  const boughtTogetherProducts =
+    boughtTogetherProductsResult.status === "fulfilled" ? boughtTogetherProductsResult.value : [];
+  if (similarProductsResult.status === "rejected") {
+    console.error("getSimilarProductCards failed:", similarProductsResult.reason);
+  }
+  if (boughtTogetherProductsResult.status === "rejected") {
+    console.error("getFrequentlyBoughtTogetherCards failed:", boughtTogetherProductsResult.reason);
+  }
 
   return (
     <div className="pb-24">
