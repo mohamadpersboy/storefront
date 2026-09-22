@@ -8,11 +8,11 @@ import { cn } from "@/lib/utils/cn";
 /**
  * مسیرهایی که `MobileBottomBar` سراسری در آن‌ها نمایش داده نمی‌شود
  * — چون خودشان یک نوار پایین چسبان اختصاصی دارند (صفحه محصول:
- * `ProductAddToCartBar`، به درخواست صریح کارفرما). فقط یک مسیر
- * فعلاً؛ اگر صفحه دیگری هم بعداً به این الگو نیاز داشت، همین‌جا
- * اضافه شود.
+ * `ProductAddToCartBar`؛ صفحه سبد خرید: دکمه «ثبت نهایی سفارش» در
+ * `CartPageClient`). اگر صفحه دیگری هم بعداً به این الگو نیاز
+ * داشت، همین‌جا اضافه شود.
  */
-const HIDDEN_BOTTOM_BAR_PREFIXES = ["/products/"];
+const HIDDEN_BOTTOM_BAR_PREFIXES = ["/products/", "/cart"];
 
 /**
  * پوسته Storefront — تصمیم نمایش/عدم‌نمایش `MobileBottomBar`
