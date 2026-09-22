@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { MobileBottomBar } from "@/components/storefront/mobile-bottom-bar";
+import { InstallPrompt } from "@/components/storefront/install-prompt";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -33,6 +34,7 @@ export function StorefrontChrome({ children }: { children: React.ReactNode }) {
     <>
       <div className={cn(!hideGlobalBottomBar && "pb-[76px] sm:pb-0")}>{children}</div>
       {!hideGlobalBottomBar && <MobileBottomBar />}
+      {!hideGlobalBottomBar && <InstallPrompt />}
     </>
   );
 }

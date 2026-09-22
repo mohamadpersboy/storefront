@@ -1106,6 +1106,64 @@ error occurred» را درست روی صفحه جزئیات محصول فرست�
 Approve → ماژول بعدی Product Details؛ یا Changes Required؛ یا
 Rejected.
 
+**سایت به PWA تبدیل شد (طبق درخواست صریح کارفرما، خارج از ترتیب
+Phaseهای Homepage):**
+
+- `src/app/manifest.ts` — فایل ویژه Next.js App Router؛ به‌صورت
+  خودکار در `/manifest.webmanifest` سرو و لینکش در `<head>` تزریق
+  می‌شود (نیازی به تگ دستی نیست). `scope`/`start_url` روی `/` (کل
+  سایت)، `display: standalone`، `theme_color: #4f46e5`.
+- آیکون‌ها (`public/icons/`): از همان طرح Badge دایره‌ای Indigo
+  «فس» که در `MobileTopBar` استفاده می‌شود ساخته شدند (چون Logo
+  واقعی هنوز آپلود نشده — نگاه کنید بخش ۲، ماژول Mobile Top Bar).
+  سه سایز: `icon-192.png`، `icon-512.png` (`purpose: any`)،
+  `icon-512-maskable.png` (`purpose: maskable`، بدون Padding اضافه
+  چون خودِ Badge از قبل مرکزی و ساده است) + `apple-touch-icon.png`
+  (۱۸۰px، برای iOS).
+- `public/sw.js` — Service Worker حداقلی، **عمداً Network-Only برای
+  صفحات/API** (فقط برای «قابلیت نصب» است، نه Offline کامل — Cache
+  کردن پاسخ API می‌توانست باعث نمایش قیمت/موجودی قدیمی شود، برخلاف
+  اصل «هرگز به داده Client/Cache به‌جای Backend واقعی اعتماد نکن»).
+  فقط Assetهای Hash-based زیر `/_next/static/`، `/icons/`، `/fonts/`
+  با Cache-First سرو می‌شوند چون هیچ‌وقت Stale نمی‌شوند. اگر در
+  آینده Offline Fallback واقعی خواسته شد، باید آگاهانه و با تأیید
+  اضافه شود، نه به این SW.
+- `src/components/pwa/register-service-worker.tsx` — Client
+  Component بی‌صدا (`return null`) در `layout.tsx` ریشه، ثبت SW را
+  در `useEffect` انجام می‌دهد؛ سراسری است (هم Storefront هم
+  Dashboard) چون Scope Manifest کل سایت را پوشش می‌دهد.
+- `src/components/storefront/install-prompt.tsx` — بنر پیشنهاد نصب،
+  فقط داخل `StorefrontChrome` رندر می‌شود (مشتری هدف نصب است، نه
+  ادمین) و مثل `MobileBottomBar` در صفحه محصول پنهان می‌شود تا با
+  `ProductAddToCartBar` تداخل نکند. منتظر رویداد بومی مرورگر
+  `beforeinstallprompt` می‌ماند (Safari/iOS این رویداد را پشتیبانی
+  نمی‌کند — محدودیت شناخته‌شده مرورگر، نه باگ). **منطق ۳۰ روز (طبق
+  درخواست صریح):** اگر کاربر روی «بستن» بنر یا «رد» دیالوگ بومی
+  کلیک کند، Timestamp در `localStorage` (`sf-pwa-install-dismissed-at`)
+  ذخیره می‌شود و بنر تا ۳۰ روز دیگر نمایش داده نمی‌شود. اگر واقعاً
+  نصب شود (رویداد `appinstalled` یا تشخیص `display-mode: standalone`
+  در بارگذاری بعدی)، کلید `sf-pwa-installed` ثبت و بنر برای همیشه
+  پنهان می‌شود.
+- `src/app/layout.tsx`: افزوده‌شدن `viewport.themeColor` (سراسری،
+  توسط `(storefront)/layout.tsx` به ارث می‌رسد مگر جایی Override
+  شود) و `metadata.appleWebApp`/`metadata.icons`.
+- `next.config.ts`: هدر `Cache-Control: no-cache` روی `/sw.js` تا
+  آپدیت نسخه SW توسط CDN/مرورگر به تأخیر نیفتد.
+- بدون Dependency جدید (بدون `next-pwa`/`serwist`) — چون Next.js
+  16.3.1 از Turbopack استفاده می‌کند و پلاگین‌های Webpack-محور برای
+  ساخت SW با آن سازگاری تضمین‌شده ندارند؛ به‌جایش یک SW دستی و
+  حداقلی نوشته شد که کاملاً با معماری فعلی سازگار است.
+- بدون Environment Variable جدید.
+- تست‌ها: TypeScript ✅، ESLint ✅ (یک Warning جزئی در `sw.js` رفع
+  شد)، Vitest (۴۴۵ تست، بدون تغییر — این ماژول منطق Pure Function
+  جدیدی نداشت که نیاز به تست واحد داشته باشد؛ منطق ۳۰ روز صرفاً
+  `Date.now()`/`localStorage` است)، Build ✅.
+- **نیاز به تست واقعی روی Vercel (HTTPS اجباری برای PWA):** باز شدن
+  منوی «نصب» در Chrome موبایل/دسکتاپ، ظاهرشدن آیکون صحیح بعد از
+  نصب، رفتار «بستن» بنر (عدم نمایش تا ۳۰ روز — قابل شبیه‌سازی با
+  دستکاری دستی `localStorage`)، عدم تداخل بنر با `ProductAddToCartBar`
+  در صفحه محصول.
+
 ## 3. Completed Features
 
 - ✅ Bootstrap پروژه (Next.js 16.3، TypeScript، Tailwind v4، فونت،
@@ -3392,6 +3450,8 @@ Commitِ قبلی، یا تست قبل از فعال‌کردن `enabled` در �
   وضعیت سفارش، عملیات Coupon/Amazing Offer/Discount Settings — هرکدام
   باید بلافاصله در `/dashboard/settings/activity-log` ظاهر شوند)
 - [x] تصمیم درباره شروع Storefront — تأیید شد، در حال ساخت
+- [ ] تست واقعی PWA روی Vercel (HTTPS): نصب از Chrome موبایل/دسکتاپ،
+  آیکون صحیح، عدم نمایش بنر تا ۳۰ روز بعد از «بستن»
 - [ ] مرحله ۲ Storefront: HeroSlider — نیاز به مدل `Banner` جدید
   (تصویر، لینک، ترتیب، فعال/غیرفعال) که هنوز وجود ندارد؛ باید قبل از
   این مرحله ساخته شود
