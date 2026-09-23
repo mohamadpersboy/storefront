@@ -2244,6 +2244,42 @@ Phaseهای Homepage):**
   (جدید). تست خاصی نیاز نداشت (Import صرفاً Side-Effect، UI صرف).
   TypeScript/ESLint/Vitest (۴۵۰ تست، بدون تغییر)/Build همه سبز.
 
+- ✅ **صفحه کامل `/favorites`** — قبلاً فقط دکمه قلب Toggle روی صفحه
+  محصول کار می‌کرد (بند «In Progress» قبلی)؛ حالا خودِ لیست هم ساخته
+  شد. بدون API جدید — `page.tsx` (Server Component) مستقیم از DB
+  می‌خواند، هم‌الگو با `homepage-products.ts`؛ حذف هر آیتم از همان
+  `POST /api/v1/favorites/toggle` موجود استفاده می‌کند (چون Favorite
+  یک ردیف یکتا به‌ازای `user`+`product` است، Toggle روی آیتمی که
+  حتماً موجود است، همیشه همان را حذف می‌کند).
+  - `src/lib/storefront/get-favorite-products.ts`:
+    `getFavoriteProductCards()` (جدیدترین علاقه‌مندی اول، بر اساس
+    `createdAt` خودِ `Favorite` نه محصول؛ Pagination با
+    `skip`/`limit` روی `Favorite`، نه روی نتیجه فیلترشده — پس اگر
+    محصولی بعداً حذف/غیرفعال شده باشد، همان‌جا بی‌صدا از خروجی
+    می‌افتد، حتی اگر یعنی یک صفحه کمتر از `FAVORITES_PAGE_SIZE`
+    آیتم نشان دهد) با استفاده مجدد از `buildColorsMap`/
+    `toDisplayableCards`/`isDisplayable`/`PRODUCT_CARD_FIELDS`
+    (بدون Duplicate با `homepage-products.ts`) + `parseFavoritesPage`
+    (تابع خالص Parse شماره صفحه، تست‌شده).
+  - `src/components/storefront/favorite-product-card.tsx`: کارت
+    Grid مخصوص این صفحه (عمداً از `ProductCard` مشترک Carousel جدا،
+    چون آن یکی عرض ثابت/`shrink-0` دارد و برای Grid مناسب نیست) —
+    همان `ProductCardData`/فرمت قیمت، با دکمه قلب گوشهٔ کارت برای حذف
+    (Optimistic).
+  - `src/components/storefront/favorites-grid.tsx`: نگه‌داری State
+    محلی لیست برای حذف بدون Reload کامل صفحه + حالت خالی (آیکون قلب
+    + دکمه «مشاهده محصولات»).
+  - `src/app/(storefront)/favorites/page.tsx` (جایگزین Placeholder
+    قدیمی) + `loading.tsx` (Skeleton هم‌ساختار Grid واقعی) —
+    `redirect(\"/login?redirect=/favorites\")` برای مهمان، هم‌الگو با
+    `/account/addresses`؛ صفحه‌بندی ساده با Query Param `?page=`
+    (بدون نیاز به State Library، چون تغییر صفحه یک ناوبری واقعی
+    است). لینک Bottom Nav به `/favorites` از قبل وجود داشت (Phase
+    ۱)، نیازی به تغییر نداشت.
+  - تست جدید: `get-favorite-products.test.ts` (۷ تست
+    `parseFavoritesPage`؛ بدون DB Test، طبق قانون پروژه). TypeScript
+    ✅، ESLint ✅، Vitest (۴۵۷ تست، ۷ تست جدید) ✅، Build ✅.
+
 ## 4. In Progress
 
 **فعلاً در دست اجرا: Product Details Page (نگاه کنید بخش ۲ برای
@@ -2825,7 +2861,8 @@ Storefront: `FreeShippingBanner` روی صفحه اصلی، فقط اگر
 `(user, product)` — یک ردیف به‌ازای هر علاقه‌مندی. فقط `createdAt`
 (بدون `updatedAt`). Toggle از `POST /api/v1/favorites/toggle`
 (`requireAuthenticatedUser`). مصرف: دکمه قلب Top Bar صفحه محصول
-(بخش ۲) — صفحه کامل لیست `/favorites` هنوز ساخته نشده.
+(بخش ۲) + صفحه کامل لیست `/favorites` (بخش ۳، همان Toggle برای حذف
+از لیست هم استفاده می‌شود).
 
 ### Order.discount (Snapshot)
 `source` (`"coupon"` | `"payment_reward"`)، `amount`،
@@ -3634,8 +3671,8 @@ Commitِ قبلی، یا تست قبل از فعال‌کردن `enabled` در �
 - [x] مدل `Cart` (کاربر لاگین‌شده) — ساخته شد (بخش ۹)
 - [x] مدل `Favorite` (Watchlist محصول تکی) — ساخته شد (Product
   Details → Top Bar، بخش ۲)
-- [ ] صفحه کامل `/favorites` (لیست علاقه‌مندی‌های کاربر) — فقط
-  Toggle/وضعیت تکی روی صفحه محصول کار می‌کند، لیست کامل هنوز نه
+- [x] صفحه کامل `/favorites` (لیست علاقه‌مندی‌های کاربر) — ساخته شد
+  (بخش ۳، بعد از بخش Favorite)
 - [ ] مدل واقعی تاریخچه هفتگی قیمت (Snapshot + Cron) — نمودار قیمت
   صفحه محصول فعلاً از داده Mock استفاده می‌کند (بخش ۲)؛ این یک
   تصمیم معماری جداست و نیاز به تأیید صریح کارفرما دارد
