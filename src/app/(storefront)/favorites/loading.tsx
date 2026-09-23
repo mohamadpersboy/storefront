@@ -1,9 +1,8 @@
 /**
- * Skeleton صفحه «علاقه‌مندی‌ها» — ساختار Grid را عیناً منعکس می‌کند
- * (بند «Skeleton System» بخش ۶ CLAUDE.md: نه Generic، بدون Layout
- * Shift). تعداد کارت‌های Placeholder برابر `FAVORITES_PAGE_SIZE`
- * است تا ارتفاع صفحه در حالت Loading با حالت پر تفاوت چشمگیر نداشته
- * باشد.
+ * Skeleton صفحه «علاقه‌مندی‌ها» — بعد از تغییر کارت‌ها به افقی، شکل
+ * Skeleton هم عوض شد تا ساختار واقعی جدید (عکس مربعی راست + دو خط
+ * متن + ردیف قیمت چپ) را منعکس کند (بند «Skeleton System» بخش ۶
+ * CLAUDE.md: نه Generic).
  */
 export default function FavoritesLoading() {
   return (
@@ -15,12 +14,20 @@ export default function FavoritesLoading() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-x-3 gap-y-5 px-4 py-4 sm:grid-cols-3 sm:px-6 lg:grid-cols-4">
-        {Array.from({ length: 12 }).map((_, index) => (
-          <div key={index}>
-            <div className="aspect-[3/4] w-full animate-pulse rounded-lg bg-gray-200" />
-            <div className="mt-2 h-3 w-full animate-pulse rounded bg-gray-200" />
-            <div className="mt-1.5 h-3 w-2/3 animate-pulse rounded bg-gray-200" />
+      <div className="mx-auto flex max-w-xl flex-col gap-3 px-4 py-4 sm:px-6">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div
+            key={index}
+            className="flex gap-3 rounded-[var(--radius-lg)] border border-black/5 bg-white p-3"
+          >
+            <div className="size-24 shrink-0 animate-pulse rounded-[var(--radius-md)] bg-gray-200" />
+            <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
+              <div className="space-y-2">
+                <div className="h-3 w-full animate-pulse rounded bg-gray-200" />
+                <div className="h-3 w-2/3 animate-pulse rounded bg-gray-200" />
+              </div>
+              <div className="h-4 w-16 animate-pulse self-end rounded bg-gray-200" />
+            </div>
           </div>
         ))}
       </div>

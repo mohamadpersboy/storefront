@@ -42,8 +42,11 @@ export function FavoritesGrid({ initialItems }: FavoritesGridProps) {
     );
   }
 
+  // کارت‌ها حالا افقی‌اند (مثل سبد خرید)، پس چیدمان به یک ستون واحد
+  // تغییر کرد؛ در Tablet/Desktop عرض کارت‌ها با `max-w` محدود می‌شود
+  // تا روی صفحه پهن بیش‌ازحد کشیده نشوند.
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="mx-auto flex max-w-xl flex-col gap-3">
       {items.map((item) => (
         <FavoriteProductCard key={item.id} item={item} onRemoved={handleRemoved} />
       ))}

@@ -14,19 +14,17 @@ type FavoriteProductCardProps = {
 };
 
 /**
- * کارت محصول مخصوص Grid صفحه «علاقه‌مندی‌ها» — عمداً از `ProductCard`
- * مشترک ردیف‌های صفحه اصلی جدا است: آن کارت عرض ثابت/`shrink-0` دارد
- * (برای اسکرول افقی Carousel) و نباید برای این صفحه Grid دوباره‌کاری
- * شود (بند ۱۲ سند Storefront: ماژول‌های تأییدشده را برای ماژول جدید
- * تغییر نده). فیلدهای قیمت/تخفیف/تصویر دقیقاً هم‌الگو با `ProductCard`
- * (همان `ProductCardData` و همان توابع Format/Pricing) تا رفتار بصری
- * قیمت در کل سایت یکدست بماند.
+ * کارت افقی صفحه «علاقه‌مندی‌ها» — به درخواست صریح کارفرما، هم‌الگو
+ * با ردیف Item صفحه سبد خرید (`CartItemRow`: عکس راست/محتوا چپ، کارت
+ * سفید با Border ملایم)، اما بدون کنترل تعداد (چون اینجا هنوز محصولی
+ * به سبد اضافه نشده) و با جزئیات بیشتر: نقطه‌های رنگ، برچسب تخفیف
+ * شگفت‌انگیز (`amazingOffer`) در کنار تخفیف عادی. عکس کمی بزرگ‌تر از
+ * سبد خرید (`size-20`/۸۰px) — این‌جا `size-24`/۹۶px، چون این صفحه
+ * محل تصمیم‌گیری خرید است نه فقط مرور سریع.
  *
- * دکمه قلب گوشهٔ کارت = حذف از علاقه‌مندی‌ها (Optimistic UI، همان
- * الگوی `ProductFavoriteButton`): بلافاصله Loading می‌شود، بعد از
- * پاسخ موفق `onRemoved` را صدا می‌زند تا والد (`FavoritesGrid`) آیتم
- * را از لیست محلی حذف کند؛ در خطا فقط حالت Loading برمی‌گردد و آیتم
- * در لیست باقی می‌ماند.
+ * نسخه قبلی این Component یک کارت عمودی مخصوص Grid بود؛ طبق همان
+ * دستور، به‌جای نگه‌داشتن هر دو نسخه، مستقیم جایگزین شد (بدون کد
+ * Dead جامانده) — Grid عمودی دیگر در این صفحه استفاده نمی‌شود.
  */
 export function FavoriteProductCard({ item, onRemoved }: FavoriteProductCardProps) {
   const [pending, setPending] = useState(false);
@@ -55,51 +53,61 @@ export function FavoriteProductCard({ item, onRemoved }: FavoriteProductCardProp
   }
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={handleRemove}
-        disabled={pending}
-        aria-label="حذف از علاقه‌مندی‌ها"
-        className="absolute end-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-gray-500 backdrop-blur-md active:bg-white disabled:opacity-60"
-      >
-        <Heart
-          className="h-[18px] w-[18px] fill-[var(--sf-cherry)] text-[var(--sf-cherry)]"
-          strokeWidth={1.75}
-          aria-hidden="true"
-        />
-      </button>
-
-      <Link href={`/products/${item.product.slug}`} className="block">
-        <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-gray-100">
+    <div className="flex gap-3 rounded-[var(--radius-lg)] border border-black/5 bg-white p-3">
+      <Link href={`/products/${item.product.slug}`} className="shrink-0">
+        <div className="relative size-24 overflow-hidden rounded-[var(--radius-md)] bg-gray-100">
           <Image
             src={item.product.imageUrl}
             alt={item.product.title}
             fill
+            sizes="96px"
             placeholder={item.product.imageBlurDataUrl ? "blur" : "empty"}
             blurDataURL={item.product.imageBlurDataUrl ?? undefined}
-            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 220px"
             className="object-cover"
           />
+        </div>
+      </Link>
 
-          {item.colors.length > 1 ? (
-            <div className="absolute bottom-2 start-2 flex items-center gap-1 rounded-full bg-white/50 px-1.5 py-1 backdrop-blur-md">
-              {item.colors.slice(0, 4).map((color) => (
-                <span
-                  key={color.id}
-                  className="size-2 shrink-0 rounded-full ring-1 ring-white"
-                  style={{ backgroundColor: color.hexCode }}
-                />
-              ))}
-            </div>
-          ) : null}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-start justify-between gap-2">
+          <Link
+            href={`/products/${item.product.slug}`}
+            className="line-clamp-2 text-xs font-bold leading-5 text-[var(--sf-ink)]"
+          >
+            {item.product.title}
+          </Link>
+          <button
+            type="button"
+            onClick={handleRemove}
+            disabled={pending}
+            aria-label="حذف از علاقه‌مندی‌ها"
+            className="shrink-0 text-gray-300 active:text-[var(--sf-cherry)] disabled:opacity-50"
+          >
+            <Heart
+              className="size-4 fill-[var(--sf-cherry)] text-[var(--sf-cherry)]"
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+          </button>
         </div>
 
-        <h3 className="mt-2 line-clamp-2 min-h-[2.25rem] text-xs leading-[1.125rem] font-medium text-[var(--sf-ink)]">
-          {item.product.title}
-        </h3>
+        {item.colors.length > 1 ? (
+          <div className="mt-1 flex items-center gap-1">
+            {item.colors.slice(0, 5).map((color) => (
+              <span
+                key={color.id}
+                className="size-2.5 shrink-0 rounded-full ring-1 ring-black/10"
+                style={{ backgroundColor: color.hexCode }}
+              />
+            ))}
+          </div>
+        ) : null}
 
-        <div className="mt-1.5 flex items-end justify-between gap-1">
+        {item.amazingOffer ? (
+          <p className="mt-1 text-[11px] font-bold text-[var(--sf-cherry)]">پیشنهاد شگفت‌انگیز</p>
+        ) : null}
+
+        <div className="mt-auto flex items-end justify-between gap-2 pt-2">
           <span
             className={`mb-0.5 shrink-0 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white ${hasRealDiscount ? "" : "invisible"}`}
           >
@@ -107,9 +115,9 @@ export function FavoriteProductCard({ item, onRemoved }: FavoriteProductCardProp
           </span>
 
           <div className="text-left">
-            <p className="whitespace-nowrap text-[13px] font-bold text-[var(--sf-ink)]">
+            <p className="whitespace-nowrap text-sm font-bold text-[var(--sf-ink)]">
               {formatNumber(item.finalPrice)}{" "}
-              <span className="relative -top-0.5 text-[10px] font-medium">{TOMAN_GLYPH}</span>
+              <span className="relative -top-0.5 text-[9px] font-medium">{TOMAN_GLYPH}</span>
             </p>
             {hasRealDiscount ? (
               <p className="text-[10px] text-gray-400 line-through">
@@ -118,7 +126,7 @@ export function FavoriteProductCard({ item, onRemoved }: FavoriteProductCardProp
             ) : null}
           </div>
         </div>
-      </Link>
+      </div>
     </div>
   );
 }

@@ -128,7 +128,13 @@ function getProductColors(
   return result;
 }
 
-function toProductCard(
+/**
+ * Exported (نه فقط داخلی) چون صفحه «علاقه‌مندی‌ها» هم به همین تابع
+ * نیاز دارد (بازساخت کارت با Variant مشخصِ یک Amazing Offer فعال، نه
+ * فقط Variant «نماینده») — طبق قانون پروژه از ایجاد نسخهٔ Duplicate
+ * همین منطق خودداری شد.
+ */
+export function toProductCard(
   product: LeanProductForCard,
   variant: IProductVariant,
   colorsMap: Map<string, { id: string; hexCode: string }>,

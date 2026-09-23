@@ -2280,6 +2280,35 @@ Phaseهای Homepage):**
     `parseFavoritesPage`؛ بدون DB Test، طبق قانون پروژه). TypeScript
     ✅، ESLint ✅، Vitest (۴۵۷ تست، ۷ تست جدید) ✅، Build ✅.
 
+  **بازطراحی به کارت افقی (به درخواست صریح کارفرما بلافاصله بعد از
+  تأیید اول):** کارت‌های عمودی Grid کنار گذاشته شد؛ حالا هر آیتم یک
+  ردیف افقی تمام‌عرض است، هم‌الگو با `CartItemRow` (عکس/عنوان راست،
+  قیمت چپ)، به‌علاوه جزئیات بیشتر که کارفرما خواسته بود:
+  - عکس از `aspect-[3/4]` Grid قبلی به یک مربع ثابت `size-24`
+    (۹۶px) تغییر کرد — کمی بزرگ‌تر از عکس مشابه در `CartItemRow`
+    (`size-20`/۸۰px).
+  - نقطه‌های رنگ (اگر محصول چند رنگ دارد) زیر عنوان اضافه شد.
+  - **تخفیف شگفت‌انگیز واقعی:** قبلاً `get-favorite-products.ts`
+    فقط از Variant «نماینده» + تخفیف عادی استفاده می‌کرد؛ حالا برای
+    هر محصول ابتدا بررسی می‌شود آیا یک `AmazingOffer` فعال (`isActive`
+    + در بازه `startAt`/`endAt`) دارد یا نه — اگر دارد، دقیقاً همان
+    Variant/قیمت آن Offer (`computeAmazingOfferPrice`) استفاده
+    می‌شود و برچسب «پیشنهاد شگفت‌انگیز» (رنگ `--sf-cherry`) نمایش
+    داده می‌شود؛ در غیر این صورت مثل قبل Variant نماینده + تخفیف
+    عادی. تابع `toProductCard` در `homepage-products.ts` برای همین
+    منظور `export` شد (به‌جای بازنویسی همان منطق) — منطق کاملاً
+    هم‌الگو با `getAmazingOfferProductCards` همان فایل، بدون
+    Duplicate.
+  - `favorites-grid.tsx`: چیدمان از CSS Grid ۲/۳/۴ ستونی به یک
+    ستون عمودی (`flex flex-col`, `max-w-xl` در صفحه پهن) تغییر کرد
+    چون کارت‌های افقی جدید تمام‌عرض هستند.
+  - `loading.tsx` هم متناسب با ساختار افقی جدید بازطراحی شد.
+  - فایل‌های تغییریافته: `homepage-products.ts` (فقط یک `export`
+    اضافه)، `get-favorite-products.ts`، `favorite-product-card.tsx`
+    (بازنویسی کامل)، `favorites-grid.tsx`، `favorites/loading.tsx`.
+    بدون تغییر در `page.tsx`، مدل‌ها، یا هیچ API.
+    TypeScript ✅، ESLint ✅، Vitest (۴۵۷ تست، بدون تغییر)، Build ✅.
+
 ## 4. In Progress
 
 **فعلاً در دست اجرا: Product Details Page (نگاه کنید بخش ۲ برای

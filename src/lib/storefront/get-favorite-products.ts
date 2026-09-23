@@ -1,10 +1,13 @@
 import { Favorite } from "@/models/Favorite";
 import { Product } from "@/models/Product";
+import { AmazingOffer } from "@/models/AmazingOffer";
+import { computeAmazingOfferPrice } from "@/lib/utils/amazing-offer";
 import {
   PRODUCT_CARD_FIELDS,
   buildColorsMap,
   isDisplayable,
-  toDisplayableCards,
+  pickRepresentativeVariant,
+  toProductCard,
   type LeanProductForCard,
 } from "@/lib/storefront/homepage-products";
 import type { ProductCardData } from "@/components/storefront/product-card";
@@ -78,11 +81,51 @@ export async function getFavoriteProductCards(
 
   const colorsMap = await buildColorsMap(orderedProducts);
 
-  return {
-    items: toDisplayableCards(orderedProducts, colorsMap),
-    total,
-    page: safePage,
-    pageSize,
-    totalPages,
-  };
+  // Amazing Offer فعال هر کدام از همین محصولات — طبق درخواست صریح
+  // کارفرما («تخفیف‌های شگفت‌انگیز هم شامل بشه»)، قیمت/برچسب کارت
+  // علاقه‌مندی باید همان تخفیف واقعی Offer فعال را نشان دهد، نه فقط
+  // تخفیف عادی Variant. منطق کاملاً هم‌الگو با `getAmazingOfferProductCards`
+  // در `homepage-products.ts` (بدون Duplicate).
+  const now = new Date();
+  const activeOffers = (await AmazingOffer.find({
+    productId: { $in: orderedProducts.map((p) => p._id) },
+    isActive: true,
+    startAt: { $lte: now },
+    endAt: { $gte: now },
+  }).lean()) as unknown as {
+    productId: unknown;
+    variantId: unknown;
+    startAt: Date;
+    endAt: Date;
+    discountType: "percent" | "fixed";
+    discountValue: number;
+  }[];
+  const offerByProductId = new Map(activeOffers.map((o) => [String(o.productId), o]));
+
+  const items = orderedProducts
+    .map((product) => {
+      const offer = offerByProductId.get(String(product._id));
+      const offerVariant = offer
+        ? product.variants.find((v) => String(v._id) === String(offer.variantId))
+        : undefined;
+
+      if (offer && offerVariant) {
+        const finalPrice = computeAmazingOfferPrice(
+          offerVariant.price,
+          offer.discountType,
+          offer.discountValue,
+        );
+        return toProductCard(product, offerVariant, colorsMap, {
+          startAt: offer.startAt.toISOString(),
+          endAt: offer.endAt.toISOString(),
+          finalPrice,
+        });
+      }
+
+      const variant = pickRepresentativeVariant(product.variants);
+      return variant ? toProductCard(product, variant, colorsMap, null) : null;
+    })
+    .filter((card): card is ProductCardData => card !== null);
+
+  return { items, total, page: safePage, pageSize, totalPages };
 }
