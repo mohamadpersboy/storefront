@@ -8,6 +8,7 @@ import { formatJalali } from "@/lib/utils/jalali";
 import { PageHeader } from "@/components/storefront/page-header";
 import { OrderStatusBanner } from "@/components/storefront/order-status-banner";
 import { StorefrontOrderStatusBadge } from "@/components/storefront/order-status-badge";
+import { OrderDetailItemRow } from "@/components/storefront/order-detail-item-row";
 import type { PaymentMethod } from "@/models/Order";
 
 const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
@@ -42,12 +43,12 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
     <div>
       <PageHeader title={`سفارش #${toPersianDigits(order.orderNumber)}`} />
 
-      <div className="space-y-4 px-4 py-4 sm:px-6">
+      <div className="space-y-5 px-4 py-4 sm:px-6">
         <OrderStatusBanner status={order.status} note={latestNote} />
 
-        <div className="rounded-[var(--radius-lg)] border border-black/5 bg-white p-4">
-          <p className="mb-3 text-xs font-bold text-[var(--sf-ink)]">اطلاعات سفارش</p>
-          <div className="space-y-3 text-xs">
+        <div className="rounded-[var(--radius-lg)] border border-black/5 bg-white p-5">
+          <p className="mb-4 text-sm font-bold text-[var(--sf-ink)]">اطلاعات سفارش</p>
+          <div className="space-y-3.5 text-xs leading-5">
             <div className="flex items-start gap-2 text-[var(--sf-ink)]/70">
               <Calendar className="mt-0.5 size-4 shrink-0 text-[var(--sf-ink)]/40" strokeWidth={1.75} aria-hidden="true" />
               <span>تاریخ ثبت: {formatJalali(order.createdAt)}</span>
@@ -70,37 +71,18 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           </div>
         </div>
 
-        <div className="rounded-[var(--radius-lg)] border border-black/5 bg-white p-4">
-          <p className="mb-3 text-xs font-bold text-[var(--sf-ink)]">
+        <div className="rounded-[var(--radius-lg)] border border-black/5 bg-white p-5">
+          <p className="mb-1 text-sm font-bold text-[var(--sf-ink)]">
             کالاها ({toPersianDigits(order.items.length)})
           </p>
 
           <div className="divide-y divide-black/5">
-            {order.items.map((item, index) => {
-              const details = [item.unit, item.colorName, ...item.attributes.map((a) => `${a.name}: ${a.value}`)]
-                .filter(Boolean)
-                .join("، ");
-
-              return (
-                <div key={index} className="flex items-center justify-between gap-2 py-3 first:pt-0 last:pb-0">
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-bold text-[var(--sf-ink)]">{item.title}</p>
-                    {details ? (
-                      <p className="mt-0.5 text-[11px] text-[var(--sf-ink)]/45">{details}</p>
-                    ) : null}
-                    <p className="mt-0.5 text-[11px] text-[var(--sf-ink)]/45">
-                      {toPersianDigits(item.quantity)} × {formatTomanGlyph(item.unitPrice)}
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-xs font-bold text-[var(--sf-ink)]">
-                    {formatTomanGlyph(item.lineTotal)}
-                  </span>
-                </div>
-              );
-            })}
+            {order.items.map((item, index) => (
+              <OrderDetailItemRow key={index} item={item} />
+            ))}
           </div>
 
-          <div className="mt-3 space-y-1.5 border-t border-dashed border-black/10 pt-3 text-xs">
+          <div className="mt-1 space-y-2 border-t border-dashed border-black/10 pt-4 text-xs">
             <div className="flex items-center justify-between text-[var(--sf-ink)]/60">
               <span>جمع اقلام</span>
               <span>{formatTomanGlyph(order.subtotal)}</span>
@@ -139,8 +121,8 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           </div>
         </div>
 
-        <div className="rounded-[var(--radius-lg)] border border-black/5 bg-white p-4">
-          <p className="mb-3 text-xs font-bold text-[var(--sf-ink)]">پیگیری سفارش</p>
+        <div className="rounded-[var(--radius-lg)] border border-black/5 bg-white p-5">
+          <p className="mb-4 text-sm font-bold text-[var(--sf-ink)]">پیگیری سفارش</p>
           <ul className="space-y-4">
             {order.statusHistory.map((entry, index) => (
               <li key={index} className="flex items-start justify-between gap-2">
