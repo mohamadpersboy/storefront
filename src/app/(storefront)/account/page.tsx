@@ -52,12 +52,12 @@ import { AccountLogoutButton } from "@/components/storefront/account-logout-butt
  * معنا ندارد یا صفر است (مثلاً درخواست برداشت در انتظار)، Badge اصلاً
  * پاس داده نمی‌شود.
  *
- * لینک مقصد `/orders` و `/account/coupons` هنوز صفحه ندارند —
+ * `/orders` حالا صفحه واقعی دارد (لیست سفارش‌ها با تب وضعیت +
+ * Pagination). لینک مقصد `/account/coupons` هنوز صفحه ندارد —
  * دقیقاً هم‌الگو با `/search`/`/notifications`/`/support` در Top
  * Bar: لینک از قبل درست ساخته می‌شود، خود صفحه مقصد در ماژول بعدی
  * اضافه خواهد شد. `/account/addresses`، `/account/bank-info`، و
- * `/account/wallet` (با شارژ/درخواست تسویه) برخلاف آن‌ها، ساخته
- * شده‌اند.
+ * `/account/wallet` (با شارژ/درخواست تسویه) هم ساخته شده‌اند.
  */
 export default async function AccountPage() {
   const user = await getCurrentUser();

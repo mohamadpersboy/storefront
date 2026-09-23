@@ -2,6 +2,7 @@ import { Favorite } from "@/models/Favorite";
 import { Product } from "@/models/Product";
 import { AmazingOffer } from "@/models/AmazingOffer";
 import { computeAmazingOfferPrice } from "@/lib/utils/amazing-offer";
+import { parsePageParam } from "@/lib/utils/pagination";
 import {
   PRODUCT_CARD_FIELDS,
   buildColorsMap,
@@ -15,15 +16,13 @@ import type { ProductCardData } from "@/components/storefront/product-card";
 export const FAVORITES_PAGE_SIZE = 12;
 
 /**
- * صفحه‌بندی معتبر برای صفحه «علاقه‌مندی‌ها» — عدد نامعتبر (رشته/صفر/
- * منفی/اعشاری) همیشه به صفحه ۱ برمی‌گردد؛ رفتار مشابه در دیگر بخش‌های
- * پروژه معمولاً Inline پیاده شده، اینجا به یک تابع خالص و قابل تست
- * جدا شد چون این صفحه اولین Consumer پارامتر `page` در Storefront است.
+ * صفحه‌بندی معتبر برای صفحه «علاقه‌مندی‌ها» — نام/امضای قبلی حفظ
+ * شده (جای دیگری از آن Import می‌شود)، ولی منطق واقعی حالا در
+ * `lib/utils/pagination.ts` مشترک است (هم `/orders` از همان استفاده
+ * می‌کند، بدون Duplicate).
  */
 export function parseFavoritesPage(raw: string | undefined): number {
-  const parsed = Number(raw);
-  if (!Number.isInteger(parsed) || parsed < 1) return 1;
-  return parsed;
+  return parsePageParam(raw);
 }
 
 export type FavoriteProductCards = {

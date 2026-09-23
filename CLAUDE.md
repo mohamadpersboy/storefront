@@ -2309,6 +2309,56 @@ Phaseهای Homepage):**
     بدون تغییر در `page.tsx`، مدل‌ها، یا هیچ API.
     TypeScript ✅، ESLint ✅، Vitest (۴۵۷ تست، بدون تغییر)، Build ✅.
 
+- ✅ **صفحه کامل `/orders`** — لینک «سفارش‌های من» در `/account`
+  از قبل به این آدرس اشاره می‌کرد (بدون صفحه مقصد، طبق همان الگوی
+  مستندشده برای `/account/coupons`). حالا صفحه واقعی ساخته شد.
+  کارفرما دو اسکرین‌شات از یک اپ فروشگاه میوه به‌عنوان رفرنس فرستاد
+  (لیست سفارش‌ها + یک سفارش لغوشده با جزئیات بازگشت وجه) با تأکید
+  صریح که طراحی باید حرفه‌ای‌تر و متناسب فرش باشد، نه کپی — پس فقط
+  ایده کلی (تب فیلتر وضعیت، کارت خلاصه هر سفارش) گرفته شد، نه ظاهر.
+  - `src/lib/utils/pagination.ts`: تابع خالص `parsePageParam`
+    استخراج شد از `get-favorite-products.ts` (که تا الان
+    `parseFavoritesPage` را Inline داشت) تا هم `/favorites` و هم
+    `/orders` از یک منطق مشترک صفحه‌بندی استفاده کنند، بدون
+    Duplicate. `parseFavoritesPage` هنوز با همان امضا صادر می‌شود
+    (فقط داخلش این تابع مشترک را صدا می‌زند)، پس چیزی در
+    `/favorites` نشکسته.
+  - `src/lib/storefront/get-user-orders.ts`: `getUserOrders()`
+    (Pagination با `skip`/`limit` روی خودِ `Order`، ۱۰ آیتم هر
+    صفحه) + `ORDER_STATUS_GROUPS` (نگاشت ۸ Status واقعی پروژه به
+    همان ۴ تب رفرنس: «در حال انجام» = `pending` تا `shipped`،
+    «لغوشده» = هم `cancelled` هم `returned` چون رفرنس فقط یک تب
+    منفی داشت) + `buildOrderItemsSummary` (تابع خالص Format متن
+    «عنوان اولین قلم + N کالای دیگر»، تست‌شده). بدون API جدید —
+    مثل `/favorites`، مستقیم از DB می‌خواند.
+  - `src/components/storefront/order-status-badge.tsx`
+    (`StorefrontOrderStatusBadge`): Badge وضعیت مخصوص Storefront،
+    جدا از `components/orders/order-status-badge.tsx` که با وجود
+    اسم پوشه فقط داخل Dashboard مصرف می‌شود (پالت Indigo)؛ فقط متن
+    فارسی وضعیت‌ها (`orderStatusLabels`) از همان فایل Import شد تا
+    برچسب‌ها یک‌جا بمانند.
+  - `src/components/storefront/order-status-tabs.tsx`: ۴ تب
+    (همه/در حال انجام/تحویل‌شده/لغوشده) به‌صورت Link ساده به
+    `?status=`، بدون Client Component/State — تغییر تب یک ناوبری
+    واقعی است.
+  - `src/components/storefront/order-card.tsx`: کارت هر سفارش —
+    عمداً کپی رفرنس (کارت گرادیانی سبز/قرمز) نیست؛ هم‌خانواده با
+    `AccountNavRow`/`WalletTransactionRow` (آیکون در دایره رنگی +
+    عنوان/جزئیات + مبلغ). کل کارت `Link` به `/orders/[id]` است —
+    آن صفحه هنوز ساخته نشده، دقیقاً هم‌الگو با تصمیم مستندشده در
+    `/account/page.tsx` برای لینک‌های ماژول بعدی.
+  - `src/app/(storefront)/orders/page.tsx` + `loading.tsx` —
+    `redirect(\"/login?redirect=/orders\")` برای مهمان، صفحه‌بندی
+    ساده با `?page=` (هم‌الگو با `/favorites`).
+  - `account/page.tsx`: فقط یک کامنت (JSDoc) اصلاح شد — دیگر
+    نمی‌گوید `/orders` صفحه ندارد. رفتار/UI آن صفحه دست‌نخورده ماند.
+  - تست جدید: `pagination.test.ts` (۷ تست) + `get-user-orders.test.ts`
+    (۴ تست `buildOrderItemsSummary`). TypeScript ✅، ESLint ✅،
+    Vitest (۴۶۸ تست، ۱۱ تست جدید) ✅، Build ✅.
+  - **باقی‌مانده برای ماژول بعدی (نیازمند تأیید کارفرما):** صفحه
+    جزئیات سفارش `/orders/[id]` — فعلاً کارت‌های لیست به این آدرس
+    Link می‌دهند اما صفحه‌اش ساخته نشده (۴۰۴ می‌دهد).
+
 ## 4. In Progress
 
 **فعلاً در دست اجرا: Product Details Page (نگاه کنید بخش ۲ برای
@@ -3674,9 +3724,10 @@ Commitِ قبلی، یا تست قبل از فعال‌کردن `enabled` در �
   `/cart` واقعاً در دسترس مشتریان است (بند Known Issues بالا)
 - [ ] بج تعداد سبد خرید در `MobileBottomBar` سراسری را به تعداد
   واقعی `Cart` وصل کن (فعلاً همیشه `۰` — نگاه کنید بخش ۳، Cart)
-- [ ] صفحه «سفارش‌های من» (`/account/orders`) برای Storefront —
-  هنوز ساخته نشده؛ فعلاً بعد از خطای شروع پرداخت در Checkout، مشتری
-  راهی برای پیگیری سفارش از داخل حساب کاربری‌اش ندارد
+- [x] صفحه «سفارش‌های من» (`/orders`) برای Storefront — ساخته شد
+  (بخش ۳، بعد از بخش In Progress قبلی). صفحه جزئیات تک‌سفارش
+  (`/orders/[id]`) هنوز باقی مانده (کارت‌های لیست به آن Link
+  می‌دهند ولی صفحه‌اش نیست).
 - [ ] تست واقعی تقویم شمسی و Code Generator روی Vercel (ساخت Coupon
   با تاریخ شروع/انقضای شمسی، بررسی صحت تبدیل به تاریخ میلادی ذخیره‌شده،
   پیشنهاد خودکار کد در بدو باز شدن فرم، دکمه پیشنهاد مجدد)
