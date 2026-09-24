@@ -8,6 +8,7 @@ import { parsePageParam } from "@/lib/utils/pagination";
 import { toPersianDigits } from "@/lib/utils/format";
 import { PageHeader } from "@/components/storefront/page-header";
 import { CouponHistoryRow } from "@/components/storefront/coupon-history-row";
+import { EmptyState } from "@/components/storefront/empty-state";
 
 type CouponsPageProps = {
   searchParams: Promise<{ page?: string }>;
@@ -38,16 +39,12 @@ export default async function CouponsPage({ searchParams }: CouponsPageProps) {
 
       <div className="space-y-4 px-4 py-4 sm:px-6">
         {items.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-            <Ticket className="h-10 w-10 text-gray-300" strokeWidth={1.5} aria-hidden="true" />
-            <p className="text-sm text-[var(--sf-ink)]/60">هنوز از هیچ کد تخفیفی استفاده نکرده‌اید.</p>
-            <Link
-              href="/"
-              className="mt-1 rounded-full bg-[var(--color-primary)] px-5 py-2.5 text-sm font-bold text-white active:opacity-90"
-            >
-              مشاهده محصولات
-            </Link>
-          </div>
+          <EmptyState
+            icon={Ticket}
+            title="هنوز از هیچ کد تخفیفی استفاده نکرده‌اید"
+            actionLabel="مشاهده محصولات"
+            actionHref="/"
+          />
         ) : (
           <div className="divide-y divide-black/5 overflow-hidden rounded-[var(--radius-lg)] border border-black/5 bg-white">
             {items.map((entry) => (

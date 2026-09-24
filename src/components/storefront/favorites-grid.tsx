@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Heart } from "lucide-react";
 import { FavoriteProductCard } from "@/components/storefront/favorite-product-card";
+import { EmptyState } from "@/components/storefront/empty-state";
 import type { ProductCardData } from "@/components/storefront/product-card";
 
 type FavoritesGridProps = {
@@ -27,18 +27,12 @@ export function FavoritesGrid({ initialItems }: FavoritesGridProps) {
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-        <Heart className="h-10 w-10 text-gray-300" strokeWidth={1.5} aria-hidden="true" />
-        <p className="text-sm text-[var(--sf-ink)]/60">
-          هنوز محصولی را به علاقه‌مندی‌ها اضافه نکرده‌اید.
-        </p>
-        <Link
-          href="/"
-          className="mt-1 rounded-full bg-[var(--color-primary)] px-5 py-2.5 text-sm font-bold text-white active:opacity-90"
-        >
-          مشاهده محصولات
-        </Link>
-      </div>
+      <EmptyState
+        icon={Heart}
+        title="هنوز محصولی را به علاقه‌مندی‌ها اضافه نکرده‌اید"
+        actionLabel="مشاهده محصولات"
+        actionHref="/"
+      />
     );
   }
 

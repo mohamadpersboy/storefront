@@ -12,6 +12,7 @@ import { toPersianDigits } from "@/lib/utils/format";
 import { PageHeader } from "@/components/storefront/page-header";
 import { OrderStatusTabs } from "@/components/storefront/order-status-tabs";
 import { OrderCard } from "@/components/storefront/order-card";
+import { EmptyState } from "@/components/storefront/empty-state";
 
 const VALID_FILTERS: OrderListStatusFilter[] = ["all", "in_progress", "delivered", "cancelled"];
 
@@ -58,16 +59,12 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         <OrderStatusTabs active={filter} />
 
         {items.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-            <Package className="h-10 w-10 text-gray-300" strokeWidth={1.5} aria-hidden="true" />
-            <p className="text-sm text-[var(--sf-ink)]/60">{EMPTY_STATE_TEXT[filter]}</p>
-            <Link
-              href="/"
-              className="mt-1 rounded-full bg-[var(--color-primary)] px-5 py-2.5 text-sm font-bold text-white active:opacity-90"
-            >
-              مشاهده محصولات
-            </Link>
-          </div>
+          <EmptyState
+            icon={Package}
+            title={EMPTY_STATE_TEXT[filter]}
+            actionLabel="مشاهده محصولات"
+            actionHref="/"
+          />
         ) : (
           <div className="flex flex-col gap-3">
             {items.map((order) => (

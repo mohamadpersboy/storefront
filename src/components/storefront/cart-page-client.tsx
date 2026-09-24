@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils/cn";
 import { formatNumber, TOMAN_GLYPH } from "@/lib/utils/format";
 import { computeWalletSplitPreview } from "@/lib/cart/wallet-split-preview";
 import { CartItemRow, type CartItemData } from "@/components/storefront/cart-item-row";
+import { EmptyState } from "@/components/storefront/empty-state";
 
 type CartState = {
   id: string;
@@ -224,19 +225,13 @@ export function CartPageClient({ initialCart, initialAddress, walletBalance }: C
 
   if (cart.items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 px-6 py-24 text-center">
-        <span className="flex size-16 items-center justify-center rounded-full bg-gray-100 text-gray-300">
-          <ShoppingCart className="size-7" strokeWidth={1.5} aria-hidden="true" />
-        </span>
-        <p className="text-sm font-bold text-[var(--sf-ink)]">سبد خرید شما خالی است</p>
-        <p className="text-xs text-[var(--sf-ink)]/50">محصولی به سبد خرید خود اضافه نکرده‌اید</p>
-        <Link
-          href="/"
-          className="mt-2 rounded-full bg-[var(--sf-accent)] px-6 py-2.5 text-xs font-bold text-white active:bg-[var(--sf-accent-hover)]"
-        >
-          مشاهده محصولات
-        </Link>
-      </div>
+      <EmptyState
+        icon={ShoppingCart}
+        title="سبد خرید شما خالی است"
+        description="محصولی به سبد خرید خود اضافه نکرده‌اید"
+        actionLabel="مشاهده محصولات"
+        actionHref="/"
+      />
     );
   }
 

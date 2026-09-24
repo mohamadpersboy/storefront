@@ -2494,6 +2494,30 @@ Phaseهای Homepage):**
     ✅، ESLint ✅، Vitest (۴۷۱ تست، بدون تغییر) ✅، Build ✅
     (`/account/coupons` در خروجی Build دیده می‌شود).
 
+- ✅ **حالت خالی مشترک (`EmptyState`) برای همه صفحات لیستی** — کارفرما
+  از حالت خالی سبد خرید/علاقه‌مندی‌ها/سفارش‌ها/کدهای تخفیف ناراضی
+  بود: آیکون کوچک خاکستری، بدون وسط‌چین واقعی روی صفحه (فقط
+  `py-16`/`py-24`، که روی صفحه‌های بلند نتیجه‌اش نزدیک بالا بود، نه
+  وسط صفحه).
+  - `src/components/storefront/empty-state.tsx` (`EmptyState`):
+    دقیقاً همان ترکیب بصری‌ای که قبلاً برای `(storefront)/not-found.tsx`
+    طراحی/تأیید شده بود (دایره گرادیانی بزرگ + Ring + آیکون درشت‌تر)
+    این‌جا هم به‌کار رفت — یک زبان بصری یکسان برای هر «این‌جا چیزی
+    نیست»ی در کل Storefront، به‌جای بازطراحی هرکدام جدا. وسط‌چین
+    واقعی با `flex min-h-[60vh] items-center justify-center` (کمی
+    کمتر از `70vh` خودِ `not-found.tsx`، چون این صفحات یک
+    `PageHeader` بالای خودشان هم دارند که آن صفحه ندارد). Component
+    بدون Hook است، پس هم داخل صفحات Server (`/orders`،
+    `/favorites`، `/account/coupons`) و هم داخل
+    `cart-page-client.tsx` (Client Component) کار می‌کند.
+  - چهار جای زیر جایگزین شدند، متن/آیکون/لینک هرکدام دست‌نخورده:
+    `cart-page-client.tsx` (`ShoppingCart`)، `favorites-grid.tsx`
+    (`Heart`)، `orders/page.tsx` (`Package`)،
+    `account/coupons/page.tsx` (`Ticket`).
+  - بدون تغییر در منطق/داده هیچ‌کدام — فقط چیدمان حالت خالی.
+    TypeScript ✅، ESLint ✅، Vitest (۴۷۱ تست، بدون تغییر) ✅،
+    Build ✅.
+
 ## 4. In Progress
 
 **فعلاً در دست اجرا: Product Details Page (نگاه کنید بخش ۲ برای
