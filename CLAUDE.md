@@ -2460,6 +2460,40 @@ Phaseهای Homepage):**
     TypeScript ✅، ESLint ✅، Vitest (۴۷۱ تست، بدون تغییر) ✅،
     Build ✅.
 
+- ✅ **صفحه کامل `/account/coupons`** — لینک «کدهای تخفیف من» در
+  `/account` از قبل به این آدرس اشاره می‌کرد، با عنوان/زیرعنوان/Badge
+  از پیش تعیین‌شده («کدهای تخفیف من» / **«کدهای تخفیف استفاده‌شده»** /
+  `usedCouponsCount`). این عنوان‌ها صریحاً نشان می‌داد این صفحه باید
+  **تاریخچه کدهای استفاده‌شده** باشد، نه فهرست کدهای تخفیف
+  قابل‌دریافت/فعال — پس همان تصمیم قبلی دنبال شد، نه یک برداشت تازه.
+  - `src/lib/storefront/get-user-coupon-history.ts`:
+    `getUserCouponHistory()` — منبع اصلی `CouponRedemption` است
+    (طبق کامنت خودِ آن مدل: «یک ردیف به‌ازای هر استفاده موفق»، همان
+    چیزی که علیه `perUserLimit` شمرده می‌شود)، نه شمارش روی
+    `Order` یا Populate کردن `Coupon`. کد/درصد تخفیف از Snapshot
+    خودِ `Order.discount` خوانده می‌شود، نه از خودِ سند `Coupon` —
+    چون Coupon قابل Hard Delete است
+    (`DELETE /api/v1/coupons/[id]`) ولی Snapshot سفارش همیشه
+    می‌ماند؛ این‌طور تاریخچه حتی بعد از حذف کامل یک کد هم درست
+    باقی می‌ماند. Pagination هم‌الگو با `/orders`/`/favorites`
+    (۱۰ ردیف هر صفحه، `parsePageParam` مشترک).
+  - `src/components/storefront/coupon-history-row.tsx`: ردیف
+    هم‌خانواده با `WalletTransactionRow` (آیکون در جعبه رنگی +
+    عنوان/جزئیات + مبلغ/تاریخ)، همان رنگ کهربایی
+    `AccountNavRow` از قبل برای این لینک تعریف کرده بود. کل ردیف
+    Link به `/orders/[id]` مربوطه است.
+  - `src/app/(storefront)/account/coupons/page.tsx` + `loading.tsx`
+    — `redirect("/login?redirect=/account/coupons")` برای مهمان،
+    حالت خالی («هنوز از هیچ کد تخفیفی استفاده نکرده‌اید»).
+  - `account/page.tsx`: فقط JSDoc اصلاح شد (دیگر نمی‌گوید
+    `/account/coupons` صفحه ندارد) — رفتار/UI آن صفحه دست‌نخورده
+    ماند. با این صفحه، دیگر هیچ لینک بدون مقصدی در `/account` باقی
+    نمانده.
+  - بدون API/مدل جدید — مثل `/orders`، مستقیم از DB می‌خواند. تست
+    جدید لازم نبود (بدون منطق خالص جدید؛ نگاشت داده صرف). TypeScript
+    ✅، ESLint ✅، Vitest (۴۷۱ تست، بدون تغییر) ✅، Build ✅
+    (`/account/coupons` در خروجی Build دیده می‌شود).
+
 ## 4. In Progress
 
 **فعلاً در دست اجرا: Product Details Page (نگاه کنید بخش ۲ برای

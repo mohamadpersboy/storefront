@@ -52,12 +52,14 @@ import { AccountLogoutButton } from "@/components/storefront/account-logout-butt
  * معنا ندارد یا صفر است (مثلاً درخواست برداشت در انتظار)، Badge اصلاً
  * پاس داده نمی‌شود.
  *
- * `/orders` حالا صفحه واقعی دارد (لیست سفارش‌ها با تب وضعیت +
- * Pagination). لینک مقصد `/account/coupons` هنوز صفحه ندارد —
- * دقیقاً هم‌الگو با `/search`/`/notifications`/`/support` در Top
- * Bar: لینک از قبل درست ساخته می‌شود، خود صفحه مقصد در ماژول بعدی
- * اضافه خواهد شد. `/account/addresses`، `/account/bank-info`، و
- * `/account/wallet` (با شارژ/درخواست تسویه) هم ساخته شده‌اند.
+ * `/orders` و `/account/coupons` هر دو حالا صفحه واقعی دارند —
+ * `/account/coupons` طبق همان عنوان/زیرعنوان/Badge که همین‌جا از
+ * قبل ثبت شده بود («کدهای تخفیف من» / «کدهای تخفیف استفاده‌شده» /
+ * `usedCouponsCount`)، تاریخچه کدهای *استفاده‌شده* است، نه فهرست
+ * کدهای قابل‌استفاده — نگاه کنید `get-user-coupon-history.ts`.
+ * `/account/addresses`، `/account/bank-info`، و `/account/wallet`
+ * (با شارژ/درخواست تسویه) هم ساخته شده‌اند — دیگر لینک بدون مقصدی
+ * در این صفحه باقی نمانده.
  */
 export default async function AccountPage() {
   const user = await getCurrentUser();
