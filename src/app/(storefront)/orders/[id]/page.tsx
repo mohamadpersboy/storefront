@@ -17,6 +17,36 @@ const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   split: "پرداخت ترکیبی (کیف پول + آنلاین)",
 };
 
+/**
+ * یک آمار کوچک در کارت «اطلاعات سفارش» (تاریخ/روش پرداخت) — آیکون
+ * در دایره‌ای خاکستری + برچسب کم‌رنگ بالای مقدار پررنگ، به‌جای
+ * نسخه قبلی که هر سه ردیف (تاریخ/پرداخت/آدرس) را با یک آیکون خط‌به‌خط
+ * هم‌رنگ و هم‌وزن نشان می‌داد (به نظر کارفرما یک‌رنگ و نامرتب بود).
+ * فقط داخل همین صفحه استفاده می‌شود، به همین دلیل Component جدا
+ * نشد.
+ */
+function InfoStat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Calendar;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+        <Icon className="size-4" strokeWidth={1.75} aria-hidden="true" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] text-[var(--sf-ink)]/40">{label}</p>
+        <p className="truncate text-xs font-bold text-[var(--sf-ink)]">{value}</p>
+      </div>
+    </div>
+  );
+}
+
 type OrderDetailPageProps = {
   params: Promise<{ id: string }>;
 };
@@ -48,26 +78,31 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 
         <div className="rounded-[var(--radius-lg)] border border-black/5 bg-white p-5">
           <p className="mb-4 text-sm font-bold text-[var(--sf-ink)]">اطلاعات سفارش</p>
-          <div className="space-y-3.5 text-xs leading-5">
-            <div className="flex items-start gap-2 text-[var(--sf-ink)]/70">
-              <Calendar className="mt-0.5 size-4 shrink-0 text-[var(--sf-ink)]/40" strokeWidth={1.75} aria-hidden="true" />
-              <span>تاریخ ثبت: {formatJalali(order.createdAt)}</span>
+
+          <div className="grid grid-cols-2 gap-3">
+            <InfoStat icon={Calendar} label="تاریخ ثبت" value={formatJalali(order.createdAt)} />
+            <InfoStat
+              icon={CreditCard}
+              label="روش پرداخت"
+              value={PAYMENT_METHOD_LABELS[order.paymentMethod]}
+            />
+          </div>
+
+          <div className="mt-4 rounded-[var(--radius-md)] bg-gray-50 p-3.5">
+            <div className="mb-2 flex items-center gap-1.5 text-[var(--color-primary)]">
+              <MapPin className="size-4" strokeWidth={1.75} aria-hidden="true" />
+              <span className="text-xs font-bold">آدرس تحویل</span>
             </div>
-            <div className="flex items-start gap-2 text-[var(--sf-ink)]/70">
-              <CreditCard className="mt-0.5 size-4 shrink-0 text-[var(--sf-ink)]/40" strokeWidth={1.75} aria-hidden="true" />
-              <span>روش پرداخت: {PAYMENT_METHOD_LABELS[order.paymentMethod]}</span>
-            </div>
-            <div className="flex items-start gap-2 text-[var(--sf-ink)]/70">
-              <MapPin className="mt-0.5 size-4 shrink-0 text-[var(--sf-ink)]/40" strokeWidth={1.75} aria-hidden="true" />
-              <span className="leading-5">
-                {order.shippingAddress.recipientName} — {order.shippingAddress.phoneNumber}
-                <br />
-                {order.shippingAddress.province}، {order.shippingAddress.city}،{" "}
-                {order.shippingAddress.addressLine}
-                <br />
-                کد پستی: {toPersianDigits(order.shippingAddress.postalCode)}
-              </span>
-            </div>
+            <p className="text-xs font-bold text-[var(--sf-ink)]">
+              {order.shippingAddress.recipientName}
+              <span className="font-normal text-[var(--sf-ink)]/45"> — {order.shippingAddress.phoneNumber}</span>
+            </p>
+            <p className="mt-1.5 text-xs leading-5 text-[var(--sf-ink)]/60">
+              {order.shippingAddress.province}، {order.shippingAddress.city}، {order.shippingAddress.addressLine}
+            </p>
+            <p className="mt-1.5 text-[11px] text-[var(--sf-ink)]/40">
+              کد پستی: {toPersianDigits(order.shippingAddress.postalCode)}
+            </p>
           </div>
         </div>
 
