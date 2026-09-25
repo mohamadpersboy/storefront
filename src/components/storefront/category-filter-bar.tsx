@@ -157,36 +157,43 @@ export function CategoryFilterBar({
 
   return (
     <div>
+      {/*
+        سبک این نوار عمداً هم‌الگو با زبان بصری واقعی سایت شد (نه یک
+        طراحی جدید ابداعی): همان دکمه دایره‌ای پرشده خاکستری‌روشن
+        `h-11 w-11 rounded-full bg-gray-100` که در `MobileTopBar`،
+        `NotificationBell`، `PageHeader`، `ProductFavoriteButton` و…
+        همه‌جای Storefront برای دکمه‌های آیکونی تکرار شده — به‌جای
+        Pillهای حاشیه‌دار سفید نسخه قبلی. نقطه فعال روی دکمه فیلتر هم
+        دقیقاً کپی همان Badge نقطه‌ای `NotificationBell` است.
+      */}
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+          <Search className="pointer-events-none absolute end-4 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             value={searchValue}
             onChange={(e) => onSearchInput(e.target.value)}
             placeholder="جستجوی فرش..."
-            className="w-full rounded-full border border-black/10 bg-white py-2.5 pe-9 ps-4 text-xs outline-none focus:border-[var(--sf-accent)]"
+            className="h-11 w-full rounded-full bg-gray-100 pe-11 ps-4 text-xs text-[var(--sf-ink)] outline-none placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-[var(--sf-accent)]"
           />
         </div>
 
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className={cn(
-            "flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-2.5 text-xs font-bold lg:hidden",
-            activeFiltersExist
-              ? "border-[var(--sf-accent)] bg-[var(--sf-accent-soft)] text-[var(--sf-accent)]"
-              : "border-black/10 text-[var(--sf-ink)]/70",
-          )}
+          aria-label="فیلتر"
+          className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 active:bg-gray-200 lg:hidden"
         >
-          <SlidersHorizontal className="size-4" />
-          فیلتر
+          <SlidersHorizontal className="size-5" strokeWidth={1.75} aria-hidden="true" />
+          {activeFiltersExist && (
+            <span className="absolute end-2.5 top-2.5 h-2 w-2 rounded-full bg-[var(--color-primary)] ring-2 ring-white" />
+          )}
         </button>
 
         <select
           value={active.sort}
           onChange={(e) => handleSortChange(e.target.value as CategorySortValue)}
-          className="shrink-0 rounded-full border border-black/10 bg-white px-3 py-2.5 text-xs font-bold text-[var(--sf-ink)]/70 outline-none"
+          className="h-11 shrink-0 rounded-full bg-gray-100 px-3 text-xs font-bold text-[var(--sf-ink)]/70 outline-none"
           aria-label="مرتب‌سازی"
         >
           {SORT_OPTIONS.map((opt) => (
@@ -200,7 +207,7 @@ export function CategoryFilterBar({
       {drawerOpen ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setDrawerOpen(false)} />
-          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4">
+          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4 shadow-[0_-16px_40px_rgba(3,23,37,0.18)]">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-bold text-[var(--sf-ink)]">فیلترها</h2>
               <button
@@ -273,7 +280,7 @@ export function CategoryFilterSidebar({
   }
 
   return (
-    <aside className="hidden w-64 shrink-0 rounded-[var(--radius-lg)] border border-black/5 bg-white p-4 lg:block">
+    <aside className="hidden w-64 shrink-0 rounded-2xl border border-black/5 bg-white p-4 shadow-[0_16px_40px_rgba(3,23,37,0.06)] lg:block">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-bold text-[var(--sf-ink)]">فیلترها</h2>
         {hasActiveFilters(active) ? (

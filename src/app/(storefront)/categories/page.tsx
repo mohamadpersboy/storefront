@@ -51,22 +51,24 @@ export default async function CategoriesIndexPage() {
       <PageHeader title="دسته‌بندی فرش‌ها" />
 
       <div className="px-4 py-3 sm:px-6">
+        {/* هم‌الگو با دکمه‌های آیکونی خاکستری‌روشن سراسر Storefront
+            (`MobileTopBar`, `NotificationBell`, ...) — نه Pill حاشیه‌دار سفید. */}
         <form action="/categories/all" method="GET" className="flex items-center gap-2">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+            <Search className="pointer-events-none absolute end-4 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               name="search"
               placeholder="جستجوی فرش..."
-              className="w-full rounded-full border border-black/10 bg-white py-2.5 pe-9 ps-4 text-xs outline-none focus:border-[var(--sf-accent)]"
+              className="h-11 w-full rounded-full bg-gray-100 pe-11 ps-4 text-xs text-[var(--sf-ink)] outline-none placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-[var(--sf-accent)]"
             />
           </div>
           <button
             type="submit"
-            className="flex shrink-0 items-center gap-1.5 rounded-full border border-black/10 px-4 py-2.5 text-xs font-bold text-[var(--sf-ink)]/70"
+            aria-label="فیلتر"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 active:bg-gray-200"
           >
-            <SlidersHorizontal className="size-4" />
-            فیلتر
+            <SlidersHorizontal className="size-5" strokeWidth={1.75} aria-hidden="true" />
           </button>
         </form>
       </div>
