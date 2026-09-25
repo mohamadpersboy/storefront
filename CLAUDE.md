@@ -2518,6 +2518,46 @@ Phaseهای Homepage):**
     TypeScript ✅، ESLint ✅، Vitest (۴۷۱ تست، بدون تغییر) ✅،
     Build ✅.
 
+- ✅ **صفحه دسته‌بندی محصولات (`/categories` + `/categories/[slug]`)**
+  — کاملاً هماهنگ با معماری موجود (Server Component مستقیم روی
+  Model، دقیقاً هم‌الگو با Homepage؛ بدون API عمومی جدید).
+  - `/categories`: لیست همه دسته‌بندی‌های سطح اول *فعال* (نه فقط
+    `showOnHomepage`) — هرکدام یک `CategoryProductsSection` (همان
+    Component صفحه اصلی، بدون Duplicate) با دکمه «بیشتر» به
+    `/categories/{slug}`. `revalidate = 60` عیناً هم‌الگو با صفحه
+    اصلی؛ Data Fetching با همان الگوی `try/catch` صفحه اصلی محافظت
+    شده (وگرنه نبود DB در Build-Time کل صفحه را می‌شکست — دقیقاً
+    همان چیزی که در این Task رخ داد و اصلاح شد).
+  - `/categories/[slug]`: Breadcrumb (`BreadcrumbNav` جدید) +
+    زیردسته‌ها (`SubcategoryTabs`، Link ساده بدون JS هم‌الگو با
+    `OrderStatusTabs`) + فیلتر برند/ویژگی‌های Variant (پویا، از
+    `Product.variants[].attributes` واقعی استخراج می‌شود، نه
+    Hard-code) + بازه قیمت + جستجو (Debounce) + مرتب‌سازی + Grid
+    دو‌ستونه (`ProductGridCard` — مستقل از `ProductCard` اسلایدر تا
+    آن Component تأییدشده دست‌نخورده بماند) + Pagination
+    (`CategoryPagination`، Wrapper نازک روی `Pagination` عمومی
+    موجود). همه فیلترها با Query String URL Sync هستند (بدون
+    Zustand/Redux، طبق محدودیت «State Library جدید نیاز به اجازه
+    دارد»).
+  - `getCategoryProducts`/`getCategoryFacets` در
+    `src/lib/storefront/category-listing.ts`: یک Aggregation با
+    `$facet` (نه N+1)، فیلتر ویژگی/قیمت با `$elemMatch` روی
+    `variants`، مرتب‌سازی ارزان‌ترین/گران‌ترین با قیمت نهایی محاسبه‌
+    شده (`$map`/`$min`، با احتساب هر دو نوع تخفیف).
+  - Helperهای مشترک صفحه اصلی (`buildCategoryIdGroups`,
+    `buildColorsMap`, `isDisplayable`, `toDisplayableCards`,
+    `sortByPriority`, `PRODUCT_CARD_FIELDS`,
+    `PRIORITY_OVER_FETCH_MULTIPLIER`) از `homepage-products.ts`
+    Export و دوباره‌استفاده شدند (فقط `PRIORITY_OVER_FETCH_MULTIPLIER`
+    قبلاً Export نبود، اضافه شد).
+  - TypeScript ✅، ESLint ✅ (شامل رفع خودکار
+    `react-hooks/set-state-in-effect` با الگوی رسمی React «تنظیم
+    State هنگام تغییر Prop در زمان Render»)، Vitest (۴۷۹ تست، ۸ تست
+    جدید Pure Function برای Parse فیلتر) ✅، Build ✅.
+  - نگاه کنید بخش ۱۳ (Important Decisions Log) برای تصمیمات معماری
+    (مسیر `/categories/all`، محدودیت فیلتر قیمت، عدم Drag-to-Dismiss
+    در Drawer موبایل).
+
 ## 4. In Progress
 
 **فعلاً در دست اجرا: Product Details Page (نگاه کنید بخش ۲ برای
@@ -3443,6 +3483,14 @@ Secretهای سرور را هم دارد) Import کند — حتی برای خو
 | Activity Log | بدون API ویرایش یا حذف — فقط `POST` داخلی از طریق `logActivity()` و یک `GET` فقط‌خواندنی برای Dashboard | یک Audit Trail که قابل ویرایش باشد اصلاً Audit Trail نیست؛ نبود مسیر Update/Delete یک تصمیم امنیتی است نه صرفاً کمبود Feature |
 | Activity Log | `actorName` در لحظه ثبت Snapshot می‌شود، نه با `populate` از User در لحظه نمایش خوانده می‌شود | یک لاگ باید همیشه بازتاب همان لحظه‌ای باشد که رویداد رخ داد؛ اگر کاربر بعداً تغییر نام داد یا حذف شد، لاگ‌های قدیمی نباید عقب‌گرد کنند یا خالی نمایش داده شوند |
 | Activity Log | فقط رویدادهای صریحاً «حساس» طبق مثال‌های بند ۵۳ (نقش/وضعیت کاربر، وضعیت سفارش) به‌علاوه رویدادهای معادل در Featureهای بعدی (Coupon، Discount Settings، Amazing Offer) ثبت می‌شوند — نه هر Read/Write ساده مثل ساخت محصول یا رنگ | بند ۵۳ صراحتاً اجازه نسخه Minimal می‌دهد؛ ثبت همه‌چیز حجم لاگ را بی‌فایده زیاد می‌کرد بدون افزایش واقعی در قابلیت Audit برای عملیات واقعاً حساس |
+
+| Category Page | صفحه لیست محصولات مستقیماً روی Model کار می‌کند (Server Component)، نه یک API عمومی `/api/v1/storefront/products` جدید | دقیقاً هم‌الگو با Homepage/Product Detail (که هردو مستقیماً DB می‌خوانند)؛ ساخت یک API موازی صرفاً برای همین صفحه، بدون مصرف‌کننده دومی (مثلاً اپ موبایل)، نقض «از ایجاد ساختار موازی خودداری کن» بود |
+| Category Page | مسیر ثابت `/categories/all` به‌عنوان یک شبه‌دسته «همه محصولات» — جستجو/فیلتر بالای صفحه اصلی `/categories` (بند ۱ درخواست) به همین مسیر می‌رود | ساخت یک صفحه/معماری جدا برای «جستجوی سراسری» دوباره‌کاری کامل زیرساخت فیلتر/Grid/Pagination می‌بود؛ `getCategoryProducts`/`getCategoryFacets` با `categoryIds: null` از قبل از این حالت پشتیبانی می‌کردند |
+| Category Page | فیلتر «بازه قیمت» روی `variants.price` خام اعمال می‌شود (نه قیمت نهایی بعد از تخفیف)؛ اما مرتب‌سازی ارزان‌ترین/گران‌ترین از قیمت نهایی واقعی استفاده می‌کند | محاسبه صحیح بازه قیمت با تخفیف نیازمند `$expr` پیچیده‌تر در فیلتر Mongo بود؛ برای مرتب‌سازی همان محاسبه ($map/$min) از قبل لازم بود پس رایگان اضافه شد، اما برای فیلتر فعلاً به‌عنوان محدودیت شناخته‌شده مستند شد نه پیاده‌سازی کامل |
+| Category Page | فیلترهای ویژگی Variant (اندازه/شانه/تراکم/...) کاملاً پویا از `Product.variants[].attributes` واقعی استخراج می‌شوند (Aggregation Facet)، نه یک لیست Hard-code‌شده | این ویژگی‌ها در Schema پروژه از ابتدا Key-Value آزاد بودند (نه فیلد ثابت)؛ Hard-code کردن اسم چند ویژگی، محصولات با ویژگی متفاوت را از فیلتر می‌انداخت |
+| Category Page | Drawer فیلتر موبایل بدون Drag-to-Dismiss (فقط دکمه بستن/Backdrop) | ساده‌سازی آگاهانه برای تحویل سریع‌تر؛ الگوی `bottom-sheet-math.ts` (Drag) از قبل در پروژه هست و در صورت درخواست کارفرما قابل افزودن است |
+| Category Page | `CategoryFilterBar` (Toolbar+Drawer موبایل) و `CategoryFilterSidebar` (دسکتاپ) دو Component جدا هستند که هر دو از یک Hook مشترک (`useCategoryFilterActions`) برای خواندن/نوشتن Query String استفاده می‌کنند، نه یک Component واحد با State مشترک React | هر دو مستقیماً از `useSearchParams`/`router.push` خودشان می‌خوانند/می‌نویسند؛ منبع واحد حقیقت خودِ URL است، پس نیازی به بالا‌بردن State مشترک بین دو ناحیه از Layout که هیچ‌وقت هم‌زمان تعاملی نیستند (یکی موبایل، یکی دسکتاپ) نبود |
+| Category Page | Grid محصولات همیشه دو ستون است (هم موبایل هم دسکتاپ)، نه ۳-۴ ستون در دسکتاپ | مطابق دقیق نمودار ASCII و متن صریح درخواست («در Desktop... دو ستون محصول») |
 
 ## 14. Known Issues
 

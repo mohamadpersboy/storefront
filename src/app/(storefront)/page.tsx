@@ -279,7 +279,7 @@ export default async function StorefrontHomePage() {
         <CategoryProductsSection
           key={section.id}
           title={section.name}
-          seeAllHref={`/products/category/${section.slug}`}
+          seeAllHref={`/categories/${section.slug}`}
           items={section.items}
         />
       ))}

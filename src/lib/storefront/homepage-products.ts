@@ -40,7 +40,7 @@ export const PRODUCT_CARD_FIELDS = "title slug images variants sortOrder";
  * یک Pool بزرگ‌تر می‌گیریم، سپس در جاوااسکریپت با `?? 0` مرتب‌سازی
  * پایدار می‌کنیم و در آخر به تعداد نهایی برش می‌زنیم.
  */
-const PRIORITY_OVER_FETCH_MULTIPLIER = 4;
+export const PRIORITY_OVER_FETCH_MULTIPLIER = 4;
 
 /**
  * مرتب‌سازی پایدار بر اساس «اولویت نمایش» (عدد کوچک‌تر = اولویت
