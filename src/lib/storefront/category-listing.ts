@@ -92,7 +92,7 @@ export async function getAllRootCategorySections(limitPerCategory = 10): Promise
         id: String(category._id),
         name: category.name,
         slug: category.slug,
-        items: toDisplayableCards(displayable, colorsMap),
+        items: await toDisplayableCards(displayable, colorsMap),
       };
     }),
   );
@@ -347,7 +347,7 @@ export async function getCategoryProducts(
 
   const displayable = items.filter(isDisplayable);
   const colorsMap = await buildColorsMap(displayable);
-  const cards = toDisplayableCards(displayable, colorsMap);
+  const cards = await toDisplayableCards(displayable, colorsMap);
 
   return {
     items: cards,

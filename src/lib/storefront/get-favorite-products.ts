@@ -1,11 +1,11 @@
 import { Favorite } from "@/models/Favorite";
 import { Product } from "@/models/Product";
-import { AmazingOffer } from "@/models/AmazingOffer";
 import { computeAmazingOfferPrice } from "@/lib/utils/amazing-offer";
 import { parsePageParam } from "@/lib/utils/pagination";
 import {
   PRODUCT_CARD_FIELDS,
   buildColorsMap,
+  getActiveAmazingOffersByProductId,
   isDisplayable,
   pickRepresentativeVariant,
   toProductCard,
@@ -81,25 +81,12 @@ export async function getFavoriteProductCards(
   const colorsMap = await buildColorsMap(orderedProducts);
 
   // Amazing Offer فعال هر کدام از همین محصولات — طبق درخواست صریح
-  // کارفرما («تخفیف‌های شگفت‌انگیز هم شامل بشه»)، قیمت/برچسب کارت
-  // علاقه‌مندی باید همان تخفیف واقعی Offer فعال را نشان دهد، نه فقط
-  // تخفیف عادی Variant. منطق کاملاً هم‌الگو با `getAmazingOfferProductCards`
-  // در `homepage-products.ts` (بدون Duplicate).
-  const now = new Date();
-  const activeOffers = (await AmazingOffer.find({
-    productId: { $in: orderedProducts.map((p) => p._id) },
-    isActive: true,
-    startAt: { $lte: now },
-    endAt: { $gte: now },
-  }).lean()) as unknown as {
-    productId: unknown;
-    variantId: unknown;
-    startAt: Date;
-    endAt: Date;
-    discountType: "percent" | "fixed";
-    discountValue: number;
-  }[];
-  const offerByProductId = new Map(activeOffers.map((o) => [String(o.productId), o]));
+  // کارفرما («تخفیف‌های شگفت‌انگیز هم شامل بشه، هر جا کارتی وجود
+  // داشته باشه»)، قیمت/برچسب کارت باید همان تخفیف واقعی Offer فعال
+  // را نشان دهد، نه فقط تخفیف عادی Variant. حالا این Query یک
+  // Helper مشترک در `homepage-products.ts` است — همان چیزی که
+  // `toDisplayableCards` هم برای بقیه صفحات از آن استفاده می‌کند.
+  const offerByProductId = await getActiveAmazingOffersByProductId(orderedProducts.map((p) => p._id));
 
   const items = orderedProducts
     .map((product) => {

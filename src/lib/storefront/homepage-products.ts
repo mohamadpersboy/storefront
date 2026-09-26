@@ -165,13 +165,68 @@ export function isDisplayable(p: LeanProductForCard): boolean {
   return p.images.length > 0 && p.variants.length > 0;
 }
 
-/** تبدیل دسته‌ای محصولات به کارت — منطق مشترک هر سه ردیف/بخش این فایل. */
-export function toDisplayableCards(
+type LeanActiveOffer = {
+  productId: Types.ObjectId;
+  variantId: Types.ObjectId;
+  startAt: Date;
+  endAt: Date;
+  discountType: "percent" | "fixed";
+  discountValue: number;
+};
+
+/**
+ * Offerهای شگفت‌انگیز فعالِ همین لحظه برای یک دسته محصول — یک Query
+ * دسته‌ای روی `productId`، هم‌الگو با منطقی که قبلاً فقط برای صفحه
+ * «علاقه‌مندی‌ها» نوشته شده بود (`get-favorite-products.ts`).
+ * Export شده تا `toDisplayableCards` هم از همین استفاده کند، نه یک
+ * نسخهٔ Duplicate — طبق درخواست صریح کارفرما: «هر جا کارتی وجود
+ * داشته باشه» (صفحه اصلی، دسته‌بندی‌ها، محصولات مرتبط، ...) باید
+ * برچسب/تایمر شگفت‌انگیز را نشان بدهد، نه فقط ردیف اختصاصی
+ * «شگفت‌انگیزها».
+ */
+export async function getActiveAmazingOffersByProductId(
+  productIds: Types.ObjectId[],
+): Promise<Map<string, LeanActiveOffer>> {
+  if (productIds.length === 0) return new Map();
+
+  const now = new Date();
+  const offers = (await AmazingOffer.find({
+    productId: { $in: productIds },
+    isActive: true,
+    startAt: { $lte: now },
+    endAt: { $gte: now },
+  }).lean()) as unknown as LeanActiveOffer[];
+
+  return new Map(offers.map((o) => [String(o.productId), o]));
+}
+
+/**
+ * تبدیل دسته‌ای محصولات به کارت — منطق مشترک همه ردیف‌ها/بخش‌های
+ * محصول در کل Storefront (صفحه اصلی، دسته‌بندی‌ها، محصولات مرتبط،
+ * ...). اگر محصولی همین الان یک Amazing Offer فعال داشته باشد، کارت
+ * همان Variant/قیمت/تایمر Offer را نشان می‌دهد؛ در غیر این صورت
+ * Variant «نماینده» و تخفیف عادی خودش را.
+ */
+export async function toDisplayableCards(
   products: LeanProductForCard[],
   colorsMap: Map<string, { id: string; hexCode: string }>,
-): ProductCardData[] {
+): Promise<ProductCardData[]> {
+  const offerByProductId = await getActiveAmazingOffersByProductId(products.map((p) => p._id));
+
   return products
     .map((p) => {
+      const offer = offerByProductId.get(String(p._id));
+      const offerVariant = offer ? p.variants.find((v) => String(v._id) === String(offer.variantId)) : undefined;
+
+      if (offer && offerVariant) {
+        const finalPrice = computeAmazingOfferPrice(offerVariant.price, offer.discountType, offer.discountValue);
+        return toProductCard(p, offerVariant, colorsMap, {
+          startAt: offer.startAt.toISOString(),
+          endAt: offer.endAt.toISOString(),
+          finalPrice,
+        });
+      }
+
       const variant = pickRepresentativeVariant(p.variants);
       return variant ? toProductCard(p, variant, colorsMap, null) : null;
     })
@@ -385,7 +440,7 @@ export async function getPriorityCategorySections(
         id: String(category._id),
         name: category.name,
         slug: category.slug,
-        items: toDisplayableCards(displayable, colorsMap),
+        items: await toDisplayableCards(displayable, colorsMap),
       };
     }),
   );
