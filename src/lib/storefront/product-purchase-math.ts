@@ -30,6 +30,14 @@ export function computeSelectionTotal(finalUnitPrice: number, quantity: number):
  */
 export type CartAddition = {
   variantId: string;
+  /**
+   * شناسه واقعی همان Item در سبد سرور (`cart.items[]._id`، از پاسخ
+   * موفق `POST /api/v1/cart/items`) — برای دکمه حذف هر ردیف
+   * (`ProductCartAdditionsSummary`) لازم است تا واقعاً همان Item را
+   * با `DELETE /api/v1/cart/items/:itemId` حذف کند، نه فقط از این
+   * فهرست محلی پنهانش کند.
+   */
+  itemId: string;
   /** برچسب نمایشی واحد فروش، دقیقاً همان `variant.unit` (مثلاً «۱۲ متری»). */
   unitLabel: string;
   quantity: number;
@@ -56,6 +64,7 @@ export function mergeCartAddition(
   const merged = [...additions];
   merged[existingIndex] = {
     ...merged[existingIndex],
+    itemId: addition.itemId,
     quantity: merged[existingIndex].quantity + addition.quantity,
     unitPrice: addition.unitPrice,
   };

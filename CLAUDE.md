@@ -1230,6 +1230,44 @@ Export بود، `product-card.tsx` تغییر نکرد). تست‌ها:
 TypeScript ✅، ESLint ✅، Vitest (۴۸۶ تست — ۷ تست تازه برای
 `mergeCartAddition`/`computeCartAdditionsTotal`) ✅، Build ✅.
 
+**اصلاحات دقیق بعدی کارفرما روی همان دو بخش صفحه محصول:**
+
+1. **`ProductAmazingOfferBanner`:** رنگ Badge برعکس شد (زمینه
+   یک‌دست قرمز `--sf-cherry` + متن/آیکون سفید، به‌جای زمینه
+   صورتی‌کم‌رنگ قبلی)؛ نوار Progress کامل حذف شد — فاصله بین
+   Badge و تایمر حالا با `justify-between` است، نه یک نوار میانی.
+2. **`ProductCartAdditionsSummary` (بازطراحی کامل):**
+   - ظاهر یک‌دست با بقیه کارت‌های صفحه شد: زمینه سفید +
+     `shadow-sm`، بدون `border-dashed`.
+   - ردیف «جمع کل سفارش این محصول» + خط بالای آن حذف شدند؛ جمع کل
+     حالا داخل خودِ دکمه پایین است.
+   - دکمه پایین («پرداخت») رنگش عوض شد (`--sf-ink` سرمه‌ای تیره،
+     نه آبی `--sf-accent` دکمه «افزودن به سبد خرید») و به دو ناحیه
+     با خط جداکننده عمودی تقسیم شد: جمع کل (راست) | «پرداخت» +
+     `ChevronLeft` (چپ).
+   - کنار هر ردیف Variant یک دکمه گرد Minus («−») اضافه شد که واقعاً
+     همان Item را از سبد سرور حذف می‌کند
+     (`DELETE /api/v1/cart/items/:itemId`) — `CartAddition` یک
+     فیلد تازه `itemId` گرفت (شناسه واقعی از پاسخ خودِ
+     `POST /api/v1/cart/items`، نه ساختگی؛ `ProductAddToCartBar`
+     آن را از `body.data.items[]` با تطبیق `variantId` استخراج
+     می‌کند و به Prop تازه `onAdded(..., itemId)` می‌دهد).
+   - **انیمیشن ورود:** این بخش دیگر یک‌باره ظاهر نمی‌شود — با
+     تکنیک CSS `grid-template-rows: 0fr → 1fr` (بدون کتابخانه
+     جدید، هم‌الگو با تکنیک Mount/Visible بعدی در Bottom Sheet
+     `ProductPriceChartButton`) رشد می‌کند و کارت توضیحات را با
+     همان Transition به پایین هل می‌دهد.
+
+فایل‌های تغییریافته: `product-amazing-offer-banner.tsx`،
+`product-cart-additions-summary.tsx` (بازنویسی)،
+`product-add-to-cart-bar.tsx`، `product-purchase-panel.tsx`،
+`product-purchase-math.ts`/`.test.ts` (فیلد `itemId`). بدون
+Model/API جدید — از همان `DELETE /api/v1/cart/items/:itemId`
+موجود استفاده شد. تست‌ها: TypeScript ✅، ESLint ✅ (یک خطای
+`react-hooks/set-state-in-effect` در مسیر Reset انیمیشن با
+جابه‌جایی `setState` به داخل تابع Cleanup رفع شد)، Vitest (۴۸۶
+تست) ✅، Build ✅.
+
 ## 3. Completed Features
 
 - ✅ Bootstrap پروژه (Next.js 16.3، TypeScript، Tailwind v4، فونت،

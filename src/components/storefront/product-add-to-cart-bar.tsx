@@ -16,11 +16,19 @@ type ProductAddToCartBarProps = {
   /**
    * فقط بعد از پاسخ موفق واقعی API صدا زده می‌شود (نه Optimistic) —
    * `ProductPurchasePanel` این مقادیر را برای ردیف
-   * `ProductCartAdditionsSummary` نگه می‌دارد. مقادیر همان `variantId`/
-   * `quantity`/`finalUnitPrice` لحظهٔ کلیک هستند (از طریق Closure
-   * خودِ `handleAddToCart`)، نه هر مقدار جدیدی که بعداً کاربر انتخاب کند.
+   * `ProductCartAdditionsSummary` نگه می‌دارد. `variantId`/`quantity`/
+   * `finalUnitPrice` مقادیر لحظهٔ کلیک هستند (از طریق Closure خودِ
+   * `handleAddToCart`)، نه هر مقدار جدیدی که بعداً کاربر انتخاب کند.
+   * `itemId` همان شناسه واقعی Item در سبد سرور است (از پاسخ خودِ
+   * API استخراج می‌شود، نه ساخته‌شده اینجا) — برای دکمه حذف هر ردیف
+   * لازم است.
    */
-  onAdded?: (variantId: string, quantity: number, finalUnitPrice: number) => void;
+  onAdded?: (variantId: string, quantity: number, finalUnitPrice: number, itemId: string) => void;
+};
+
+type AddToCartResponseBody = {
+  message?: string;
+  data?: { items?: { id: string; variantId: string }[] };
 };
 
 const SUCCESS_FEEDBACK_MS = 1500;
@@ -67,7 +75,7 @@ export function ProductAddToCartBar({
         return;
       }
 
-      const body = (await response.json().catch(() => null)) as { message?: string } | null;
+      const body = (await response.json().catch(() => null)) as AddToCartResponseBody | null;
 
       if (!response.ok) {
         setErrorMessage(body?.message ?? "افزودن به سبد خرید انجام نشد");
@@ -75,7 +83,14 @@ export function ProductAddToCartBar({
       }
 
       setSuccess(true);
-      onAdded?.(variantId, quantity, finalUnitPrice);
+      // شناسه واقعی همان Item را از پاسخ خودِ سبد پیدا کن (نه حدس
+      // بزن) — اگر به هر دلیلی در پاسخ نبود (نباید پیش بیاید)، این
+      // افزودن فقط در `ProductCartAdditionsSummary` نمایش داده
+      // نمی‌شود؛ خودِ افزودن به سبد سرور هرحال موفق بوده.
+      const matchedItem = body?.data?.items?.find((item) => item.variantId === variantId);
+      if (matchedItem) {
+        onAdded?.(variantId, quantity, finalUnitPrice, matchedItem.id);
+      }
       setTimeout(() => setSuccess(false), SUCCESS_FEEDBACK_MS);
     } catch {
       setErrorMessage("خطا در برقراری ارتباط — دوباره تلاش کنید");

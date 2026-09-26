@@ -50,36 +50,39 @@ describe("mergeCartAddition", () => {
   it("adds a new row for a variant that isn't in the list yet", () => {
     const result = mergeCartAddition([], {
       variantId: "v1",
+      itemId: "item1",
       unitLabel: "۱۲ متری",
       quantity: 2,
       unitPrice: 12_500_000,
     });
     expect(result).toEqual([
-      { variantId: "v1", unitLabel: "۱۲ متری", quantity: 2, unitPrice: 12_500_000 },
+      { variantId: "v1", itemId: "item1", unitLabel: "۱۲ متری", quantity: 2, unitPrice: 12_500_000 },
     ]);
   });
 
   it("sums the quantity when the same variant is added again", () => {
     const existing: CartAddition[] = [
-      { variantId: "v1", unitLabel: "۱۲ متری", quantity: 2, unitPrice: 12_500_000 },
+      { variantId: "v1", itemId: "item1", unitLabel: "۱۲ متری", quantity: 2, unitPrice: 12_500_000 },
     ];
     const result = mergeCartAddition(existing, {
       variantId: "v1",
+      itemId: "item1",
       unitLabel: "۱۲ متری",
       quantity: 3,
       unitPrice: 12_500_000,
     });
     expect(result).toEqual([
-      { variantId: "v1", unitLabel: "۱۲ متری", quantity: 5, unitPrice: 12_500_000 },
+      { variantId: "v1", itemId: "item1", unitLabel: "۱۲ متری", quantity: 5, unitPrice: 12_500_000 },
     ]);
   });
 
   it("updates unitPrice to the latest value on a repeated add", () => {
     const existing: CartAddition[] = [
-      { variantId: "v1", unitLabel: "۱۲ متری", quantity: 1, unitPrice: 12_500_000 },
+      { variantId: "v1", itemId: "item1", unitLabel: "۱۲ متری", quantity: 1, unitPrice: 12_500_000 },
     ];
     const result = mergeCartAddition(existing, {
       variantId: "v1",
+      itemId: "item1",
       unitLabel: "۱۲ متری",
       quantity: 1,
       unitPrice: 11_000_000,
@@ -89,23 +92,36 @@ describe("mergeCartAddition", () => {
 
   it("keeps different variants as separate rows", () => {
     const existing: CartAddition[] = [
-      { variantId: "v1", unitLabel: "۱۲ متری", quantity: 2, unitPrice: 12_500_000 },
+      { variantId: "v1", itemId: "item1", unitLabel: "۱۲ متری", quantity: 2, unitPrice: 12_500_000 },
     ];
     const result = mergeCartAddition(existing, {
       variantId: "v2",
+      itemId: "item2",
       unitLabel: "۶ متری",
       quantity: 2,
       unitPrice: 27_500_000,
     });
     expect(result).toHaveLength(2);
-    expect(result[1]).toEqual({ variantId: "v2", unitLabel: "۶ متری", quantity: 2, unitPrice: 27_500_000 });
+    expect(result[1]).toEqual({
+      variantId: "v2",
+      itemId: "item2",
+      unitLabel: "۶ متری",
+      quantity: 2,
+      unitPrice: 27_500_000,
+    });
   });
 
   it("does not mutate the input array", () => {
     const existing: CartAddition[] = [
-      { variantId: "v1", unitLabel: "۱۲ متری", quantity: 2, unitPrice: 12_500_000 },
+      { variantId: "v1", itemId: "item1", unitLabel: "۱۲ متری", quantity: 2, unitPrice: 12_500_000 },
     ];
-    mergeCartAddition(existing, { variantId: "v1", unitLabel: "۱۲ متری", quantity: 1, unitPrice: 12_500_000 });
+    mergeCartAddition(existing, {
+      variantId: "v1",
+      itemId: "item1",
+      unitLabel: "۱۲ متری",
+      quantity: 1,
+      unitPrice: 12_500_000,
+    });
     expect(existing[0].quantity).toBe(2);
   });
 });
@@ -113,8 +129,8 @@ describe("mergeCartAddition", () => {
 describe("computeCartAdditionsTotal", () => {
   it("sums quantity times unit price across all rows", () => {
     const additions: CartAddition[] = [
-      { variantId: "v1", unitLabel: "۱۲ متری", quantity: 2, unitPrice: 12_500_000 },
-      { variantId: "v2", unitLabel: "۶ متری", quantity: 2, unitPrice: 27_500_000 },
+      { variantId: "v1", itemId: "item1", unitLabel: "۱۲ متری", quantity: 2, unitPrice: 12_500_000 },
+      { variantId: "v2", itemId: "item2", unitLabel: "۶ متری", quantity: 2, unitPrice: 27_500_000 },
     ];
     expect(computeCartAdditionsTotal(additions)).toBe(80_000_000);
   });

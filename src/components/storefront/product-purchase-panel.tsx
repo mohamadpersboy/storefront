@@ -47,11 +47,15 @@ type ProductPurchasePanelProps = {
  * **افزوده‌شده طبق دستور صریح بعدی کارفرما:** `ProductCartAdditionsSummary`
  * بین Stepper تعداد و کارت توضیحات محصول — فهرست Variantهایی که
  * کاربر از همین صفحه با موفقیت به سبد اضافه کرده (تعداد + جمع
- * قیمت هر Variant + جمع کل)، به‌همراه دکمه «رفتن به سبد خرید».
- * `additions` یک State محلی همین Component است (نه Fetch از سبد
- * واقعی سرور)؛ فقط بعد از پاسخ *موفق* `ProductAddToCartBar` به‌روز
- * می‌شود (`handleAdded` → `mergeCartAddition`)، پس هیچ‌وقت وضعیتی
- * را نشان نمی‌دهد که واقعاً روی سرور ثبت نشده باشد.
+ * قیمت هر Variant، هرکدام با دکمه حذف مستقیماً از سبد سرور)، جمع
+ * کل هم داخل خودِ دکمه «پرداخت» است (نگاه کنید مستندات خودِ
+ * `ProductCartAdditionsSummary`). `additions` یک State محلی همین
+ * Component است (نه Fetch از سبد واقعی سرور)؛ فقط بعد از پاسخ
+ * *موفق* `ProductAddToCartBar` به‌روز می‌شود (`handleAdded` →
+ * `mergeCartAddition`، با `itemId` واقعی از پاسخ API)، و فقط بعد
+ * از پاسخ *موفق* حذف واقعی هم یک ردیف پاک می‌شود (`handleRemoved`)
+ * — پس هیچ‌وقت وضعیتی را نشان نمی‌دهد که واقعاً روی سرور همین‌طور
+ * نباشد.
  *
  * عمداً بدون بخش «خاستگاه» (رفرنس دارد ولی محصول فرش معادلی ندارد)
  * و بدون توضیحات/ویژگی‌های فنی *عمومی محصول* (طبق دستور صریح
@@ -74,17 +78,25 @@ export function ProductPurchasePanel({
 
   const selectedVariant = variants.find((v) => v.id === selectedVariantId) ?? variants[0] ?? null;
 
-  function handleAdded(variantId: string, addedQuantity: number, finalUnitPrice: number) {
+  function handleAdded(variantId: string, addedQuantity: number, finalUnitPrice: number, itemId: string) {
     const variant = variants.find((v) => v.id === variantId);
     if (!variant) return;
     setAdditions((current) =>
       mergeCartAddition(current, {
         variantId,
+        itemId,
         unitLabel: variant.unit,
         quantity: addedQuantity,
         unitPrice: finalUnitPrice,
       }),
     );
+  }
+
+  // بعد از حذف *موفق* واقعی از سبد سرور (خودِ `DELETE` داخل
+  // `ProductCartAdditionsSummary` انجام می‌شود) — اینجا فقط همان
+  // ردیف از فهرست محلی این صفحه هم پاک می‌شود.
+  function handleRemoved(variantId: string) {
+    setAdditions((current) => current.filter((a) => a.variantId !== variantId));
   }
 
   function handleSelectVariant(variantId: string) {
@@ -157,7 +169,7 @@ export function ProductPurchasePanel({
         )}
       </section>
 
-      <ProductCartAdditionsSummary additions={additions} />
+      <ProductCartAdditionsSummary additions={additions} onRemoved={handleRemoved} />
 
       <ProductAddToCartBar
         productId={productId}

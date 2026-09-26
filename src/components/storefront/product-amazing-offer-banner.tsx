@@ -15,26 +15,26 @@ type ProductAmazingOfferBannerProps = {
  * `ProductCard` نیازی به `invisible`/رزرو فضا نیست).
  *
  * از همان Hook مشترک `useOfferTimer` استفاده می‌کند (اکسپورت‌شده از
- * `product-card.tsx`) تا منطق Progress/Countdown Duplicate نشود —
- * همان الگوی برچسب/تایمر که در همه کارت‌های محصول (صفحه اصلی،
- * دسته‌بندی‌ها، علاقه‌مندی‌ها) استفاده می‌شود، اینجا هم رعایت شده.
+ * `product-card.tsx`) تا منطق Countdown Duplicate نشود — همان
+ * تایمر که در همه کارت‌های محصول (صفحه اصلی، دسته‌بندی‌ها،
+ * علاقه‌مندی‌ها) استفاده می‌شود، اینجا هم رعایت شده.
+ *
+ * **اصلاح‌شده طبق دستور صریح بعدی کارفرما:** رنگ خودِ Badge برعکس
+ * شد — قبلاً زمینه صورتی‌کم‌رنگ + متن/آیکون قرمز بود، حالا زمینه
+ * *یک‌دست قرمز* (`bg-[var(--sf-cherry)]`) با متن/آیکون سفید. نوار
+ * Progress هم کامل حذف شد (نه فقط مخفی — دیگر `elapsedPercent` هم
+ * از `useOfferTimer` استفاده نمی‌شود)؛ فاصله بین Badge و تایمر حالا
+ * با `justify-between` روی خودِ ردیف است، نه یک نوار میانی.
  */
 export function ProductAmazingOfferBanner({ offer }: ProductAmazingOfferBannerProps) {
-  const { elapsedPercent, label } = useOfferTimer(offer.startAt, offer.endAt);
+  const { label } = useOfferTimer(offer.startAt, offer.endAt);
 
   return (
-    <div className="flex items-center gap-2 px-4 pt-4 sm:mx-auto sm:max-w-md sm:px-6">
-      <span className="flex shrink-0 items-center gap-1 rounded-full bg-[var(--sf-cherry-soft)] px-2.5 py-1 text-[11px] font-bold text-[var(--sf-cherry)]">
+    <div className="flex items-center justify-between gap-2 px-4 pt-4 sm:mx-auto sm:max-w-md sm:px-6">
+      <span className="flex shrink-0 items-center gap-1 rounded-full bg-[var(--sf-cherry)] px-2.5 py-1 text-[11px] font-bold text-white">
         <Sparkles className="size-3.5" strokeWidth={2} aria-hidden="true" />
         پیشنهاد شگفت‌انگیز
       </span>
-
-      <div className="h-1 flex-1 overflow-hidden rounded-full bg-[var(--sf-cherry-soft)]">
-        <div
-          className="h-full rounded-full bg-[var(--sf-cherry)] transition-[width]"
-          style={{ width: `${elapsedPercent}%` }}
-        />
-      </div>
 
       {/* شمارش معکوس عمداً LTR است (هم‌الگو با `ProductCard`)، وگرنه
           ترتیب ساعت/دقیقه/ثانیه در صفحه RTL برعکس خوانده می‌شود. */}
