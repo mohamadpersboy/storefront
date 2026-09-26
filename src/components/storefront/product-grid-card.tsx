@@ -1,33 +1,43 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { toPersianDigits, formatNumber, TOMAN_GLYPH } from "@/lib/utils/format";
 import { computeDisplayDiscountPercent } from "@/lib/utils/pricing";
-import type { ProductCardData } from "@/components/storefront/product-card";
+import { useOfferTimer, type ProductCardData } from "@/components/storefront/product-card";
+
+// وقتی محصول Amazing Offer فعال ندارد، Hook باید همچنان صدا زده شود
+// (قانون Hooks) — بی‌خطر است چون کل بلوک با `invisible` پنهان می‌شود.
+// دقیقاً هم‌الگو با همین ثابت در `ProductCard`.
+const NO_OFFER_FALLBACK = "1970-01-01T00:00:00.000Z";
 
 /**
- * کارت محصول Grid دو‌ستونه صفحه دسته‌بندی — عمداً همان الگوی
- * بصری/DOM «بدون بک‌گراند/سایه/Border روی خود کارت» را از
- * `ProductCard` (کارت اسلایدرهای صفحه اصلی) تکرار می‌کند: برچسب
- * «پیشنهاد شگفت‌انگیز» بالای عکس و بج تخفیف کنار قیمت هر دو با
- * `invisible` (نه حذف کامل) پنهان می‌شوند تا فضای‌شان همیشه رزرو
- * بماند — دقیقاً همان دلیل قبلی: کارت‌های یک ردیف/Grid هیچ‌وقت با
- * هم اختلاف ارتفاع پیدا نکنند. خط جداکننده بین کارت‌ها را خودِ
- * `ProductGrid` (با `border-e`/`border-b` روی هر سلول) اضافه می‌کند،
- * نه این Component — چون این‌جا برخلاف اسکرول افقی، هم مرز راست/چپ
- * هم بالا/پایین لازم است.
+ * کارت محصول Grid دو‌ستونه صفحه دسته‌بندی — عیناً همان الگوی بصری
+ * `ProductCard` (کارت اسلایدرهای صفحه اصلی) را تکرار می‌کند: برچسب
+ * «پیشنهاد شگفت‌انگیز» بالای عکس، بج تخفیف کنار قیمت، و
+ * Progress Bar + شمارش‌معکوس پایین کارت — همه با `invisible` (نه حذف
+ * کامل) وقتی محصول Amazing Offer ندارد، تا فضای‌شان همیشه رزرو
+ * بماند و کارت‌های Grid هیچ‌وقت با هم اختلاف ارتفاع پیدا نکنند
+ * (بازخورد صریح کارفرما).
  *
  * طبق قانون «ماژول تأییدشده را تغییر نده»، به‌جای دستکاری خودِ
  * `ProductCard` (که عرض/تصویرش برای اسکرول افقی پیکسل‌ثابت است)، یک
- * Component مستقل با همان الگو ساخته شد.
+ * Component مستقل با همان الگو ساخته شد؛ فقط `useOfferTimer` از آن
+ * فایل Export و اینجا دوباره‌استفاده شده.
  */
 export function ProductGridCard({ item }: { item: ProductCardData }) {
-  const hasOffer = Boolean(item.amazingOffer);
+  const offer = item.amazingOffer ?? null;
+  const { elapsedPercent, label } = useOfferTimer(
+    offer?.startAt ?? NO_OFFER_FALLBACK,
+    offer?.endAt ?? NO_OFFER_FALLBACK,
+  );
+
   const hasRealDiscount = item.finalPrice < item.basePrice;
   const discountPercent = computeDisplayDiscountPercent(item.basePrice, item.finalPrice);
 
   return (
     <Link href={`/products/${item.product.slug}`} className="block">
-      <p className={`mb-2 text-center text-[11px] font-bold text-[var(--sf-cherry)] ${hasOffer ? "" : "invisible"}`}>
+      <p className={`mb-2 text-center text-[11px] font-bold text-[var(--sf-cherry)] ${offer ? "" : "invisible"}`}>
         پیشنهاد شگفت‌انگیز
       </p>
 
@@ -77,6 +87,22 @@ export function ProductGridCard({ item }: { item: ProductCardData }) {
           ) : null}
         </div>
       </div>
+
+      <div
+        className={`mt-2 h-1 w-full overflow-hidden rounded-full bg-[var(--sf-cherry-soft)] ${offer ? "" : "invisible"}`}
+      >
+        <div
+          className="h-full rounded-full bg-[var(--sf-cherry)] transition-[width]"
+          style={{ width: `${elapsedPercent}%` }}
+        />
+      </div>
+      {/* شمارش معکوس عمداً LTR است، وگرنه ترتیب ساعت/دقیقه/ثانیه برعکس خوانده می‌شود. */}
+      <p
+        dir="ltr"
+        className={`mt-1 text-left text-xs font-semibold tracking-widest tabular-nums text-[var(--sf-cherry)] ${offer ? "" : "invisible"}`}
+      >
+        {label}
+      </p>
     </Link>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { digitsOnly, toPersianDigits } from "@/lib/utils/format";
 import {
@@ -24,6 +24,7 @@ const SEARCH_DEBOUNCE_MS = 400;
 export type ActiveCategoryFilters = {
   search: string;
   sort: CategorySortValue;
+  subcategory?: string;
   brand: string[];
   attrs: CategoryAttributeFilter[];
   minPrice?: number;
@@ -94,11 +95,26 @@ function useCategoryFilterActions(basePath: string) {
     });
   }
 
+  function handleSubcategoryChange(slug: string) {
+    pushParams((params) => {
+      if (slug) params.set("subcategory", slug);
+      else params.delete("subcategory");
+    });
+  }
+
   function clearAll() {
     router.push(basePath, { scroll: false });
   }
 
-  return { toggleBrand, toggleAttr, applyPriceRange, handleSearchChange, handleSortChange, clearAll };
+  return {
+    toggleBrand,
+    toggleAttr,
+    applyPriceRange,
+    handleSearchChange,
+    handleSortChange,
+    handleSubcategoryChange,
+    clearAll,
+  };
 }
 
 function hasActiveFilters(active: ActiveCategoryFilters): boolean {
@@ -112,23 +128,35 @@ function hasActiveFilters(active: ActiveCategoryFilters): boolean {
 }
 
 /**
- * نوار ابزار بالای شبکه محصولات: جستجو (Debounce شده) + دکمه فیلتر
- * (فقط موبایل، Drawer را باز می‌کند) + مرتب‌سازی — هم موبایل هم
- * دسکتاپ همین یک نوار را می‌بینند (بند ۱۲ درخواست). فیلترهای
- * برند/ویژگی/قیمت در دسکتاپ داخل `CategoryFilterSidebar` (کنار همین
- * نوار) و در موبایل داخل همین Drawer نمایش داده می‌شوند.
+ * نوار ابزار بالای شبکه محصولات:
+ * ۱) یک نگهدارنده سفید حاشیه‌دار تمام‌عرض شامل باکس جستجو
+ *    (Debounce شده) + دکمه فیلتر (فقط موبایل، Drawer را باز می‌کند،
+ *    در سمت چپ همان نگهدارنده)،
+ * ۲) یک ردیف جدا زیرش با دو Dropdown کنار هم: زیردسته (دسته‌بندی
+ *    سطح دوم) + مرتب‌سازی.
+ * فیلترهای برند/ویژگی/قیمت در دسکتاپ داخل `CategoryFilterSidebar`
+ * (کنار همین نوار) و در موبایل داخل همین Drawer نمایش داده می‌شوند.
  */
 export function CategoryFilterBar({
   basePath,
   active,
   facets,
+  subcategories,
 }: {
   basePath: string;
   active: ActiveCategoryFilters;
   facets: CategoryFacets;
+  subcategories: { id: string; name: string; slug: string }[];
 }) {
-  const { toggleBrand, toggleAttr, applyPriceRange, handleSearchChange, handleSortChange, clearAll } =
-    useCategoryFilterActions(basePath);
+  const {
+    toggleBrand,
+    toggleAttr,
+    applyPriceRange,
+    handleSearchChange,
+    handleSortChange,
+    handleSubcategoryChange,
+    clearAll,
+  } = useCategoryFilterActions(basePath);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -157,24 +185,19 @@ export function CategoryFilterBar({
 
   return (
     <div>
-      {/*
-        سبک این نوار عمداً هم‌الگو با زبان بصری واقعی سایت شد (نه یک
-        طراحی جدید ابداعی): همان دکمه دایره‌ای پرشده خاکستری‌روشن
-        `h-11 w-11 rounded-full bg-gray-100` که در `MobileTopBar`،
-        `NotificationBell`، `PageHeader`، `ProductFavoriteButton` و…
-        همه‌جای Storefront برای دکمه‌های آیکونی تکرار شده — به‌جای
-        Pillهای حاشیه‌دار سفید نسخه قبلی. نقطه فعال روی دکمه فیلتر هم
-        دقیقاً کپی همان Badge نقطه‌ای `NotificationBell` است.
-      */}
-      <div className="flex items-center gap-2">
+      {/* باکس جستجو + دکمه فیلتر، هر دو داخل یک نگهدارنده سفید حاشیه‌دار
+          تمام‌عرض (بازخورد صریح: نه دو عنصر جدا با فاصله). دکمه فیلتر
+          چون فرزند دوم DOM است، در Container راست‌به‌چپ خودبه‌خود در
+          سمت چپ همین نگهدارنده می‌نشیند. */}
+      <div className="flex h-12 w-full items-stretch overflow-hidden rounded-xl border border-black/10 bg-white">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute end-4 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+          <Search className="pointer-events-none absolute start-4 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             value={searchValue}
             onChange={(e) => onSearchInput(e.target.value)}
-            placeholder="جستجوی فرش..."
-            className="h-11 w-full rounded-full bg-gray-100 pe-11 ps-4 text-xs text-[var(--sf-ink)] outline-none placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-[var(--sf-accent)]"
+            placeholder="جستجو در فرش‌ها..."
+            className="h-full w-full bg-transparent ps-10 pe-4 text-xs text-[var(--sf-ink)] outline-none placeholder:text-gray-400"
           />
         </div>
 
@@ -182,26 +205,35 @@ export function CategoryFilterBar({
           type="button"
           onClick={() => setDrawerOpen(true)}
           aria-label="فیلتر"
-          className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 active:bg-gray-200 lg:hidden"
+          className="relative flex w-12 shrink-0 items-center justify-center border-s border-black/10 text-gray-500 active:bg-gray-50 lg:hidden"
         >
           <SlidersHorizontal className="size-5" strokeWidth={1.75} aria-hidden="true" />
           {activeFiltersExist && (
             <span className="absolute end-2.5 top-2.5 h-2 w-2 rounded-full bg-[var(--color-primary)] ring-2 ring-white" />
           )}
         </button>
+      </div>
 
-        <select
+      {/* ردیف Dropdownهای زیردسته + مرتب‌سازی، کنار هم در یک خط. */}
+      <div className="mt-2 flex gap-2">
+        {subcategories.length > 0 ? (
+          <FilterDropdown
+            ariaLabel="زیردسته"
+            value={active.subcategory ?? ""}
+            onChange={handleSubcategoryChange}
+            options={[
+              { value: "", label: "همه زیردسته‌ها" },
+              ...subcategories.map((s) => ({ value: s.slug, label: s.name })),
+            ]}
+          />
+        ) : null}
+
+        <FilterDropdown
+          ariaLabel="مرتب‌سازی"
           value={active.sort}
-          onChange={(e) => handleSortChange(e.target.value as CategorySortValue)}
-          className="h-11 shrink-0 rounded-full bg-gray-100 px-3 text-xs font-bold text-[var(--sf-ink)]/70 outline-none"
-          aria-label="مرتب‌سازی"
-        >
-          {SORT_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              مرتب‌سازی: {opt.label}
-            </option>
-          ))}
-        </select>
+          onChange={(value) => handleSortChange(value as CategorySortValue)}
+          options={SORT_OPTIONS.map((opt) => ({ value: opt.value, label: `مرتب‌سازی: ${opt.label}` }))}
+        />
       </div>
 
       {drawerOpen ? (
@@ -303,6 +335,42 @@ export function CategoryFilterSidebar({
         onPriceBlur={() => applyPriceRange(priceMin, priceMax)}
       />
     </aside>
+  );
+}
+
+/**
+ * یک Dropdown سفارشی روی `<select>` بومی (نه یک Library جدید) —
+ * `appearance-none` پیکان پیش‌فرض مرورگر را حذف می‌کند و یک آیکون
+ * `ChevronDown` ثابت جایگزینش می‌شود؛ فقط ظاهر عوض شده، رفتار
+ * Native Select (شامل تجربه انتخاب مناسب موبایل) دست‌نخورده می‌ماند.
+ */
+function FilterDropdown({
+  ariaLabel,
+  value,
+  onChange,
+  options,
+}: {
+  ariaLabel: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="relative flex-1">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={ariaLabel}
+        className="h-11 w-full appearance-none rounded-xl border border-black/10 bg-white ps-3 pe-9 text-xs font-bold text-[var(--sf-ink)]/80 outline-none focus:border-[var(--sf-accent)]"
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+    </div>
   );
 }
 

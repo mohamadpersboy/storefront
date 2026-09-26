@@ -35,8 +35,13 @@ export type ProductCardData = {
   amazingOffer?: ProductCardAmazingOffer | null;
 };
 
-/** فقط برای Progress Bar/Countdown — تشخیص نهایی وضعیت Offer همیشه با Backend است (`getAmazingOfferStatus`). */
-function useOfferTimer(startAt: string, endAt: string) {
+/**
+ * فقط برای Progress Bar/Countdown — تشخیص نهایی وضعیت Offer همیشه با
+ * Backend است (`getAmazingOfferStatus`). Export شده چون
+ * `ProductGridCard` (صفحه دسته‌بندی) هم برای همین منظور به همین
+ * منطق نیاز دارد — طبق قانون «از ایجاد کد Duplicate خودداری کن».
+ */
+export function useOfferTimer(startAt: string, endAt: string) {
   const start = new Date(startAt).getTime();
   const end = new Date(endAt).getTime();
   const [now, setNow] = useState<number | null>(null);

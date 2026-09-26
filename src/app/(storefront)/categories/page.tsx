@@ -51,22 +51,28 @@ export default async function CategoriesIndexPage() {
       <PageHeader title="دسته‌بندی فرش‌ها" />
 
       <div className="px-4 py-3 sm:px-6">
-        {/* هم‌الگو با دکمه‌های آیکونی خاکستری‌روشن سراسر Storefront
-            (`MobileTopBar`, `NotificationBell`, ...) — نه Pill حاشیه‌دار سفید. */}
-        <form action="/categories/all" method="GET" className="flex items-center gap-2">
+        {/* یک نگهدارنده سفید حاشیه‌دار تمام‌عرض شامل باکس جستجو + دکمه
+            فیلتر — عیناً هم‌الگو با نوار جستجوی `/categories/[slug]`
+            (`CategoryFilterBar`) تا هر دو صفحه یک زبان بصری واحد
+            داشته باشند. */}
+        <form
+          action="/categories/all"
+          method="GET"
+          className="flex h-12 w-full items-stretch overflow-hidden rounded-xl border border-black/10 bg-white"
+        >
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute end-4 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+            <Search className="pointer-events-none absolute start-4 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               name="search"
-              placeholder="جستجوی فرش..."
-              className="h-11 w-full rounded-full bg-gray-100 pe-11 ps-4 text-xs text-[var(--sf-ink)] outline-none placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-[var(--sf-accent)]"
+              placeholder="جستجو در فرش‌ها..."
+              className="h-full w-full bg-transparent ps-10 pe-4 text-xs text-[var(--sf-ink)] outline-none placeholder:text-gray-400"
             />
           </div>
           <button
             type="submit"
             aria-label="فیلتر"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 active:bg-gray-200"
+            className="flex w-12 shrink-0 items-center justify-center border-s border-black/10 text-gray-500 active:bg-gray-50"
           >
             <SlidersHorizontal className="size-5" strokeWidth={1.75} aria-hidden="true" />
           </button>

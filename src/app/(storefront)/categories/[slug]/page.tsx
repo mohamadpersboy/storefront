@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { PackageSearch } from "lucide-react";
 import { PageHeader } from "@/components/storefront/page-header";
 import { BreadcrumbNav } from "@/components/storefront/breadcrumb-nav";
-import { SubcategoryTabs } from "@/components/storefront/subcategory-tabs";
 import { CategoryFilterBar, CategoryFilterSidebar } from "@/components/storefront/category-filter-bar";
 import { ProductGrid } from "@/components/storefront/product-grid";
 import { CategoryPagination } from "@/components/storefront/category-pagination";
@@ -90,6 +89,7 @@ export default async function CategoryDetailPage({ params, searchParams }: Categ
   const activeFilters = {
     search: query.search ?? "",
     sort: query.sort,
+    subcategory: query.subcategory,
     brand: query.brand,
     attrs: query.attrs,
     minPrice: query.minPrice,
@@ -109,19 +109,13 @@ export default async function CategoryDetailPage({ params, searchParams }: Categ
           ]}
         />
 
-        <SubcategoryTabs
-          subcategories={subcategories}
-          activeSlug={query.subcategory}
-          buildHref={(subSlug) => {
-            const params = new URLSearchParams();
-            if (subSlug) params.set("subcategory", subSlug);
-            const qs = params.toString();
-            return qs ? `${basePath}?${qs}` : basePath;
-          }}
-        />
-
         <div className="mt-3">
-          <CategoryFilterBar basePath={basePath} active={activeFilters} facets={facets} />
+          <CategoryFilterBar
+            basePath={basePath}
+            active={activeFilters}
+            facets={facets}
+            subcategories={subcategories}
+          />
         </div>
 
         <div className="mt-4 lg:flex lg:items-start lg:gap-4">
