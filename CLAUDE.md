@@ -1164,6 +1164,28 @@ Phaseهای Homepage):**
   دستکاری دستی `localStorage`)، عدم تداخل بنر با `ProductAddToCartBar`
   در صفحه محصول.
 
+**اصلاح Layout کارت شگفت‌انگیز در صفحه «علاقه‌مندی‌ها»
+(`FavoriteProductCard`)، به درخواست صریح کارفرما:**
+- برچسب «پیشنهاد شگفت‌انگیز» + تایمر شمارش معکوس اکنون در یک ردیف
+  واحد **بالای عنوان محصول** قرار دارند (قبلاً فقط متن ساده بدون
+  تایمر، پایین عنوان بود). فضای خالی بین برچسب و تایمر با یک نوار
+  Progress (همان منطق `elapsedPercent`) پر می‌شود — نه یک Gap خالی.
+  از همان Hook مشترک `useOfferTimer` (اکسپورت‌شده از `product-card.tsx`)
+  استفاده شد تا کد Duplicate نشود؛ ثابت `NO_OFFER_FALLBACK` هم برای
+  همین منظور از آن فایل Export شد. وقتی Offer فعالی نیست، کل ردیف با
+  `invisible` پنهان می‌شود اما فضا رزرو می‌ماند (هم‌الگو با
+  `ProductCard`).
+- نقطه‌های رنگ (`colors`) از ستون محتوا (کنار عنوان) به **زیر تصویر
+  محصول، وسط‌چین** منتقل شدند (داخل همان `Link` تصویر، بعد از
+  `div` تصویر).
+- فایل تغییر‌یافته: `src/components/storefront/favorite-product-card.tsx`.
+  فایل `src/components/storefront/product-card.tsx` فقط یک تغییر
+  کوچک دارد: `NO_OFFER_FALLBACK` از `const` محلی به `export const`
+  تبدیل شد (بدون تغییر رفتاری در خود `ProductCard`).
+- بدون Model/API/Environment Variable جدید — صرفاً تغییر UI.
+  تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۴۷۹ تست، بدون تغییر — این
+  ماژول منطق Pure Function جدیدی نداشت)، Build ✅.
+
 ## 3. Completed Features
 
 - ✅ Bootstrap پروژه (Next.js 16.3، TypeScript، Tailwind v4، فونت،

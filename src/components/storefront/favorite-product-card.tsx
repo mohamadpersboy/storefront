@@ -6,7 +6,11 @@ import Image from "next/image";
 import { Heart } from "lucide-react";
 import { toPersianDigits, formatNumber, TOMAN_GLYPH } from "@/lib/utils/format";
 import { computeDisplayDiscountPercent } from "@/lib/utils/pricing";
-import type { ProductCardData } from "@/components/storefront/product-card";
+import {
+  useOfferTimer,
+  NO_OFFER_FALLBACK,
+  type ProductCardData,
+} from "@/components/storefront/product-card";
 
 type FavoriteProductCardProps = {
   item: ProductCardData;
@@ -28,6 +32,11 @@ type FavoriteProductCardProps = {
  */
 export function FavoriteProductCard({ item, onRemoved }: FavoriteProductCardProps) {
   const [pending, setPending] = useState(false);
+  const offer = item.amazingOffer ?? null;
+  const { elapsedPercent, label } = useOfferTimer(
+    offer?.startAt ?? NO_OFFER_FALLBACK,
+    offer?.endAt ?? NO_OFFER_FALLBACK,
+  );
   const hasRealDiscount = item.finalPrice < item.basePrice;
   const discountPercent = computeDisplayDiscountPercent(item.basePrice, item.finalPrice);
 
@@ -66,9 +75,43 @@ export function FavoriteProductCard({ item, onRemoved }: FavoriteProductCardProp
             className="object-cover"
           />
         </div>
+
+        {item.colors.length > 1 ? (
+          <div className="mt-1.5 flex items-center justify-center gap-1">
+            {item.colors.slice(0, 5).map((color) => (
+              <span
+                key={color.id}
+                className="size-2.5 shrink-0 rounded-full ring-1 ring-black/10"
+                style={{ backgroundColor: color.hexCode }}
+              />
+            ))}
+          </div>
+        ) : null}
       </Link>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {/* برچسب «شگفت‌انگیز» + تایمر همیشه بالای عنوان، در یک ردیف؛
+            نوار Progress فضای خالی بین برچسب و تایمر را پر می‌کند —
+            وقتی Offer فعالی نیست با `invisible` پنهان می‌شود اما فضا
+            رزرو می‌ماند (هم‌الگو با `ProductCard`). */}
+        <div className={`mb-1.5 flex items-center gap-2 ${offer ? "" : "invisible"}`}>
+          <span className="shrink-0 text-[11px] font-bold text-[var(--sf-cherry)]">
+            پیشنهاد شگفت‌انگیز
+          </span>
+          <div className="h-1 flex-1 overflow-hidden rounded-full bg-[var(--sf-cherry-soft)]">
+            <div
+              className="h-full rounded-full bg-[var(--sf-cherry)] transition-[width]"
+              style={{ width: `${elapsedPercent}%` }}
+            />
+          </div>
+          <span
+            dir="ltr"
+            className="shrink-0 text-[11px] font-semibold tracking-widest tabular-nums text-[var(--sf-cherry)]"
+          >
+            {label}
+          </span>
+        </div>
+
         <div className="flex items-start justify-between gap-2">
           <Link
             href={`/products/${item.product.slug}`}
@@ -90,22 +133,6 @@ export function FavoriteProductCard({ item, onRemoved }: FavoriteProductCardProp
             />
           </button>
         </div>
-
-        {item.colors.length > 1 ? (
-          <div className="mt-1 flex items-center gap-1">
-            {item.colors.slice(0, 5).map((color) => (
-              <span
-                key={color.id}
-                className="size-2.5 shrink-0 rounded-full ring-1 ring-black/10"
-                style={{ backgroundColor: color.hexCode }}
-              />
-            ))}
-          </div>
-        ) : null}
-
-        {item.amazingOffer ? (
-          <p className="mt-1 text-[11px] font-bold text-[var(--sf-cherry)]">پیشنهاد شگفت‌انگیز</p>
-        ) : null}
 
         <div className="mt-auto flex items-end justify-between gap-2 pt-2">
           <span

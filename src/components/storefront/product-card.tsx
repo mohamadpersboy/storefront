@@ -73,7 +73,9 @@ export function useOfferTimer(startAt: string, endAt: string) {
 // وقتی محصول Amazing Offer فعال ندارد، هوک باید همچنان صدا زده شود
 // (قانون Hooks: نمی‌توان Hook را شرطی صدا زد) — این مقدار بی‌اثر و
 // بی‌خطر است چون در این حالت کل بلوک با `invisible` پنهان می‌شود.
-const NO_OFFER_FALLBACK = "1970-01-01T00:00:00.000Z";
+// Export شده چون `FavoriteProductCard` هم برای همین منظور به همین
+// مقدار نیاز دارد — طبق قانون «از ایجاد کد Duplicate خودداری کن».
+export const NO_OFFER_FALLBACK = "1970-01-01T00:00:00.000Z";
 
 /**
  * کارت مشترک محصول برای همهٔ ردیف‌های صفحه اصلی (شگفت‌انگیزها،
