@@ -22,6 +22,51 @@ export function computeSelectionTotal(finalUnitPrice: number, quantity: number):
   return finalUnitPrice * quantity;
 }
 
+/**
+ * یک ردیف «افزوده‌شده به سبد از این محصول» (`ProductCartAdditionsSummary`)
+ * — فقط State محلی همین بازدید صفحه (نه Fetch از سبد واقعی سرور)،
+ * طبق دستور صریح کارفرما: هر بار که کاربر از همین صفحه محصول به سبد
+ * اضافه می‌کند، همان Variant/تعداد/قیمت اینجا نمایش داده شود.
+ */
+export type CartAddition = {
+  variantId: string;
+  /** برچسب نمایشی واحد فروش، دقیقاً همان `variant.unit` (مثلاً «۱۲ متری»). */
+  unitLabel: string;
+  quantity: number;
+  /** قیمت نهایی واحد در لحظه افزودن (`finalUnitPrice`). */
+  unitPrice: number;
+};
+
+/**
+ * یک افزودن تازه را با فهرست قبلی ادغام می‌کند — اگر همان Variant
+ * قبلاً هم اضافه شده باشد، تعداد جمع می‌شود (نه یک ردیف تکراری)؛
+ * `unitPrice` به آخرین مقدار به‌روزرسانی می‌شود (اگر قیمت بین دو بار
+ * افزودن تغییر کرده باشد). تابع خالص است — یک آرایه *جدید* برمی‌گرداند،
+ * آرایه ورودی را تغییر نمی‌دهد.
+ */
+export function mergeCartAddition(
+  additions: CartAddition[],
+  addition: CartAddition,
+): CartAddition[] {
+  const existingIndex = additions.findIndex((a) => a.variantId === addition.variantId);
+  if (existingIndex === -1) {
+    return [...additions, addition];
+  }
+
+  const merged = [...additions];
+  merged[existingIndex] = {
+    ...merged[existingIndex],
+    quantity: merged[existingIndex].quantity + addition.quantity,
+    unitPrice: addition.unitPrice,
+  };
+  return merged;
+}
+
+/** جمع کل تمام ردیف‌های افزوده‌شده = مجموع (تعداد × قیمت واحد) هر ردیف. */
+export function computeCartAdditionsTotal(additions: CartAddition[]): number {
+  return additions.reduce((sum, a) => sum + a.quantity * a.unitPrice, 0);
+}
+
 export type VariantDetailSegment =
   | { type: "color"; name: string; hex: string | null }
   | { type: "attribute"; name: string; value: string };

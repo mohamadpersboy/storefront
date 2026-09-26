@@ -13,6 +13,14 @@ type ProductAddToCartBarProps = {
   quantity: number;
   finalUnitPrice: number;
   isOutOfStock: boolean;
+  /**
+   * فقط بعد از پاسخ موفق واقعی API صدا زده می‌شود (نه Optimistic) —
+   * `ProductPurchasePanel` این مقادیر را برای ردیف
+   * `ProductCartAdditionsSummary` نگه می‌دارد. مقادیر همان `variantId`/
+   * `quantity`/`finalUnitPrice` لحظهٔ کلیک هستند (از طریق Closure
+   * خودِ `handleAddToCart`)، نه هر مقدار جدیدی که بعداً کاربر انتخاب کند.
+   */
+  onAdded?: (variantId: string, quantity: number, finalUnitPrice: number) => void;
 };
 
 const SUCCESS_FEEDBACK_MS = 1500;
@@ -33,6 +41,7 @@ export function ProductAddToCartBar({
   quantity,
   finalUnitPrice,
   isOutOfStock,
+  onAdded,
 }: ProductAddToCartBarProps) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -66,6 +75,7 @@ export function ProductAddToCartBar({
       }
 
       setSuccess(true);
+      onAdded?.(variantId, quantity, finalUnitPrice);
       setTimeout(() => setSuccess(false), SUCCESS_FEEDBACK_MS);
     } catch {
       setErrorMessage("خطا در برقراری ارتباط — دوباره تلاش کنید");

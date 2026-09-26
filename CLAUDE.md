@@ -1186,6 +1186,50 @@ Phaseهای Homepage):**
   تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۴۷۹ تست، بدون تغییر — این
   ماژول منطق Pure Function جدیدی نداشت)، Build ✅.
 
+**صفحه جزئیات محصول — دو افزودهٔ مستقل، طبق دستور صریح بعدی
+کارفرما:**
+
+1. **برچسب «پیشنهاد شگفت‌انگیز» + تایمر بالای گالری تصاویر:**
+   `getProductDetailBySlug` حالا `amazingOffer` را هم برمی‌گرداند
+   (با همان `getActiveAmazingOffersByProductId` مشترک بقیه صفحات —
+   بدون Query Duplicate). کامپوننت تازه
+   `src/components/storefront/product-amazing-offer-banner.tsx` از
+   همان Hook `useOfferTimer` (حالا Export‌شده از `product-card.tsx`)
+   استفاده می‌کند و فقط وقتی `product.amazingOffer` مقدار داشته
+   باشد در `page.tsx`، درست بالای `ProductImageGallery`، رندر
+   می‌شود — برخلاف `ProductCard`، اینجا نیازی به `invisible`/رزرو
+   فضا نیست چون صفحه تک‌محصولی است.
+2. **بخش «از این محصول به سبد اضافه شد» (بین Stepper تعداد و کارت
+   توضیحات):** کامپوننت تازه
+   `src/components/storefront/product-cart-additions-summary.tsx`
+   — یک ردیف به‌ازای هر Variant که کاربر از همین صفحه با موفقیت به
+   سبد اضافه کرده (برچسب واحد × تعداد، با یک خط‌چین/Dot-Leader تا
+   قیمت آن ردیف؛ همان الگو برای ردیف «جمع کل سفارش این محصول»)، به‌
+   همراه دکمهٔ «رفتن به سبد خرید» (`/cart`). ظاهر طبق دستور دقیق:
+   بدون بک‌گراند، فقط یک `border-dashed` دور کل بخش.
+   - State آن (`additions: CartAddition[]`) داخل خودِ
+     `ProductPurchasePanel` نگه داشته می‌شود — Fetch از سبد واقعی
+     سرور نیست، فقط بعد از پاسخ *موفق* واقعی
+     `POST /api/v1/cart/items` به‌روز می‌شود: `ProductAddToCartBar`
+     یک Prop تازه `onAdded(variantId, quantity, finalUnitPrice)`
+     گرفت که فقط در مسیر موفق صدا زده می‌شود؛ `ProductPurchasePanel`
+     با تابع خالص تازه `mergeCartAddition` (در
+     `product-purchase-math.ts`، تست واحد کامل) همان Variant را در
+     صورت افزودن دوباره جمع می‌زند (تعداد جمع، قیمت واحد به‌روز)
+     به‌جای ساختن ردیف تکراری. `computeCartAdditionsTotal` هم برای
+     جمع کل. تا وقتی چیزی اضافه نشده، کل بخش رندر نمی‌شود.
+
+بدون Model/API/Environment Variable جدید — هر دو صرفاً UI + یک
+Query موجود (Amazing Offer) + State محلی صفحه. فایل‌های تغییریافته:
+`get-product-detail.ts`، `product-add-to-cart-bar.tsx`،
+`product-purchase-panel.tsx`، `product-purchase-math.ts`،
+`(storefront)/products/[slug]/page.tsx`، و دو فایل تازه بالا
+(`product-amazing-offer-banner.tsx`،
+`product-cart-additions-summary.tsx`؛ `useOfferTimer` از قبل
+Export بود، `product-card.tsx` تغییر نکرد). تست‌ها:
+TypeScript ✅، ESLint ✅، Vitest (۴۸۶ تست — ۷ تست تازه برای
+`mergeCartAddition`/`computeCartAdditionsTotal`) ✅، Build ✅.
+
 ## 3. Completed Features
 
 - ✅ Bootstrap پروژه (Next.js 16.3، TypeScript، Tailwind v4، فونت،

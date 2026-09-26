@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { formatNumber, TOMAN_GLYPH, toPersianDigits } from "@/lib/utils/format";
 import { computeDisplayDiscountPercent } from "@/lib/utils/pricing";
-import { clampQuantity } from "@/lib/storefront/product-purchase-math";
+import { clampQuantity, mergeCartAddition, type CartAddition } from "@/lib/storefront/product-purchase-math";
 import type { ProductDetailVariant } from "@/lib/storefront/get-product-detail";
 import { ProductVariantSelector } from "@/components/storefront/product-variant-selector";
 import { ProductVariantDetails } from "@/components/storefront/product-variant-details";
 import { ProductQuantityStepper } from "@/components/storefront/product-quantity-stepper";
 import { ProductAddToCartBar } from "@/components/storefront/product-add-to-cart-bar";
+import { ProductCartAdditionsSummary } from "@/components/storefront/product-cart-additions-summary";
 
 type ProductPurchasePanelProps = {
   productId: string;
@@ -43,6 +44,15 @@ type ProductPurchasePanelProps = {
  * توضیحات یک فاصله بزرگ بی‌معنی ایجاد می‌کرد، چون این پنل همیشه
  * قبل از توضیحات رندر می‌شد، نه لزوماً آخرین بخش صفحه).
  *
+ * **افزوده‌شده طبق دستور صریح بعدی کارفرما:** `ProductCartAdditionsSummary`
+ * بین Stepper تعداد و کارت توضیحات محصول — فهرست Variantهایی که
+ * کاربر از همین صفحه با موفقیت به سبد اضافه کرده (تعداد + جمع
+ * قیمت هر Variant + جمع کل)، به‌همراه دکمه «رفتن به سبد خرید».
+ * `additions` یک State محلی همین Component است (نه Fetch از سبد
+ * واقعی سرور)؛ فقط بعد از پاسخ *موفق* `ProductAddToCartBar` به‌روز
+ * می‌شود (`handleAdded` → `mergeCartAddition`)، پس هیچ‌وقت وضعیتی
+ * را نشان نمی‌دهد که واقعاً روی سرور ثبت نشده باشد.
+ *
  * عمداً بدون بخش «خاستگاه» (رفرنس دارد ولی محصول فرش معادلی ندارد)
  * و بدون توضیحات/ویژگی‌های فنی *عمومی محصول* (طبق دستور صریح
  * کارفرما: فعلاً طراحی نشود تا دستور بعدی) — این با ویژگی‌های فنی
@@ -58,8 +68,24 @@ export function ProductPurchasePanel({
     defaultVariantId ?? variants[0]?.id ?? "",
   );
   const [quantity, setQuantity] = useState(1);
+  // فقط State محلی همین بازدید صفحه — نه Fetch از سبد واقعی سرور
+  // (نگاه کنید مستندات `ProductCartAdditionsSummary`).
+  const [additions, setAdditions] = useState<CartAddition[]>([]);
 
   const selectedVariant = variants.find((v) => v.id === selectedVariantId) ?? variants[0] ?? null;
+
+  function handleAdded(variantId: string, addedQuantity: number, finalUnitPrice: number) {
+    const variant = variants.find((v) => v.id === variantId);
+    if (!variant) return;
+    setAdditions((current) =>
+      mergeCartAddition(current, {
+        variantId,
+        unitLabel: variant.unit,
+        quantity: addedQuantity,
+        unitPrice: finalUnitPrice,
+      }),
+    );
+  }
 
   function handleSelectVariant(variantId: string) {
     setSelectedVariantId(variantId);
@@ -131,12 +157,15 @@ export function ProductPurchasePanel({
         )}
       </section>
 
+      <ProductCartAdditionsSummary additions={additions} />
+
       <ProductAddToCartBar
         productId={productId}
         variantId={selectedVariant.id}
         quantity={quantity}
         finalUnitPrice={selectedVariant.finalPrice}
         isOutOfStock={isOutOfStock}
+        onAdded={handleAdded}
       />
     </>
   );

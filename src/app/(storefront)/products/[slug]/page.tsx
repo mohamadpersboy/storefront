@@ -9,6 +9,7 @@ import {
 } from "@/lib/storefront/get-related-products";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { ProductTopBar } from "@/components/storefront/product-top-bar";
+import { ProductAmazingOfferBanner } from "@/components/storefront/product-amazing-offer-banner";
 import { ProductImageGallery } from "@/components/storefront/product-image-gallery";
 import { ProductInfoHeader } from "@/components/storefront/product-info-header";
 import { ProductPurchasePanel } from "@/components/storefront/product-purchase-panel";
@@ -55,6 +56,15 @@ type ProductDetailPageProps = {
  * **نکته مهم دربارهٔ Chip دسته‌بندی:** مقصد `/categories/{slug}`
  * هنوز در Storefront ساخته نشده — نگاه کنید یادداشت در
  * `ProductInfoHeader`.
+ *
+ * **افزوده‌شده طبق دستور صریح بعدی کارفرما:** اگر همین محصول همین
+ * الان یک Amazing Offer فعال داشته باشد (`product.amazingOffer` از
+ * `get-product-detail.ts`، با همان `getActiveAmazingOffersByProductId`
+ * مشترک بقیه صفحات)، برچسب «پیشنهاد شگفت‌انگیز» + تایمر
+ * (`ProductAmazingOfferBanner`) بالای گالری تصاویر نمایش داده
+ * می‌شود؛ در غیر این صورت این بخش اصلاً رندر نمی‌شود (برخلاف
+ * `ProductCard` که برای هم‌ترازی ردیف با `invisible` فضا رزرو
+ * می‌کند — اینجا نیازی به آن نیست چون این صفحه تک‌محصولی است).
  *
  * **باگ رفع‌شده (خطای سرور واقعی گزارش‌شده روی همین صفحه):** دو
  * Query ردیف‌های محصول مرتبط با `Promise.allSettled` (نه
@@ -119,6 +129,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
         initialIsFavorite={isFavorite}
         priceHistory={priceHistory}
       />
+      {product.amazingOffer && <ProductAmazingOfferBanner offer={product.amazingOffer} />}
       <ProductImageGallery images={product.images} productTitle={product.title} />
       <ProductInfoHeader
         title={product.title}

@@ -13,7 +13,10 @@ import { Product } from "@/models/Product";
 // جزئیات محصول.
 import "@/models/Brand";
 import { computeFinalPrice } from "@/lib/utils/pricing";
-import { pickRepresentativeVariant } from "@/lib/storefront/homepage-products";
+import {
+  getActiveAmazingOffersByProductId,
+  pickRepresentativeVariant,
+} from "@/lib/storefront/homepage-products";
 import type { ProductGalleryImage } from "@/components/storefront/product-image-gallery";
 
 export type ProductDetailVariant = {
@@ -65,6 +68,15 @@ export type ProductDetailData = {
    * برای اولین Render (قبل از هر تعامل) است.
    */
   price: { basePrice: number; finalPrice: number } | null;
+  /**
+   * فقط اگر همین محصول همین الان یک Amazing Offer فعال هم داشته
+   * باشد پر می‌شود؛ در غیر این صورت `null`. برای برچسب «پیشنهاد
+   * شگفت‌انگیز» + تایمر بالای گالری تصاویر (`ProductAmazingOfferBanner`)
+   * — طبق همان قانون «هر جا کارتی وجود داشته باشه» که در
+   * `getActiveAmazingOffersByProductId` مستند شده، صفحه جزئیات
+   * محصول هم باید همین برچسب را نشان بدهد.
+   */
+  amazingOffer: { startAt: string; endAt: string } | null;
 };
 
 /** فیلدهای لازم برای این فاز. */
@@ -122,6 +134,9 @@ export async function getProductDetailBySlug(
     .lean();
 
   if (!product) return null;
+
+  const offerByProductId = await getActiveAmazingOffersByProductId([product._id]);
+  const activeOffer = offerByProductId.get(String(product._id));
 
   const representativeVariant = pickRepresentativeVariant(product.variants ?? []);
   const price = representativeVariant
@@ -193,5 +208,8 @@ export async function getProductDetailBySlug(
     variants,
     defaultVariantId: representativeVariant ? String(representativeVariant._id) : null,
     price,
+    amazingOffer: activeOffer
+      ? { startAt: activeOffer.startAt.toISOString(), endAt: activeOffer.endAt.toISOString() }
+      : null,
   };
 }
