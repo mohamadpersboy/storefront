@@ -1,4 +1,4 @@
-import type { Types } from "mongoose";
+import { Types } from "mongoose";
 import { Product } from "@/models/Product";
 import { Category } from "@/models/Category";
 import { Brand } from "@/models/Brand";
@@ -155,7 +155,10 @@ export async function getCategoryFacets(categoryIds: string[] | null): Promise<C
     status: "published",
     "images.0": { $exists: true },
   };
-  if (categoryIds) baseMatch.category = { $in: categoryIds };
+  // برخلاف `.find()` (که Mongoose خودش رشته را به ObjectId Cast می‌کند)،
+  // `.aggregate()` خام است — بدون تبدیل صریح، هیچ محصولی با این فیلتر
+  // Match نمی‌شد (باگ گزارش‌شده: صفحه اختصاصی دسته همیشه خالی بود).
+  if (categoryIds) baseMatch.category = { $in: categoryIds.map((id) => new Types.ObjectId(id)) };
 
   const [brandRows, attributeRows] = await Promise.all([
     Product.aggregate<{ _id: Types.ObjectId }>([
@@ -246,7 +249,9 @@ export async function getCategoryProducts(
     status: "published",
     "images.0": { $exists: true },
   };
-  if (categoryIds) match.category = { $in: categoryIds };
+  // نگاه کنید توضیح مشابه در `getCategoryFacets`: `.aggregate()` رشته را
+  // خودکار به ObjectId تبدیل نمی‌کند.
+  if (categoryIds) match.category = { $in: categoryIds.map((id) => new Types.ObjectId(id)) };
 
   if (brandSlugs.length > 0) {
     const brands = (await Brand.find({ slug: { $in: brandSlugs } })

@@ -142,11 +142,14 @@ export function CategoryFilterBar({
   active,
   facets,
   subcategories,
+  searchPlaceholder = "جستجو در فرش‌ها...",
 }: {
   basePath: string;
   active: ActiveCategoryFilters;
   facets: CategoryFacets;
   subcategories: { id: string; name: string; slug: string }[];
+  /** مثلاً «جستجو در فرش ماشینی...» — پیش‌فرض عمومی برای وقتی صفحه به یک دسته خاص محدود نیست. */
+  searchPlaceholder?: string;
 }) {
   const {
     toggleBrand,
@@ -196,7 +199,7 @@ export function CategoryFilterBar({
             type="text"
             value={searchValue}
             onChange={(e) => onSearchInput(e.target.value)}
-            placeholder="جستجو در فرش‌ها..."
+            placeholder={searchPlaceholder}
             className="h-full w-full bg-transparent ps-10 pe-4 text-xs text-[var(--sf-ink)] outline-none placeholder:text-gray-400"
           />
         </div>

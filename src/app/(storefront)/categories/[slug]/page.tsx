@@ -115,6 +115,7 @@ export default async function CategoryDetailPage({ params, searchParams }: Categ
             active={activeFilters}
             facets={facets}
             subcategories={subcategories}
+            searchPlaceholder={isAll ? "جستجو در فرش‌ها..." : `جستجو در ${pageTitle}...`}
           />
         </div>
 
