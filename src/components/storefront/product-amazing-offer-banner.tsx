@@ -8,42 +8,48 @@ type ProductAmazingOfferBannerProps = {
 };
 
 /**
- * برچسب «پیشنهاد شگفت‌انگیز» + تایمر شمارش معکوس، بالای گالری تصاویر
- * صفحه جزئیات محصول — فقط وقتی رندر می‌شود که همین محصول یک Amazing
- * Offer فعال داشته باشد (`product.amazingOffer` در `get-product-detail.ts`،
- * `null` در غیر این صورت، پس اینجا شرطی رندر می‌شود و برخلاف
- * `ProductCard` نیازی به `invisible`/رزرو فضا نیست).
+ * کارت «پیشنهاد شگفت‌انگیز» بالای گالری تصاویر صفحه جزئیات محصول —
+ * فقط وقتی رندر می‌شود که همین محصول یک Amazing Offer فعال داشته
+ * باشد (`product.amazingOffer` در `get-product-detail.ts`، `null`
+ * در غیر این صورت — پس اینجا شرطی رندر می‌شود، برخلاف `ProductCard`
+ * که برای هم‌ترازی ردیف با `invisible` فضا رزرو می‌کند؛ این صفحه
+ * تک‌محصولی است، نیازی به آن نیست).
  *
  * از همان Hook مشترک `useOfferTimer` استفاده می‌کند (اکسپورت‌شده از
- * `product-card.tsx`) تا منطق Countdown Duplicate نشود — همان
- * تایمر که در همه کارت‌های محصول (صفحه اصلی، دسته‌بندی‌ها،
- * علاقه‌مندی‌ها) استفاده می‌شود، اینجا هم رعایت شده.
+ * `product-card.tsx`) تا منطق Countdown Duplicate نشود.
  *
- * **اصلاح‌شده طبق دستور صریح بعدی کارفرما:** رنگ خودِ Badge برعکس
- * شد — قبلاً زمینه صورتی‌کم‌رنگ + متن/آیکون قرمز بود، حالا زمینه
- * *یک‌دست قرمز* (`bg-[var(--sf-cherry)]`) با متن/آیکون سفید. نوار
- * Progress هم کامل حذف شد (نه فقط مخفی — دیگر `elapsedPercent` هم
- * از `useOfferTimer` استفاده نمی‌شود)؛ فاصله بین Badge و تایمر حالا
- * با `justify-between` روی خودِ ردیف است، نه یک نوار میانی.
+ * **نسخه دوم، طبق دستور دقیق بعدی کارفرما (نسخه اول یک Badge
+ * جداگانه گرد + نوار Progress بود):**
+ * - دیگر یک Badge/Pill مجزا برای برچسب نیست — برچسب و تایمر هر دو
+ *   *داخل یک کارت واحد* هستند: زمینه قرمز کم‌رنگ
+ *   (`bg-[var(--sf-cherry-soft)]`) + مرز قرمز پررنگ
+ *   (`border-2 border-[var(--sf-cherry)]`)، با Padding.
+ * - برچسب سمت راست (اول در DOM، چون RTL)، تایمر سمت چپ
+ *   (`justify-between`).
+ * - فونت تایمر کمی بزرگ‌تر از قبل (`text-base` به‌جای `text-xs`) و
+ *   وزن ۳۰۰ (`font-light`) — برخلاف بقیه اعداد/قیمت‌های صفحه که
+ *   `font-semibold`/`font-bold` هستند، اینجا عمداً سبک‌تر خواسته شد.
  */
 export function ProductAmazingOfferBanner({ offer }: ProductAmazingOfferBannerProps) {
   const { label } = useOfferTimer(offer.startAt, offer.endAt);
 
   return (
-    <div className="flex items-center justify-between gap-2 px-4 pt-4 sm:mx-auto sm:max-w-md sm:px-6">
-      <span className="flex shrink-0 items-center gap-1 rounded-full bg-[var(--sf-cherry)] px-2.5 py-1 text-[11px] font-bold text-white">
-        <Sparkles className="size-3.5" strokeWidth={2} aria-hidden="true" />
-        پیشنهاد شگفت‌انگیز
-      </span>
+    <div className="px-4 pt-4 sm:mx-auto sm:max-w-md sm:px-6">
+      <div className="flex items-center justify-between gap-2 rounded-2xl border-2 border-[var(--sf-cherry)] bg-[var(--sf-cherry-soft)] p-3.5">
+        <span className="flex shrink-0 items-center gap-1.5 text-xs font-bold text-[var(--sf-cherry)]">
+          <Sparkles className="size-4" strokeWidth={2} aria-hidden="true" />
+          پیشنهاد شگفت‌انگیز
+        </span>
 
-      {/* شمارش معکوس عمداً LTR است (هم‌الگو با `ProductCard`)، وگرنه
-          ترتیب ساعت/دقیقه/ثانیه در صفحه RTL برعکس خوانده می‌شود. */}
-      <span
-        dir="ltr"
-        className="shrink-0 text-xs font-semibold tracking-widest tabular-nums text-[var(--sf-cherry)]"
-      >
-        {label}
-      </span>
+        {/* شمارش معکوس عمداً LTR است (هم‌الگو با `ProductCard`)، وگرنه
+            ترتیب ساعت/دقیقه/ثانیه در صفحه RTL برعکس خوانده می‌شود. */}
+        <span
+          dir="ltr"
+          className="shrink-0 text-base font-light tracking-widest tabular-nums text-[var(--sf-cherry)]"
+        >
+          {label}
+        </span>
+      </div>
     </div>
   );
 }

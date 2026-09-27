@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Sparkles, PackagePlus } from "lucide-react";
 import { getProductDetailBySlug } from "@/lib/storefront/get-product-detail";
 import { getIsProductFavorited } from "@/lib/storefront/get-is-favorite";
+import { getCartAdditionsForProduct } from "@/lib/storefront/get-product-cart-additions";
 import { getMockWeeklyPriceHistory } from "@/lib/storefront/get-price-history";
 import {
   getSimilarProductCards,
@@ -83,6 +84,12 @@ type ProductDetailPageProps = {
  * خوانده می‌شود تا دکمه از همان اولین Render درست باشد؛ تاریخچه قیمت
  * فعلاً MOCK است (نگاه کنید `getMockWeeklyPriceHistory`).
  *
+ * به همین ترتیب، ردیف‌های «از این محصول به سبد اضافه شد»
+ * (`ProductCartAdditionsSummary` داخل `ProductPurchasePanel`) هم از
+ * همین‌جا با `getCartAdditionsForProduct` از سبد *واقعی* سرور
+ * می‌آیند (نه فقط State خالی) — طبق دستور صریح کارفرما که این بخش
+ * نباید با هر Refresh از بین برود.
+ *
  * `revalidate` عمداً تنظیم نشده (پیش‌فرض Dynamic) — چون این Route
  * پارامتری (`[slug]`) است.
  */
@@ -95,7 +102,9 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   }
 
   const user = await getCurrentUser();
-  const isFavorite = await getIsProductFavorited(user ? String(user._id) : null, product.id);
+  const userId = user ? String(user._id) : null;
+  const isFavorite = await getIsProductFavorited(userId, product.id);
+  const initialCartAdditions = await getCartAdditionsForProduct(userId, product.id);
   const priceHistory = product.price
     ? getMockWeeklyPriceHistory(product.id, product.price.finalPrice)
     : [];
@@ -140,6 +149,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
         productId={product.id}
         variants={product.variants}
         defaultVariantId={product.defaultVariantId}
+        initialCartAdditions={initialCartAdditions}
       />
       {product.description && <ProductDescriptionCard description={product.description} />}
       {product.technicalSpecifications.length > 0 && (

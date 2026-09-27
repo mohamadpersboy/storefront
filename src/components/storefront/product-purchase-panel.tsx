@@ -15,6 +15,14 @@ type ProductPurchasePanelProps = {
   productId: string;
   variants: ProductDetailVariant[];
   defaultVariantId: string | null;
+  /**
+   * ردیف‌های واقعی سبد خرید کاربر برای همین محصول، از
+   * `getCartAdditionsForProduct` در خودِ `page.tsx` (Server
+   * Component) — نه یک آرایه خالی همیشگی. این‌جوری با هر Refresh
+   * از بین نمی‌رود، چون از سبد واقعی سرور می‌آید، نه یک State محلی
+   * که با هر Reload صفر می‌شود.
+   */
+  initialCartAdditions: CartAddition[];
 };
 
 /**
@@ -57,6 +65,13 @@ type ProductPurchasePanelProps = {
  * — پس هیچ‌وقت وضعیتی را نشان نمی‌دهد که واقعاً روی سرور همین‌طور
  * نباشد.
  *
+ * **اصلاح‌شده طبق دستور صریح بعدی کارفرما (این بخش نباید با هر
+ * Refresh از بین برود):** مقدار اولیه این State دیگر آرایه خالی
+ * نیست — از Prop `initialCartAdditions` (خودِ سبد واقعی سرور،
+ * خوانده‌شده در `page.tsx`) می‌آید؛ یعنی اگر کاربر قبلاً از همین
+ * محصول چیزی به سبد اضافه کرده باشد، همان لحظه بارگذاری اول صفحه
+ * (نه فقط بعد از یک Add تازه در همین بازدید) هم دیده می‌شود.
+ *
  * عمداً بدون بخش «خاستگاه» (رفرنس دارد ولی محصول فرش معادلی ندارد)
  * و بدون توضیحات/ویژگی‌های فنی *عمومی محصول* (طبق دستور صریح
  * کارفرما: فعلاً طراحی نشود تا دستور بعدی) — این با ویژگی‌های فنی
@@ -67,14 +82,16 @@ export function ProductPurchasePanel({
   productId,
   variants,
   defaultVariantId,
+  initialCartAdditions,
 }: ProductPurchasePanelProps) {
   const [selectedVariantId, setSelectedVariantId] = useState(
     defaultVariantId ?? variants[0]?.id ?? "",
   );
   const [quantity, setQuantity] = useState(1);
-  // فقط State محلی همین بازدید صفحه — نه Fetch از سبد واقعی سرور
-  // (نگاه کنید مستندات `ProductCartAdditionsSummary`).
-  const [additions, setAdditions] = useState<CartAddition[]>([]);
+  // مقدار اولیه از سبد *واقعی* سرور می‌آید (نگاه کنید مستندات بالا
+  // و `getCartAdditionsForProduct`) — از اینجا به بعد فقط با
+  // Add/Remove‌های همین بازدید به‌روز می‌شود (بدون Poll/Refetch).
+  const [additions, setAdditions] = useState<CartAddition[]>(initialCartAdditions);
 
   const selectedVariant = variants.find((v) => v.id === selectedVariantId) ?? variants[0] ?? null;
 

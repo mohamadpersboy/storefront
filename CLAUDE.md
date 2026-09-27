@@ -1268,6 +1268,43 @@ Model/API جدید — از همان `DELETE /api/v1/cart/items/:itemId`
 جابه‌جایی `setState` به داخل تابع Cleanup رفع شد)، Vitest (۴۸۶
 تست) ✅، Build ✅.
 
+**اصلاحات دقیق سوم روی همان بخش‌های صفحه محصول:**
+
+1. **`ProductAmazingOfferBanner` (نسخه دوم):** دیگر یک Badge/Pill
+   مجزا برای برچسب نیست — برچسب و تایمر هر دو داخل یک کارت واحد
+   جمع شدند: زمینه قرمز کم‌رنگ + مرز قرمز پررنگ (`border-2`)، با
+   Padding؛ برچسب راست، تایمر چپ. فونت تایمر کمی بزرگ‌تر
+   (`text-base`) و وزن ۳۰۰ (`font-light`) شد.
+2. **پایداری «از این محصول به سبد اضافه شد» بعد از Refresh (بخش
+   مهم این نوبت):** این بخش قبلاً فقط یک State محلی خالی
+   (`useState<CartAddition[]>([])`) بود که با هر Reload صفحه صفر
+   می‌شد. حالا تابع تازه
+   `src/lib/storefront/get-product-cart-additions.ts`
+   (`getCartAdditionsForProduct(userId, productId)`) مستقیماً از
+   روی سند `Cart` واقعی کاربر (فقط `Cart.findOne` + فیلتر
+   `item.product === productId`؛ عمداً `recalculateCart`/`save`
+   صدا نمی‌زند — فقط یک Read سبک برای نمایش اولیه است) ردیف‌های
+   همین محصول را می‌خواند؛ `page.tsx` (Server Component) این را
+   صدا می‌زند و به `ProductPurchasePanel` به‌عنوان Prop تازه
+   `initialCartAdditions` می‌دهد که حالا مقدار اولیه `useState`
+   است (به‌جای آرایه خالی ثابت). یعنی از همان اولین Render صفحه
+   (نه فقط بعد از یک Add تازه در همان بازدید) هر چیزی که واقعاً در
+   سبد سرور هست دیده می‌شود؛ کاربر Guest همیشه فهرست خالی می‌گیرد
+   (بدون Query).
+3. **رنگ دکمه «پرداخت» برگشت به آبی، اما Outline:** به‌جای دکمه
+   توپر سرمه‌ای نسخه قبل، حالا `border-2 border-[var(--sf-accent)]`
+   + زمینه آبی شفاف (`bg-[var(--sf-accent-soft)]/70`) + متن/مرز
+   تمام‌رنگ — نه یک دکمه توپر سفیدمتن مثل «افزودن به سبد خرید».
+
+فایل‌های تغییریافته: `product-amazing-offer-banner.tsx`
+(بازنویسی)، `product-cart-additions-summary.tsx` (فقط استایل
+دکمه)، `product-purchase-panel.tsx` (Prop تازه
+`initialCartAdditions`)، `(storefront)/products/[slug]/page.tsx`،
+و فایل تازه `get-product-cart-additions.ts`. بدون Model/API جدید —
+فقط یک Read تازه روی مدل `Cart` موجود. تست‌ها: TypeScript ✅،
+ESLint ✅، Vitest (۴۸۶ تست، بدون تغییر — این بخش‌ها منطق Pure
+Function جدیدی نداشتند) ✅، Build ✅.
+
 ## 3. Completed Features
 
 - ✅ Bootstrap پروژه (Next.js 16.3، TypeScript، Tailwind v4، فونت،

@@ -15,11 +15,14 @@ type ProductCartAdditionsSummaryProps = {
 
 /**
  * خلاصه «از این محصول به سبد اضافه شد» — بین Stepper تعداد و کارت
- * توضیحات محصول (طبق دستور دقیق کارفرما). فقط یک وضعیت محلی همین
- * بازدید صفحه است (نه Fetch از سبد واقعی سرور) — هر Variant که از
- * همین صفحه با موفقیت به سبد اضافه شود، اینجا با تعداد و جمع قیمتش
- * یک ردیف می‌گیرد (`mergeCartAddition` در `ProductPurchasePanel`).
- * تا وقتی چیزی اضافه نشده، این بخش اصلاً رندر نمی‌شود.
+ * توضیحات محصول (طبق دستور دقیق کارفرما). مقدار اولیه‌اش از سبد
+ * *واقعی* سرور می‌آید (`getCartAdditionsForProduct` در `page.tsx`،
+ * نگاه کنید `ProductPurchasePanel`) — نه یک آرایه خالی، پس با هر
+ * Refresh از بین نمی‌رود. از همان‌جا به بعد، هر Variant که از همین
+ * صفحه با موفقیت به سبد اضافه شود هم اینجا با تعداد و جمع قیمتش یک
+ * ردیف می‌گیرد (`mergeCartAddition` در `ProductPurchasePanel`). تا
+ * وقتی چیزی نیست (نه از قبل در سبد، نه تازه اضافه‌شده)، این بخش
+ * اصلاً رندر نمی‌شود.
  *
  * **نسخه دوم، طبق اصلاحات دقیق بعدی کارفرما:**
  * - ظاهر حالا دقیقاً هم‌الگو با بقیه کارت‌های صفحه محصول
@@ -46,7 +49,17 @@ type ProductCartAdditionsSummaryProps = {
  * «Mount، بعد یک فریم بعد Visible=true» که در Bottom Sheet
  * `ProductPriceChartButton` هم هست): چون این بخش داخل جریان عادی
  * صفحه است، رشد ارتفاعش خودش کارت توضیحات را با همان Transition به
- * پایین هل می‌دهد — بدون نیاز به هیچ محاسبه ارتفاع دستی.
+ * پایین هل می‌دهد — بدون نیاز به هیچ محاسبه ارتفاع دستی. (این
+ * انیمیشن فقط برای Add/Remove *در همین بازدید* اتفاق می‌افتد؛ اگر
+ * از قبل چیزی در سبد بود، همان بارگذاری اول صفحه هم `visible=true`
+ * می‌شود، چون `hasItems` از همان اول Render `true` است.)
+ *
+ * **نسخه سوم، طبق دستور دقیق بعدی کارفرما دربارهٔ دکمه:** رنگ دکمه
+ * به خانواده آبی قبلی (`--sf-accent`) برگشت (نه سرمه‌ای تیره نسخه
+ * قبل)، اما این‌بار به سبک Outline: زمینه آبی شفاف/کم‌رنگ
+ * (`bg-[var(--sf-accent-soft)]/70`)، مرز و متن پررنگ/تمام‌رنگ
+ * (`border-2 border-[var(--sf-accent)]`, `text-[var(--sf-accent)]`)
+ * — نه یک دکمه توپر با متن سفید مثل «افزودن به سبد خرید».
  */
 export function ProductCartAdditionsSummary({ additions, onRemoved }: ProductCartAdditionsSummaryProps) {
   const hasItems = additions.length > 0;
@@ -129,13 +142,13 @@ export function ProductCartAdditionsSummary({ additions, onRemoved }: ProductCar
 
             <Link
               href="/cart"
-              className="mt-4 flex h-12 w-full items-stretch overflow-hidden rounded-xl bg-[var(--sf-ink)] text-white transition-colors active:bg-[var(--sf-ink-soft)]"
+              className="mt-4 flex h-12 w-full items-stretch overflow-hidden rounded-xl border-2 border-[var(--sf-accent)] bg-[var(--sf-accent-soft)]/70 text-[var(--sf-accent)] transition-colors active:bg-[var(--sf-accent-soft)]"
             >
               <span className="flex flex-1 items-center justify-center gap-1 text-sm font-bold">
                 {formatNumber(total)}
-                <span className="text-[11px] font-medium text-white/70">{TOMAN_GLYPH}</span>
+                <span className="text-[11px] font-medium text-[var(--sf-accent)]/80">{TOMAN_GLYPH}</span>
               </span>
-              <span aria-hidden="true" className="my-2.5 w-px bg-white/25" />
+              <span aria-hidden="true" className="my-2.5 w-px bg-[var(--sf-accent)]/35" />
               <span className="flex items-center gap-1 px-4 text-sm font-bold">
                 پرداخت
                 <ChevronLeft className="size-4" strokeWidth={2.25} aria-hidden="true" />
