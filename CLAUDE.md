@@ -1392,6 +1392,44 @@ Function جدیدی نداشتند) ✅، Build ✅.
 فایل تغییریافته: همان `hero-slider.tsx`. تست‌ها: TypeScript ✅،
 ESLint ✅، Vitest (۴۸۶ تست) ✅، Build ✅.
 
+**صفحات Storefront «درباره ما» (`/about`) و «سوالات متداول»
+(`/faq`) طراحی و پیاده‌سازی شدند:**
+
+Backend/Dashboard این دو (مدل `AboutUs`، مدل `Faq`، `GET /api/v1/
+about-us`، `GET /api/v1/faqs`، فرم‌های Dashboard) از قبل کامل بودند؛
+فقط خود صفحات Storefront ساخته نشده بودند — Footer و `AboutUsCard`
+صفحه اصلی از قبل به `/about`/`/faq` لینک می‌دادند (مسیرهای ۴۰۴ تا
+الان).
+
+- **`/about`:** Server Component که مستقیم `getAboutUs()` را
+  می‌خواند (بدون Round-trip به API خودمان — هم‌الگو با بقیه
+  بخش‌های صفحه اصلی)، پشت یک تابع `getAboutUsSafe()` با
+  `try/catch` (اگر DB در دسترس نبود، صفحه خراب نمی‌شود). عکس Cover
+  (اگر `imageUrl` ثبت شده باشد) + عنوان + متن کامل با
+  `whitespace-pre-line` (برخلاف `AboutUsCard` که فقط سه خط خلاصه
+  نشان می‌دهد). اگر `content` هنوز خالی باشد (مقدار پیش‌فرض مدل)،
+  Empty State صادقانه («هنوز محتوایی ثبت نشده»).
+- **`/faq`:** Server Component که مستقیم مدل `Faq` را با فیلتر
+  `isActive: true` می‌خواند (پشت `getActiveFaqsSafe()`، همان الگوی
+  try/catch). آکاردئون سوالات (`FaqAccordion`، کامپوننت جدید) عمداً
+  با `<details>`/`<summary>` بومی HTML ساخته شده — بدون
+  `useState`/Client Component، طبق اصل «از JavaScript اضافی در
+  Client جلوگیری کن»؛ چرخش فلش با `group-open:rotate-180` Tailwind.
+  لیست خالی → همان Empty State مشترک.
+- هر دو صفحه از `PageHeader` مشترک (بازگشت + عنوان) استفاده می‌کنند
+  — همان کامپوننتی که صفحات «حساب من»/«علاقه‌مندی‌ها» دارند؛
+  کامپوننت جدیدی برای Header ساخته نشد.
+- هر دو `export const revalidate = 60` دارند (وگرنه Next.js آن‌ها
+  را کاملاً Static می‌ساخت و تغییرات Dashboard تا Deploy بعدی دیده
+  نمی‌شد — همان درسی که قبلاً برای صفحه اصلی گرفته شده بود).
+
+فایل‌های جدید: `src/app/(storefront)/about/page.tsx`,
+`src/app/(storefront)/faq/page.tsx`,
+`src/components/storefront/faq-accordion.tsx`. هیچ فایل دیگری
+(Model/API/Dashboard/Footer) تغییر نکرد. تست‌ها: TypeScript ✅،
+ESLint ✅، Vitest (۴۸۶ تست، بدون تغییر) ✅، Build ✅ (هر دو مسیر
+به‌صورت `○` استاتیک/ISR در خروجی Build ظاهر شدند).
+
 ## 3. Completed Features
 
 - ✅ Bootstrap پروژه (Next.js 16.3، TypeScript، Tailwind v4، فونت،
