@@ -15,48 +15,56 @@ export type HeroBannerSlide = {
   imageBlurDataUrl: string | null;
 };
 
-const AUTOPLAY_INTERVAL_MS = 4500;
+const AUTOPLAY_INTERVAL_MS = 5000;
 const SWIPE_THRESHOLD_PX = 40;
+const TRANSITION_MS = 600;
 
 /**
  * Hero Slider صفحه اصلی — روی همه Breakpoint‌ها نمایش داده می‌شود
  * (برخلاف Top/Bottom Bar که فقط موبایل بودند).
  *
- * داده از `banners` (Props) می‌آید — از یک Fetch واقعی سمت Server
- * در `page.tsx` به `/api/v1/banners` (که خودش از مدل واقعی `Banner`
- * در Dashboard → تنظیمات → اسلایدر پر می‌شود، نه دیگر Mock). اگر
- * هیچ بنر فعالی وجود نداشته باشد، این کامپوننت چیزی رندر نمی‌کند
- * (`return null`) — یک Empty State صادقانه به‌جای نمایش همیشگی
- * محتوای نمونه.
+ * داده از `banners` (Props) می‌آید — از یک Fetch واقعی سمت Server در
+ * `page.tsx` به مدل واقعی `Banner` (Dashboard → تنظیمات → اسلایدر).
+ * هر اسلاید یک تصویر کامل (Cloudinary) است؛ تصویر خودش شامل
+ * پس‌زمینه/رنگ طرح است، نه یک گرادیان تولیدشده در کد. اگر هیچ بنر
+ * فعالی وجود نداشته باشد، این کامپوننت چیزی رندر نمی‌کند
+ * (`return null`) — یک Empty State صادقانه.
  *
- * پیاده‌سازی با `transform: translateX` + State به‌جای CSS
- * Scroll-Snap خام، چون Autoplay و Dot Indicator نیاز به کنترل
- * کامل روی Index فعلی دارند. Swipe لمسی با `onTouchStart/End`
- * (بدون کتابخانه اضافه). Client Component واقعاً لازم است
- * (Autoplay + Swipe State) — طبق اصل پروژه («مگر Client Component
- * واقعاً لازم باشد»).
+ * **ترنزیشن «ورق‌خوردن» (Peel + Rise):** طبق درخواست صریح (رفرنس
+ * اسکرین‌شات اپ Blu)، به‌جای اسلاید افقی خطی (`translateX`)، هر
+ * اسلاید به‌صورت مطلق (`absolute inset-0`) روی هم قرار می‌گیرد و
+ * نقش هرکدام نسبت به `index` فعلی محاسبه می‌شود:
+ * - فعال (`rel === 0`): حالت عادی، کاملاً واضح.
+ * - بعدی (`rel === 1`): کمی پایین‌تر و Blur، پشت اسلاید فعال منتظر
+ *   نوبت (`filter: blur`, `translateY` مثبت, `scale` کوچک‌تر).
+ * - در حال خروج (`rel === length-1`، یعنی همان اسلایدی که یک لحظه
+ *   پیش فعال بود): با کمی چرخش (`rotate`) و جابه‌جایی، مثل ورق کاغذ
+ *   کنار می‌رود و محو می‌شود؛ این لایه عمداً بالاترین `z-index` را
+ *   دارد تا هنگام چرخیدن روی اسلاید تازه‌فعال‌شده (که دارد از پشت/
+ *   پایین بالا می‌آید) قرار بگیرد.
+ * جهت چرخش (`direction`) بر اساس جهت واقعی حرکت (Autoplay/Swipe/
+ * کلیک روی نقطه) تعیین می‌شود تا ورق‌خوردن همیشه هم‌جهت با حرکت
+ * باشد. چون دیگر از `translateX` استفاده نمی‌شود، نیازی به Override
+ * جهت (`dir="ltr"`) هم نیست (برخلاف نسخه قبلی).
  *
- * نکته فنی مهم درباره RTL: ردیف اسلایدها عمداً `dir="ltr"` دارد
- * (برخلاف بقیه سایت) تا محاسبه `translateX` در تداخل با ترتیب
- * برعکس Flex در RTL گم نشود — در RTL ترتیب بصری Flex Item ها
- * برعکس DOM می‌شود. محتوای هر اسلاید دوباره `dir="rtl"` می‌گیرد.
+ * Swipe لمسی با `onTouchStart/End` (بدون کتابخانه اضافه).
  *
  * Mesh Blur (بند ۲۷-۳۰ Master Workflow): از قابلیت بومی
- * `placeholder="blur"` خود Next.js Image استفاده شده، با
- * `blurDataURL` واقعیِ همان تصویر (تولیدشده هنگام آپلود در
- * Dashboard، نگاه کنید `banner-form-modal.tsx`) — نه یک
- * Placeholder خاکستری Generic.
+ * `placeholder="blur"` خود Next.js Image استفاده شده.
  *
- * Dot Indicator: پایین و خارج از خود تصاویر قرار دارد (نه Overlay
- * روی تصویر) — طبق بازخورد صریح کارفرما.
+ * Dot Indicator: به‌صورت Overlay **داخل خود تصویر** (پایین و
+ * وسط‌چین) قرار دارد — طبق بازخورد صریح جدید کارفرما (نسخه قبلی این
+ * را بیرون از قاب تصویر می‌گذاشت).
  */
 export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
   const [index, setIndex] = useState(0);
+  const [direction, setDirection] = useState<1 | -1>(1);
   const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     if (banners.length < 2) return;
     const timer = setInterval(() => {
+      setDirection(1);
       setIndex((current) => (current + 1) % banners.length);
     }, AUTOPLAY_INTERVAL_MS);
     return () => clearInterval(timer);
@@ -64,8 +72,13 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
 
   if (banners.length === 0) return null;
 
-  function goTo(nextIndex: number) {
-    setIndex((nextIndex + banners.length) % banners.length);
+  const length = banners.length;
+
+  function goTo(rawIndex: number) {
+    const nextIndex = ((rawIndex % length) + length) % length;
+    const isForward = (nextIndex - index + length) % length === 1;
+    setDirection(isForward ? 1 : -1);
+    setIndex(nextIndex);
   }
 
   function handleTouchStart(event: React.TouchEvent) {
@@ -88,21 +101,58 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
   return (
     <section className="relative px-4 pt-4 sm:px-6 sm:pt-6">
       <div
-        className="relative overflow-hidden rounded-2xl"
+        className="relative aspect-[16/9] w-full sm:aspect-[21/9]"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div
-          dir="ltr"
-          className="flex transition-transform duration-500 ease-out"
-          style={{ transform: `translateX(${-index * 100}%)` }}
-        >
-          {banners.map((slide, slideIndex) => (
+        {banners.map((slide, slideIndex) => {
+          const rel = (slideIndex - index + length) % length;
+          const isActive = rel === 0;
+          const isUpcoming = rel === 1;
+          const isExiting = rel === length - 1 && length > 1;
+
+          let transform = "translateY(4%) scale(0.94)";
+          let filter = "blur(6px)";
+          let opacity = 0;
+          let zIndex = 0;
+
+          if (isActive) {
+            transform = "translateY(0) scale(1) rotate(0deg)";
+            filter = "blur(0px)";
+            opacity = 1;
+            zIndex = 2;
+          } else if (isUpcoming) {
+            transform = "translateY(4%) scale(0.94)";
+            filter = "blur(6px)";
+            opacity = 0.9;
+            zIndex = 1;
+          } else if (isExiting) {
+            const rotateDeg = direction === 1 ? -7 : 7;
+            transform = `translateY(-6%) scale(0.97) rotate(${rotateDeg}deg)`;
+            filter = "blur(0px)";
+            opacity = 0;
+            zIndex = 3;
+          }
+
+          return (
             <Link
               key={slide.id}
               href={slide.href}
               dir="rtl"
-              className="relative aspect-[16/9] w-full shrink-0 sm:aspect-[21/9]"
+              aria-hidden={!isActive}
+              tabIndex={isActive ? 0 : -1}
+              className="absolute inset-0 overflow-hidden rounded-2xl"
+              style={{
+                transform,
+                filter,
+                opacity,
+                zIndex,
+                transformOrigin: direction === 1 ? "85% 15%" : "15% 15%",
+                transitionProperty: "transform, opacity, filter",
+                transitionDuration: `${TRANSITION_MS}ms`,
+                transitionTimingFunction: "cubic-bezier(0.22, 0.61, 0.36, 1)",
+                pointerEvents: isActive ? "auto" : "none",
+              }}
             >
               <Image
                 src={slide.imageUrl}
@@ -131,30 +181,28 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
                 )}
               </div>
             </Link>
-          ))}
-        </div>
-      </div>
+          );
+        })}
 
-      {/* Dot Indicator — پایین و خارج از تصاویر */}
-      {banners.length > 1 && (
-        <div className="mt-2 flex items-center justify-center gap-1.5 sm:mt-3">
-          {banners.map((slide, slideIndex) => (
-            <button
-              key={slide.id}
-              type="button"
-              aria-label={`اسلاید ${slideIndex + 1}`}
-              aria-current={slideIndex === index}
-              onClick={() => goTo(slideIndex)}
-              className={cn(
-                "h-1.5 rounded-full transition-all",
-                slideIndex === index
-                  ? "w-5 bg-[var(--color-primary)]"
-                  : "w-1.5 bg-gray-300",
-              )}
-            />
-          ))}
-        </div>
-      )}
+        {/* Dot Indicator — Overlay داخل خود تصویر */}
+        {length > 1 && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex items-center justify-center gap-1.5 sm:bottom-4">
+            {banners.map((slide, slideIndex) => (
+              <button
+                key={slide.id}
+                type="button"
+                aria-label={`اسلاید ${slideIndex + 1}`}
+                aria-current={slideIndex === index}
+                onClick={() => goTo(slideIndex)}
+                className={cn(
+                  "pointer-events-auto h-1.5 rounded-full transition-all",
+                  slideIndex === index ? "w-5 bg-white" : "w-1.5 bg-white/50",
+                )}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   );
 }
