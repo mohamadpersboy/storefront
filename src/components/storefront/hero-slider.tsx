@@ -19,15 +19,15 @@ const AUTOPLAY_INTERVAL_MS = 5000;
 const SWIPE_THRESHOLD_PX = 40;
 
 /**
- * Transition جداگانه برای هر ویژگی: `transform` کند و کامل (خروج
- * واقعی از قاب)، ولی `opacity` عمداً خیلی سریع‌تر تمام می‌شود — یعنی
- * اسلاید در حال خروج پس از طی کردن بخش نسبتاً کوچکی از مسیر
- * جابه‌جایی/چرخش کاملاً محو (نامرئی) شده، هرچند از نظر Transform
- * هنوز در حال حرکت است. طبق بازخورد صریح («وقتی ۱۰۰ پیکسل حرکت کرد
- * باید محو بشه»).
+ * Transition جداگانه برای هر ویژگی. نکته مهم `opacity`: یک Delay
+ * دارد (۱۸۰ میلی‌ثانیه) قبل از شروع محو شدن — یعنی اسلاید در حال
+ * خروج ابتدا چند پیکسل واقعی حرکت/چرخش می‌کند و تازه بعد از آن محو
+ * می‌شود، نه بلافاصله از لحظه صفر (طبق بازخورد صریح: «باید حداقل
+ * چند پیکسلی حرکت کنه بعد محو بشه»). بعد از آن Delay هم خیلی
+ * سریع‌تر از کل مسیر `transform` تمام می‌شود.
  */
 const SLIDE_TRANSITION =
-  "transform 600ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 320ms ease-out, filter 450ms ease-out";
+  "transform 600ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 260ms ease-out 180ms, filter 450ms ease-out";
 
 /**
  * Hero Slider صفحه اصلی — روی همه Breakpoint‌ها نمایش داده می‌شود
@@ -40,55 +40,50 @@ const SLIDE_TRANSITION =
  * فعالی وجود نداشته باشد، این کامپوننت چیزی رندر نمی‌کند
  * (`return null`) — یک Empty State صادقانه.
  *
- * **ترنزیشن «ورق‌خوردن» (Peel + Rise):** طبق درخواست صریح (رفرنس
- * اسکرین‌شات اپ Blu)، به‌جای اسلاید افقی خطی (`translateX`)، هر
- * اسلاید به‌صورت مطلق (`absolute inset-0`) روی هم قرار می‌گیرد و
- * نقش هرکدام نسبت به `index` فعلی محاسبه می‌شود:
+ * **ترنزیشن «ورق‌خوردن» (Peel + Rise):** هر اسلاید به‌صورت مطلق
+ * (`absolute inset-0`) روی هم قرار می‌گیرد و نقش هرکدام نسبت به
+ * `index` فعلی محاسبه می‌شود:
  * - فعال (`rel === 0`): حالت عادی، کاملاً واضح.
  * - بعدی (`rel === 1`): کمی پایین‌تر و Blur، پشت اسلاید فعال منتظر
- *   نوبت (`filter: blur`, `translateY` مثبت, `scale` کوچک‌تر).
- * - در حال خروج (`rel === length-1`، یعنی همان اسلایدی که یک لحظه
- *   پیش فعال بود): همزمان چرخش (`rotate`) + حرکت افقی در جهت حرکت
- *   (`translateX`) + یک جابه‌جایی جزئی رو به پایین (`translateY`
- *   مثبت) دارد — مثل ورق کاغذی که هم می‌چرخد هم به کناری پرت
- *   می‌شود. این لایه عمداً بالاترین `z-index` را دارد تا هنگام
- *   چرخیدن روی اسلاید تازه‌فعال‌شده (که دارد از پشت/پایین بالا
- *   می‌آید) قرار بگیرد. جهت چرخش/حرکت (`direction`) بر اساس جهت
- *   واقعی حرکت (Autoplay/Swipe/کلیک روی نقطه) تعیین می‌شود.
- * **محو شدن سریع‌تر از حرکت:** `opacity` عمداً Transition خیلی
- * کوتاه‌تری از `transform` دارد (۳۲۰ در برابر ۶۰۰ میلی‌ثانیه) —
- * یعنی اسلاید در حال خروج پس از طی بخش کوچکی از مسیر واقعی حرکتش
- * کاملاً نامرئی می‌شود، نه فقط در انتهای کل انیمیشن (طبق بازخورد
- * صریح: «وقتی ۱۰۰ پیکسل حرکت کرد باید محو بشه»).
+ *   نوبت (`filter: blur`, `translateY` مثبت, `scale` کوچک‌تر) — وقتی
+ *   نوبتش شد بیاید بالاتر/بزرگ‌تر/واضح و جای اسلاید قبلی بنشیند.
+ * - در حال خروج (`rel === length-1`): چرخش + حرکت افقی **هم‌جهت با
+ *   خود Swipe** (نه جهت عکس) + کمی جابه‌جایی رو به پایین. **مهم:**
+ *   وقتی انگشت از راست به چپ کشیده می‌شود (یعنی می‌رویم جلو،
+ *   `direction === 1`)، اسلاید در حال خروج باید از **سمت چپ** خارج
+ *   شود (`translateX` منفی) — و طبق قانون جهت چرخش، خروج از چپ باید
+ *   **پادساعت‌گرد** باشد (`rotate` منفی). برعکسِ این دو با هم پیش
+ *   می‌آیند: Swipe از چپ به راست (`direction === -1`) → خروج از
+ *   **سمت راست** (`translateX` مثبت) + چرخش **ساعت‌گرد** (`rotate`
+ *   مثبت). این لایه عمداً بالاترین `z-index` را دارد تا هنگام
+ *   چرخیدن روی اسلاید تازه‌فعال‌شده (که از پشت/پایین بالا می‌آید)
+ *   قرار بگیرد.
  * چون دیگر از `translateX` روی یک ردیف Flex استفاده نمی‌شود، نیازی
- * به Override جهت (`dir="ltr"`) هم نیست (برخلاف نسخه قبلی).
+ * به Override جهت (`dir="ltr"`) هم نیست. اسلایدها `overflow-hidden`
+ * والد دارند تا حرکت/چرخش اسلاید خروجی هرگز باعث ایجاد فضای خالی/
+ * Scroll افقی ناخواسته در صفحه نشود.
  *
- * **ریست تایمر Autoplay روی هر تغییر اسلاید:** `useEffect` تایمر
- * به `index` هم وابسته است (نه فقط `banners.length`) — یعنی با هر
- * Swipe یا کلیک روی نقطه، شمارش ۵۰۰۰ میلی‌ثانیه‌ای از صفر شروع
- * می‌شود، طبق درخواست صریح.
+ * **ریست تایمر Autoplay روی هر تغییر اسلاید:** `useEffect` تایمر به
+ * `index` هم وابسته است (نه فقط `banners.length`) — با هر Swipe یا
+ * کلیک روی نقطه، شمارش ۵۰۰۰ میلی‌ثانیه‌ای از صفر شروع می‌شود.
  *
  * Swipe لمسی با `onTouchStart/End` (بدون کتابخانه اضافه).
  *
  * Mesh Blur (بند ۲۷-۳۰ Master Workflow): از قابلیت بومی
  * `placeholder="blur"` خود Next.js Image استفاده شده.
  *
- * Dot Indicator: به‌صورت Overlay **داخل خود تصویر** (پایین و
- * وسط‌چین) قرار دارد — طبق بازخورد صریح جدید کارفرما (نسخه قبلی این
- * را بیرون از قاب تصویر می‌گذاشت).
+ * Dot Indicator: یک ردیف مجزا **پایین و خارج از قاب تصاویر** —
+ * طبق بازخورد صریح («اینطوری که الان می‌بینم خوشگل نیست»، برگشت به
+ * طراحی اولیه بیرون از اسلایدر).
  */
 export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
   const touchStartX = useRef<number | null>(null);
 
-  // وابستگی به `index`: یعنی با هر تغییر اسلاید — چه از خود
-  // Autoplay، چه از Swipe دستی، چه از کلیک روی یک نقطه — تایمر قبلی
-  // پاک و از نو شمارش می‌شود. این دقیقاً همان رفتار درخواستی است:
-  // «وقتی اسلاید با حرکت دست تغییر کرد، تایمر ریست شود و ۵۰۰۰
-  // میلی‌ثانیه بعد اسلاید بعدی ورق بخورد» — بدون این وابستگی، یک
-  // Swipe درست قبل از تیک بعدی Autoplay باعث یک تعویض اضافه و خیلی
-  // زودهنگام می‌شد.
+  // وابستگی به `index`: با هر تغییر اسلاید — چه از خود Autoplay، چه
+  // از Swipe دستی، چه از کلیک روی یک نقطه — تایمر قبلی پاک و از نو
+  // شمارش می‌شود.
   useEffect(() => {
     if (banners.length < 2) return;
     const timer = setInterval(() => {
@@ -129,7 +124,7 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
   return (
     <section className="relative px-4 pt-4 sm:px-6 sm:pt-6">
       <div
-        className="relative aspect-[16/9] w-full sm:aspect-[21/9]"
+        className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl sm:aspect-[21/9]"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -158,11 +153,14 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
             opacity = 0.85;
             zIndex = 1;
           } else if (isExiting) {
-            // ورق‌خوردن = چرخش + حرکت افقی در جهت حرکت (Swipe/
-            // Autoplay) + یک جابه‌جایی جزئی به سمت پایین در جهت Y —
-            // نه فقط چرخش خالی.
+            // direction === 1 یعنی Swipe از راست‌به‌چپ (رفتن به جلو):
+            // خروج از سمت چپ (X منفی) + چرخش پادساعت‌گرد (rotate منفی).
+            // direction === -1 یعنی Swipe از چپ‌به‌راست: خروج از سمت
+            // راست (X مثبت) + چرخش ساعت‌گرد (rotate مثبت).
             const dirSign = direction === 1 ? 1 : -1;
-            transform = `translateX(${dirSign * 110}px) translateY(28px) scale(0.96) rotate(${dirSign * -8}deg)`;
+            const exitTranslateX = -dirSign * 120;
+            const exitRotateDeg = dirSign * -8;
+            transform = `translateX(${exitTranslateX}px) translateY(28px) scale(0.96) rotate(${exitRotateDeg}deg)`;
             filter = "blur(0px)";
             opacity = 0;
             zIndex = 3;
@@ -215,26 +213,28 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
             </Link>
           );
         })}
-
-        {/* Dot Indicator — Overlay داخل خود تصویر */}
-        {length > 1 && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex items-center justify-center gap-1.5 sm:bottom-4">
-            {banners.map((slide, slideIndex) => (
-              <button
-                key={slide.id}
-                type="button"
-                aria-label={`اسلاید ${slideIndex + 1}`}
-                aria-current={slideIndex === index}
-                onClick={() => goTo(slideIndex)}
-                className={cn(
-                  "pointer-events-auto h-1.5 rounded-full transition-all",
-                  slideIndex === index ? "w-5 bg-white" : "w-1.5 bg-white/50",
-                )}
-              />
-            ))}
-          </div>
-        )}
       </div>
+
+      {/* Dot Indicator — پایین و خارج از تصاویر */}
+      {length > 1 && (
+        <div className="mt-2 flex items-center justify-center gap-1.5 sm:mt-3">
+          {banners.map((slide, slideIndex) => (
+            <button
+              key={slide.id}
+              type="button"
+              aria-label={`اسلاید ${slideIndex + 1}`}
+              aria-current={slideIndex === index}
+              onClick={() => goTo(slideIndex)}
+              className={cn(
+                "h-1.5 rounded-full transition-all",
+                slideIndex === index
+                  ? "w-5 bg-[var(--color-primary)]"
+                  : "w-1.5 bg-gray-300",
+              )}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
