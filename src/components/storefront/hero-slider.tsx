@@ -17,7 +17,17 @@ export type HeroBannerSlide = {
 
 const AUTOPLAY_INTERVAL_MS = 5000;
 const SWIPE_THRESHOLD_PX = 40;
-const TRANSITION_MS = 600;
+
+/**
+ * Transition جداگانه برای هر ویژگی: `transform` کند و کامل (خروج
+ * واقعی از قاب)، ولی `opacity` عمداً خیلی سریع‌تر تمام می‌شود — یعنی
+ * اسلاید در حال خروج پس از طی کردن بخش نسبتاً کوچکی از مسیر
+ * جابه‌جایی/چرخش کاملاً محو (نامرئی) شده، هرچند از نظر Transform
+ * هنوز در حال حرکت است. طبق بازخورد صریح («وقتی ۱۰۰ پیکسل حرکت کرد
+ * باید محو بشه»).
+ */
+const SLIDE_TRANSITION =
+  "transform 600ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 320ms ease-out, filter 450ms ease-out";
 
 /**
  * Hero Slider صفحه اصلی — روی همه Breakpoint‌ها نمایش داده می‌شود
@@ -38,14 +48,25 @@ const TRANSITION_MS = 600;
  * - بعدی (`rel === 1`): کمی پایین‌تر و Blur، پشت اسلاید فعال منتظر
  *   نوبت (`filter: blur`, `translateY` مثبت, `scale` کوچک‌تر).
  * - در حال خروج (`rel === length-1`، یعنی همان اسلایدی که یک لحظه
- *   پیش فعال بود): با کمی چرخش (`rotate`) و جابه‌جایی، مثل ورق کاغذ
- *   کنار می‌رود و محو می‌شود؛ این لایه عمداً بالاترین `z-index` را
- *   دارد تا هنگام چرخیدن روی اسلاید تازه‌فعال‌شده (که دارد از پشت/
- *   پایین بالا می‌آید) قرار بگیرد.
- * جهت چرخش (`direction`) بر اساس جهت واقعی حرکت (Autoplay/Swipe/
- * کلیک روی نقطه) تعیین می‌شود تا ورق‌خوردن همیشه هم‌جهت با حرکت
- * باشد. چون دیگر از `translateX` استفاده نمی‌شود، نیازی به Override
- * جهت (`dir="ltr"`) هم نیست (برخلاف نسخه قبلی).
+ *   پیش فعال بود): همزمان چرخش (`rotate`) + حرکت افقی در جهت حرکت
+ *   (`translateX`) + یک جابه‌جایی جزئی رو به پایین (`translateY`
+ *   مثبت) دارد — مثل ورق کاغذی که هم می‌چرخد هم به کناری پرت
+ *   می‌شود. این لایه عمداً بالاترین `z-index` را دارد تا هنگام
+ *   چرخیدن روی اسلاید تازه‌فعال‌شده (که دارد از پشت/پایین بالا
+ *   می‌آید) قرار بگیرد. جهت چرخش/حرکت (`direction`) بر اساس جهت
+ *   واقعی حرکت (Autoplay/Swipe/کلیک روی نقطه) تعیین می‌شود.
+ * **محو شدن سریع‌تر از حرکت:** `opacity` عمداً Transition خیلی
+ * کوتاه‌تری از `transform` دارد (۳۲۰ در برابر ۶۰۰ میلی‌ثانیه) —
+ * یعنی اسلاید در حال خروج پس از طی بخش کوچکی از مسیر واقعی حرکتش
+ * کاملاً نامرئی می‌شود، نه فقط در انتهای کل انیمیشن (طبق بازخورد
+ * صریح: «وقتی ۱۰۰ پیکسل حرکت کرد باید محو بشه»).
+ * چون دیگر از `translateX` روی یک ردیف Flex استفاده نمی‌شود، نیازی
+ * به Override جهت (`dir="ltr"`) هم نیست (برخلاف نسخه قبلی).
+ *
+ * **ریست تایمر Autoplay روی هر تغییر اسلاید:** `useEffect` تایمر
+ * به `index` هم وابسته است (نه فقط `banners.length`) — یعنی با هر
+ * Swipe یا کلیک روی نقطه، شمارش ۵۰۰۰ میلی‌ثانیه‌ای از صفر شروع
+ * می‌شود، طبق درخواست صریح.
  *
  * Swipe لمسی با `onTouchStart/End` (بدون کتابخانه اضافه).
  *
@@ -61,6 +82,13 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
   const [direction, setDirection] = useState<1 | -1>(1);
   const touchStartX = useRef<number | null>(null);
 
+  // وابستگی به `index`: یعنی با هر تغییر اسلاید — چه از خود
+  // Autoplay، چه از Swipe دستی، چه از کلیک روی یک نقطه — تایمر قبلی
+  // پاک و از نو شمارش می‌شود. این دقیقاً همان رفتار درخواستی است:
+  // «وقتی اسلاید با حرکت دست تغییر کرد، تایمر ریست شود و ۵۰۰۰
+  // میلی‌ثانیه بعد اسلاید بعدی ورق بخورد» — بدون این وابستگی، یک
+  // Swipe درست قبل از تیک بعدی Autoplay باعث یک تعویض اضافه و خیلی
+  // زودهنگام می‌شد.
   useEffect(() => {
     if (banners.length < 2) return;
     const timer = setInterval(() => {
@@ -68,7 +96,7 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
       setIndex((current) => (current + 1) % banners.length);
     }, AUTOPLAY_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [banners.length]);
+  }, [banners.length, index]);
 
   if (banners.length === 0) return null;
 
@@ -111,24 +139,30 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
           const isUpcoming = rel === 1;
           const isExiting = rel === length - 1 && length > 1;
 
-          let transform = "translateY(4%) scale(0.94)";
-          let filter = "blur(6px)";
+          // اسلاید «بعدی در صف»: کمی پایین‌تر (Y+) و کوچک‌تر و Blur —
+          // پشت اسلاید فعال منتظر است تا وقتی نوبتش شد بیاید بالاتر،
+          // بزرگ‌تر و واضح شود و جای اسلاید قبلی بنشیند.
+          let transform = "translateY(8%) scale(0.9)";
+          let filter = "blur(8px)";
           let opacity = 0;
           let zIndex = 0;
 
           if (isActive) {
-            transform = "translateY(0) scale(1) rotate(0deg)";
+            transform = "translateX(0) translateY(0) scale(1) rotate(0deg)";
             filter = "blur(0px)";
             opacity = 1;
             zIndex = 2;
           } else if (isUpcoming) {
-            transform = "translateY(4%) scale(0.94)";
-            filter = "blur(6px)";
-            opacity = 0.9;
+            transform = "translateY(8%) scale(0.9)";
+            filter = "blur(8px)";
+            opacity = 0.85;
             zIndex = 1;
           } else if (isExiting) {
-            const rotateDeg = direction === 1 ? -7 : 7;
-            transform = `translateY(-6%) scale(0.97) rotate(${rotateDeg}deg)`;
+            // ورق‌خوردن = چرخش + حرکت افقی در جهت حرکت (Swipe/
+            // Autoplay) + یک جابه‌جایی جزئی به سمت پایین در جهت Y —
+            // نه فقط چرخش خالی.
+            const dirSign = direction === 1 ? 1 : -1;
+            transform = `translateX(${dirSign * 110}px) translateY(28px) scale(0.96) rotate(${dirSign * -8}deg)`;
             filter = "blur(0px)";
             opacity = 0;
             zIndex = 3;
@@ -148,9 +182,7 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
                 opacity,
                 zIndex,
                 transformOrigin: direction === 1 ? "85% 15%" : "15% 15%",
-                transitionProperty: "transform, opacity, filter",
-                transitionDuration: `${TRANSITION_MS}ms`,
-                transitionTimingFunction: "cubic-bezier(0.22, 0.61, 0.36, 1)",
+                transition: SLIDE_TRANSITION,
                 pointerEvents: isActive ? "auto" : "none",
               }}
             >
