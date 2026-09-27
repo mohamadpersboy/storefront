@@ -15,6 +15,7 @@ import {
   GalleryHorizontal,
   Truck,
   Gift,
+  FileText,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
@@ -54,6 +55,12 @@ const settingsSections = [
     icon: HelpCircle,
     title: "سوالات متداول",
     description: "مدیریت سوالات و پاسخ‌های پرتکرار مشتریان",
+  },
+  {
+    href: "/dashboard/settings/terms",
+    icon: FileText,
+    title: "قوانین و مقررات",
+    description: "محتوای صفحه «قوانین و مقررات»ی فروشگاه",
   },
   {
     href: "/dashboard/settings/social-links",

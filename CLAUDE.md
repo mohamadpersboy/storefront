@@ -1430,6 +1430,59 @@ about-us`، `GET /api/v1/faqs`، فرم‌های Dashboard) از قبل کامل
 ESLint ✅، Vitest (۴۸۶ تست، بدون تغییر) ✅، Build ✅ (هر دو مسیر
 به‌صورت `○` استاتیک/ISR در خروجی Build ظاهر شدند).
 
+**صفحات Storefront «تماس با ما» (`/contact`) و «قوانین و مقررات»
+(`/terms`) طراحی و پیاده‌سازی شدند:**
+
+**تماس با ما:** Backend/Dashboard از قبل کامل بود (مدل `ContactUs`،
+`GET/PATCH /api/v1/contact-us`، فرم Dashboard) — فقط خود صفحه
+Storefront ساخته نشده بود.
+
+- منطق ساخت فهرست «راه‌های ارتباط سریع» (تلفن اصلی + چت پشتیبانی +
+  تلگرام/واتساپ/روبیکا/ایتا) که قبلاً فقط داخل `support-popup.tsx`
+  (Dropdown آیکون هدست در Top Bar) بود، به یک فایل مشترک منتقل شد:
+  `src/lib/storefront/support-contact-items.ts`
+  (`buildSupportContactItems`). `support-popup.tsx` الان از همین
+  فایل Import می‌کند — رفتار/ظاهرش عیناً same مانده (Type
+  `SupportContactData` هم از همین فایل Re-export می‌شود تا
+  `mobile-top-bar.tsx`/`page.tsx` نیازی به تغییر Import نداشته
+  باشند).
+- صفحه `/contact` همین فهرست مشترک را با ردیف‌های اضافی مدل
+  `ContactUs` که در Popup نیست ترکیب می‌کند: تلفن دوم، ایمیل، آدرس،
+  «مسیر یابی روی نقشه» (فقط اگر lat/lng ثبت شده باشد — یک لینک ساده
+  به Google Maps، **نه** نقشه Embed شده با Neshan؛ تا معماری/محل
+  مصرف کلید Neshan مشخص و تأیید نشده، همین راه‌حل بدون نیاز به کلید
+  کافی است)، و ساعات کاری.
+
+**قوانین و مقررات:** برخلاف سه بخش قبلی، این یکی از صفر ساخته شد —
+قبل از این هیچ Model/API/فرم Dashboardی برایش وجود نداشت:
+
+- `src/models/Terms.ts` — سند تکی (`title`/`content`)، عیناً هم‌الگو
+  با `AboutUs` (بدون فیلد تصویر).
+- `src/lib/validations/terms.ts` (+ تست) و
+  `GET`/`PATCH /api/v1/terms` — عیناً هم‌الگو با `about-us`.
+- `TermsForm` (Dashboard) + صفحه `/dashboard/settings/terms` + یک
+  ردیف جدید در فهرست `/dashboard/settings`.
+- صفحه Storefront `/terms` — عیناً هم‌شکل `/about` (بدون تصویر).
+
+هر سه صفحه (`/contact`, `/terms`) از `PageHeader` مشترک استفاده
+می‌کنند، پشت یک تابع Safe با `try/catch` هستند، و
+`export const revalidate = 60` دارند — همان الگوی `/about`/`/faq`.
+Footer از قبل به هر دو مسیر لینک می‌داد (۴۰۴ تا الان).
+
+فایل‌های جدید: `src/models/Terms.ts`,
+`src/lib/validations/terms.ts` (+ test),
+`src/app/api/v1/terms/route.ts`,
+`src/components/settings/terms-form.tsx`,
+`src/app/(dashboard)/dashboard/settings/terms/page.tsx`,
+`src/app/(storefront)/terms/page.tsx`,
+`src/app/(storefront)/contact/page.tsx`,
+`src/lib/storefront/support-contact-items.ts`. فایل تغییریافته:
+`src/components/storefront/support-popup.tsx` (فقط Refactor، بدون
+تغییر رفتار) و `src/app/(dashboard)/dashboard/settings/page.tsx`
+(یک ردیف جدید). تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۴۸۹ تست —
+۳ تست جدید برای `terms`) ✅، Build ✅ (هر سه مسیر Storefront جدید
+به‌صورت `○` استاتیک/ISR ظاهر شدند).
+
 ## 3. Completed Features
 
 - ✅ Bootstrap پروژه (Next.js 16.3، TypeScript، Tailwind v4، فونت،
