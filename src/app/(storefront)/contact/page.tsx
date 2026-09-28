@@ -107,14 +107,14 @@ type Channel = {
   label: string;
   href: string;
   icon: ComponentType<{ className?: string }>;
-  /** پس‌زمینه «کاشی» آیکون. `null` یعنی کاشی سفید (برای لوگوی چندرنگ). */
-  tile: string | null;
+  /** پس‌زمینه گرادیان دایره آیکون (آیکون همیشه سفید است). */
+  tile: string;
   glow: string;
 };
 
 const CHANNEL_ORDER = ["admin", "instagram", "telegram", "whatsapp", "rubika", "eitaa"] as const;
 
-const CHANNEL_STYLE: Record<string, { label?: string; tile: string | null; glow: string }> = {
+const CHANNEL_STYLE: Record<string, { label?: string; tile: string; glow: string }> = {
   admin: {
     label: "پشتیبانی",
     tile: "linear-gradient(145deg, #022e5b, #031725)",
@@ -132,7 +132,10 @@ const CHANNEL_STYLE: Record<string, { label?: string; tile: string | null; glow:
     tile: "linear-gradient(145deg, #3ee07e, #1aa952)",
     glow: "rgba(37, 211, 102, 0.5)",
   },
-  rubika: { tile: null, glow: "rgba(121, 67, 135, 0.3)" },
+  rubika: {
+    tile: "linear-gradient(145deg, #a266b6, #5e2f70)",
+    glow: "rgba(121, 67, 135, 0.5)",
+  },
   eitaa: {
     tile: "linear-gradient(145deg, #3d9af0, #1769c2)",
     glow: "rgba(30, 136, 229, 0.5)",
@@ -394,37 +397,33 @@ export default async function ContactPage() {
                       ارتباط از طریق شبکه‌های اجتماعی و پیام‌رسان‌ها
                     </h2>
                   </div>
-                  <div className={`px-3 py-5 ${cardBase}`}>
-                    <div className="flex flex-wrap items-start justify-center gap-x-5 gap-y-5">
-                      {channels.map((ch) => {
-                        const Icon = ch.icon;
-                        return (
-                          <a
-                            key={ch.key}
-                            href={ch.href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label={ch.label}
-                            className="group flex w-[4.25rem] flex-col items-center gap-2"
+                  <div className="mx-auto flex max-w-[17rem] flex-wrap items-start justify-center gap-x-4 gap-y-4 sm:max-w-none">
+                    {channels.map((ch) => {
+                      const Icon = ch.icon;
+                      return (
+                        <a
+                          key={ch.key}
+                          href={ch.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={ch.label}
+                          className="group flex w-16 flex-col items-center gap-1.5"
+                        >
+                          <span
+                            className="flex size-11 items-center justify-center rounded-full text-white transition duration-200 group-hover:-translate-y-0.5 group-active:scale-90"
+                            style={{
+                              backgroundImage: ch.tile,
+                              boxShadow: `0 8px 16px -8px ${ch.glow}`,
+                            }}
                           >
-                            <span
-                              className={`flex size-14 items-center justify-center rounded-2xl transition duration-200 group-hover:-translate-y-0.5 group-active:scale-90 ${
-                                ch.tile ? "text-white" : "bg-white ring-1 ring-black/10"
-                              }`}
-                              style={{
-                                ...(ch.tile ? { backgroundImage: ch.tile } : null),
-                                boxShadow: `0 10px 20px -10px ${ch.glow}`,
-                              }}
-                            >
-                              <Icon className="size-7" />
-                            </span>
-                            <span className="text-[11px] font-medium text-[var(--sf-ink)]/70">
-                              {ch.label}
-                            </span>
-                          </a>
-                        );
-                      })}
-                    </div>
+                            <Icon className="size-5" />
+                          </span>
+                          <span className="text-[11px] font-medium text-[var(--sf-ink)]/70">
+                            {ch.label}
+                          </span>
+                        </a>
+                      );
+                    })}
                   </div>
                 </section>
               ) : null}
