@@ -93,7 +93,7 @@ export function buildSupportContactItems(data: SupportContactData): SupportConta
       href: data.rubikaLink.trim(),
       external: true,
       icon: RubikaIcon,
-      color: "#F4574B",
+      color: "#794387",
     });
   }
   if (data.eitaaLink.trim()) {
