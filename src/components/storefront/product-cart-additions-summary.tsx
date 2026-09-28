@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Minus } from "lucide-react";
+import { ChevronLeft, Minus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatNumber, toPersianDigits, TOMAN_GLYPH } from "@/lib/utils/format";
 import { computeCartAdditionsTotal, type CartAddition } from "@/lib/storefront/product-purchase-math";
@@ -11,6 +11,8 @@ type ProductCartAdditionsSummaryProps = {
   additions: CartAddition[];
   /** فقط بعد از حذف *موفق* واقعی از سبد سرور صدا زده می‌شود. */
   onRemoved: (variantId: string) => void;
+  /** فقط بعد از کم شدن *موفق* تعداد در سبد سرور صدا زده می‌شود. */
+  onUpdated: (variantId: string, patch: Partial<CartAddition>) => void;
 };
 
 /**
@@ -61,7 +63,7 @@ type ProductCartAdditionsSummaryProps = {
  * (`border-2 border-[var(--sf-accent)]`, `text-[var(--sf-accent)]`)
  * — نه یک دکمه توپر با متن سفید مثل «افزودن به سبد خرید».
  */
-export function ProductCartAdditionsSummary({ additions, onRemoved }: ProductCartAdditionsSummaryProps) {
+export function ProductCartAdditionsSummary({ additions, onRemoved, onUpdated }: ProductCartAdditionsSummaryProps) {
   const hasItems = additions.length > 0;
   const [visible, setVisible] = useState(false);
   const [pendingItemId, setPendingItemId] = useState<string | null>(null);
@@ -84,14 +86,34 @@ export function ProductCartAdditionsSummary({ additions, onRemoved }: ProductCar
 
   const total = computeCartAdditionsTotal(additions);
 
-  async function handleRemove(item: CartAddition) {
+  // فقط یک قلم: حذف کامل (DELETE). بیشتر از یکی: یکی کم می‌شود (PATCH).
+  async function handleDecrease(item: CartAddition) {
     if (pendingItemId) return;
     setPendingItemId(item.itemId);
     try {
-      const response = await fetch(`/api/v1/cart/items/${item.itemId}`, { method: "DELETE" });
-      if (response.ok) {
-        onRemoved(item.variantId);
+      if (item.quantity <= 1) {
+        const response = await fetch(`/api/v1/cart/items/${item.itemId}`, { method: "DELETE" });
+        if (response.ok) onRemoved(item.variantId);
+        return;
       }
+
+      const response = await fetch(`/api/v1/cart/items/${item.itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quantity: item.quantity - 1 }),
+      });
+      if (!response.ok) return;
+
+      const json = (await response.json().catch(() => null)) as {
+        data?: { items?: { id: string; quantity: number; finalUnitPrice: number; isAvailable: boolean }[] };
+      } | null;
+      const updated = json?.data?.items?.find((i) => i.id === item.itemId);
+      onUpdated(
+        item.variantId,
+        updated
+          ? { quantity: updated.quantity, unitPrice: updated.finalUnitPrice, isAvailable: updated.isAvailable }
+          : { quantity: item.quantity - 1 },
+      );
     } catch {
       // خطای شبکه — فقط بی‌خیال شو، ردیف همچنان نمایش داده می‌شود تا
       // کاربر دوباره تلاش کند؛ پیام خطای مجزا برای این عملیات فرعی
@@ -109,19 +131,27 @@ export function ProductCartAdditionsSummary({ additions, onRemoved }: ProductCar
       <div className={cn("overflow-hidden transition-opacity duration-300", visible ? "opacity-100" : "opacity-0")}>
         <section className="px-4 pt-4 sm:px-6">
           <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <p className="mb-3 text-xs font-bold text-[var(--sf-ink)]">از این محصول به سبد اضافه شد</p>
+            <p className="mb-3 text-xs font-bold text-[var(--sf-ink)]">از این محصول به سبد خرید اضافه شده است</p>
 
             <ul className="flex flex-col gap-2.5">
               {additions.map((item) => (
                 <li key={item.variantId} className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => handleRemove(item)}
+                    onClick={() => handleDecrease(item)}
                     disabled={pendingItemId === item.itemId}
-                    aria-label={`حذف ${item.unitLabel} از سبد خرید`}
+                    aria-label={
+                      item.quantity <= 1
+                        ? `حذف ${item.unitLabel} از سبد خرید`
+                        : `کم کردن یک عدد از ${item.unitLabel}`
+                    }
                     className="flex size-6 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-400 transition-colors active:bg-gray-50 disabled:opacity-40"
                   >
-                    <Minus className="size-3.5" strokeWidth={2.5} aria-hidden="true" />
+                    {item.quantity <= 1 ? (
+                      <Trash2 className="size-3.5" strokeWidth={2.25} aria-hidden="true" />
+                    ) : (
+                      <Minus className="size-3.5" strokeWidth={2.5} aria-hidden="true" />
+                    )}
                   </button>
 
                   <span className="shrink-0 text-xs font-semibold text-[var(--sf-ink)]">
@@ -133,9 +163,13 @@ export function ProductCartAdditionsSummary({ additions, onRemoved }: ProductCar
                     className="h-0 flex-1 self-center border-b-2 border-dotted border-gray-300"
                   />
 
-                  <span className="shrink-0 text-xs font-bold text-[var(--sf-accent)]">
-                    {formatNumber(item.quantity * item.unitPrice)} {TOMAN_GLYPH}
-                  </span>
+                  {item.isAvailable === false ? (
+                    <span className="shrink-0 text-xs font-bold text-red-600">ناموجود شده است</span>
+                  ) : (
+                    <span className="shrink-0 text-xs font-bold text-[var(--sf-accent)]">
+                      {formatNumber(item.quantity * item.unitPrice)} {TOMAN_GLYPH}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

@@ -45,7 +45,7 @@ export function ProductAmazingOfferBanner({ offer }: ProductAmazingOfferBannerPr
             ترتیب ساعت/دقیقه/ثانیه در صفحه RTL برعکس خوانده می‌شود. */}
         <span
           dir="ltr"
-          className="shrink-0 text-base font-light tracking-widest tabular-nums text-[var(--sf-cherry)]"
+          className="shrink-0 text-base font-normal tracking-widest tabular-nums text-[var(--sf-cherry)]"
         >
           {label}
         </span>

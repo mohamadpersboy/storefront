@@ -43,6 +43,12 @@ export type CartAddition = {
   quantity: number;
   /** قیمت نهایی واحد در لحظه افزودن (`finalUnitPrice`). */
   unitPrice: number;
+  /**
+   * `false` یعنی این قلم در سبد ناموجود شده (محصول/Variant غیرفعال یا
+   * حذف‌شده، یا موجودی کمتر از تعداد). پیش‌فرض `true` است. ردیف
+   * ناموجود از فهرست حذف نمی‌شود، ولی در جمع کل حساب نمی‌شود.
+   */
+  isAvailable?: boolean;
 };
 
 /**
@@ -67,13 +73,21 @@ export function mergeCartAddition(
     itemId: addition.itemId,
     quantity: merged[existingIndex].quantity + addition.quantity,
     unitPrice: addition.unitPrice,
+    ...(addition.isAvailable !== undefined && { isAvailable: addition.isAvailable }),
   };
   return merged;
 }
 
-/** جمع کل تمام ردیف‌های افزوده‌شده = مجموع (تعداد × قیمت واحد) هر ردیف. */
+/**
+ * جمع کل ردیف‌های افزوده‌شده = مجموع (تعداد × قیمت واحد) هر ردیف.
+ * ردیف‌های ناموجود (`isAvailable === false`) حساب نمی‌شوند — هم‌الگو
+ * با `cartTotal` سرور.
+ */
 export function computeCartAdditionsTotal(additions: CartAddition[]): number {
-  return additions.reduce((sum, a) => sum + a.quantity * a.unitPrice, 0);
+  return additions.reduce(
+    (sum, a) => (a.isAvailable === false ? sum : sum + a.quantity * a.unitPrice),
+    0,
+  );
 }
 
 export type VariantDetailSegment =

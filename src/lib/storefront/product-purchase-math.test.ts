@@ -202,3 +202,13 @@ describe("getVariantDetailSegments", () => {
     expect(segments).toEqual([{ type: "color", name: "کرم", hex: null }]);
   });
 });
+
+describe("computeCartAdditionsTotal — unavailable rows", () => {
+  it("skips rows with isAvailable === false", () => {
+    const additions: CartAddition[] = [
+      { variantId: "v1", itemId: "i1", unitLabel: "۶ متری", quantity: 2, unitPrice: 1_000 },
+      { variantId: "v2", itemId: "i2", unitLabel: "۹ متری", quantity: 1, unitPrice: 5_000, isAvailable: false },
+    ];
+    expect(computeCartAdditionsTotal(additions)).toBe(2_000);
+  });
+});

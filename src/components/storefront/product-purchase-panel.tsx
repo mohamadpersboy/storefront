@@ -105,6 +105,7 @@ export function ProductPurchasePanel({
         unitLabel: variant.unit,
         quantity: addedQuantity,
         unitPrice: finalUnitPrice,
+        isAvailable: true,
       }),
     );
   }
@@ -114,6 +115,12 @@ export function ProductPurchasePanel({
   // ردیف از فهرست محلی این صفحه هم پاک می‌شود.
   function handleRemoved(variantId: string) {
     setAdditions((current) => current.filter((a) => a.variantId !== variantId));
+  }
+
+  // بعد از کم شدن *موفق* تعداد (`PATCH`) — ردیف با مقدار تازه سرور
+  // جایگزین می‌شود.
+  function handleUpdated(variantId: string, patch: Partial<CartAddition>) {
+    setAdditions((current) => current.map((a) => (a.variantId === variantId ? { ...a, ...patch } : a)));
   }
 
   function handleSelectVariant(variantId: string) {
@@ -186,7 +193,7 @@ export function ProductPurchasePanel({
         )}
       </section>
 
-      <ProductCartAdditionsSummary additions={additions} onRemoved={handleRemoved} />
+      <ProductCartAdditionsSummary additions={additions} onRemoved={handleRemoved} onUpdated={handleUpdated} />
 
       <ProductAddToCartBar
         productId={productId}

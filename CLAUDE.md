@@ -1525,6 +1525,14 @@ TypeScript ✅، ESLint ✅، Vitest (۴۸۹) ✅، Build ✅. (بررسی بص�
 
 فایل‌ها: `social-icons.tsx`, `contact/page.tsx`. تست‌ها: TypeScript ✅،
 ESLint ✅، Vitest (۴۸۹) ✅، Build ✅.
+**اصلاحات صفحه جزئیات محصول (خلاصه سبد + تایمر):**
+- تایمر `ProductAmazingOfferBanner`: وزن از `font-light` به `font-normal` (یک درجه ضخیم‌تر).
+- عنوان خلاصه سبد: «از این محصول به سبد خرید اضافه شده است».
+- دکمه کنار هر ردیف (`ProductCartAdditionsSummary`): اگر تعداد ۱ باشد آیکون سطل زباله و `DELETE`؛ اگر بیشتر باشد آیکون منفی و `PATCH` با `quantity - 1` (Prop تازه `onUpdated`).
+- ردیف ناموجود از فهرست حذف نمی‌شود؛ به‌جای قیمت با رنگ قرمز «ناموجود شده است» نشان می‌دهد و در جمع دکمه پایین حساب نمی‌شود. `CartAddition.isAvailable` (اختیاری، پیش‌فرض `true`) اضافه شد.
+- `getCartAdditionsForProduct`: حالا `recalculateCart` را (بدون `save`) اجرا می‌کند تا وضعیت موجودی تازه باشد؛ فقط وقتی سبد ردیفی از همین محصول دارد.
+- تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۴۹۰) ✅، Build ✅.
+
 
 ## 3. Completed Features
 

@@ -1,4 +1,5 @@
 import { Cart } from "@/models/Cart";
+import { recalculateCart } from "@/lib/cart/cart-service";
 import type { CartAddition } from "@/lib/storefront/product-purchase-math";
 
 /**
@@ -25,8 +26,13 @@ export async function getCartAdditionsForProduct(
 ): Promise<CartAddition[]> {
   if (!userId) return [];
 
-  const cart = await Cart.findOne({ user: userId }).select("items").lean();
+  const cart = await Cart.findOne({ user: userId });
   if (!cart) return [];
+  if (!cart.items.some((item) => String(item.product) === productId)) return [];
+
+  // وضعیت موجودی را تازه حساب می‌کند تا ردیفی که بعد از افزودن ناموجود
+  // شده «ناموجود شده است» نشان داده شود. عمداً `save` نمی‌شود.
+  await recalculateCart(cart);
 
   return cart.items
     .filter((item) => String(item.product) === productId)
@@ -36,5 +42,6 @@ export async function getCartAdditionsForProduct(
       unitLabel: item.unit,
       quantity: item.quantity,
       unitPrice: item.finalUnitPrice,
+      isAvailable: item.isAvailable !== false,
     }));
 }
