@@ -13,6 +13,7 @@ import {
   Wallet,
   Settings,
   Landmark,
+  Bell,
 } from "lucide-react";
 
 export interface DashboardNavItem {
@@ -36,6 +37,7 @@ export const dashboardNav: DashboardNavItem[] = [
   { label: "تخفیف‌های شگفت‌انگیز", href: "/dashboard/amazing-offers", icon: Sparkles, enabled: true },
   { label: "درخواست‌های برداشت", href: "/dashboard/wallets/withdrawals", icon: Wallet, enabled: true },
   { label: "چک‌های دریافتی", href: "/dashboard/checks", icon: Landmark, enabled: true },
+  { label: "اطلاع‌رسانی", href: "/dashboard/notifications", icon: Bell, enabled: true },
   { label: "تنظیمات", href: "/dashboard/settings", icon: Settings, enabled: true },
 ];
 

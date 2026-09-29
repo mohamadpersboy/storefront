@@ -72,6 +72,9 @@ export const PERMISSIONS = {
   CHECKS_UPDATE: "checks.update",
   CHECKS_RETURN: "checks.return",
   CHECKS_TRANSFER: "checks.transfer",
+
+  NOTIFICATIONS_READ: "notifications.read",
+  NOTIFICATIONS_MANAGE: "notifications.manage",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -122,6 +125,8 @@ const ADMIN_PERMISSIONS: Permission[] = [
   PERMISSIONS.CHECKS_UPDATE,
   PERMISSIONS.CHECKS_RETURN,
   PERMISSIONS.CHECKS_TRANSFER,
+  PERMISSIONS.NOTIFICATIONS_READ,
+  PERMISSIONS.NOTIFICATIONS_MANAGE,
 ];
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {

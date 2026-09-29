@@ -462,3 +462,24 @@ UI: `/dashboard/checks` (لیست با Search/Filter/Pagination)،
 
 هیچ Environment Variable دیگری در Phase 2 تا 8 (سند Audit) یا Phase 1
 مدیریت مالی اضافه نشد.
+
+
+---
+
+## Notifications (اطلاع‌رسانی درون‌برنامه‌ای)
+
+همه پاسخ‌ها با `apiSuccess/apiError`؛ Pagination استاندارد (`page`, `limit`
+≤ ۵۰). پاسخ‌های کاربری `Cache-Control: private, no-store`.
+
+| Route | دسترسی | توضیح |
+|---|---|---|
+| `GET /api/v1/notifications` | Guest/کاربر | Guest: فقط عمومی. کاربر: عمومی + شخصیِ خودش. `publishAt DESC`. هر مورد `isRead` دارد (Guest همیشه `true`). |
+| `GET /api/v1/notifications/unread-count` | Guest/کاربر | `{count, authenticated}`؛ Guest = ۰. |
+| `GET /api/v1/notifications/:id` | Guest/کاربر | جزئیات؛ نامرئی برای بیننده = ۴۰۴. |
+| `PATCH /api/v1/notifications/:id/read` | کاربر | ۴۰۱ برای Guest، ۴۰۴ اگر قابل مشاهده نباشد. |
+| `PATCH /api/v1/notifications/read-all` | کاربر | فقط `notificationsSeenAt` را جلو می‌برد. |
+| `GET/POST /api/v1/notifications/manage` | `notifications.read` / `notifications.manage` | لیست (فیلتر `search`, `status`, `type`) / ساخت اعلان عمومی. |
+| `GET/PATCH/DELETE /api/v1/notifications/manage/:id` | ادمین | PATCH: ویرایش/انتشار/آرشیو. DELETE فقط Draft (منتشرشده ۴۰۹). |
+| `GET /api/v1/cron/notifications` | `Authorization: Bearer $CRON_SECRET` | فقط Vercel Cron. بدون Secret ۵۰۳. |
+
+`POST /api/v1/coupons` فیلد اختیاری `notifyUsers` (پیش‌فرض `false`) می‌پذیرد.

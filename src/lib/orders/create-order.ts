@@ -9,6 +9,7 @@ import { computeFinalPrice, computePrepayment, type PaymentMethod } from "@/lib/
 import { resolveOrderDiscount } from "@/lib/discounts/engine";
 import { validateCouponEligibility } from "@/lib/discounts/validate-coupon";
 import { processReferralEventsAfterOrder } from "@/lib/referrals/process-referral-events";
+import { notifyOrderCreated } from "@/lib/notifications/events";
 import {
   reserveCouponUsage,
   releaseCouponReservation,
@@ -267,6 +268,14 @@ export async function createOrder(params: CreateOrderParams) {
     // که تازه با موفقیت ثبت شده هرگز نباید به‌خاطر این مرحله Fail شود.
     console.error("Failed to process referral events:", error);
   }
+
+  // اعلان درون‌برنامه‌ای «سفارش ثبت شد» — Best-effort و بعد از موفقیت
+  // کامل سفارش؛ شکست آن هرگز سفارش ثبت‌شده را Fail/Rollback نمی‌کند.
+  await notifyOrderCreated({
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    customerId: customer._id,
+  });
 
   return { order, customer: customer as UserDocument, resolvedDiscount };
 }

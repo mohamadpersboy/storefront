@@ -72,6 +72,7 @@ export function CouponForm({ initial }: { initial?: CouponFormInitial }) {
   const [userQuery, setUserQuery] = useState("");
   const [userResults, setUserResults] = useState<AllowedUser[]>([]);
 
+  const [notifyUsers, setNotifyUsers] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -140,6 +141,8 @@ export function CouponForm({ initial }: { initial?: CouponFormInitial }) {
       allowedUserIds: type === "private" ? allowedUsers.map((u) => u.id) : [],
       usageLimit: hasUsageLimit ? Number(usageLimit) || 1 : null,
       perUserLimit: hasPerUserLimit ? Number(perUserLimit) || 1 : null,
+      // فقط هنگام ساخت (PATCH آن را نمی‌پذیرد/نمی‌فرستیم). پیش‌فرض false.
+      ...(mode === "create" ? { notifyUsers } : {}),
     };
 
     setSaving(true);
@@ -367,6 +370,25 @@ export function CouponForm({ initial }: { initial?: CouponFormInitial }) {
                 <p className="text-xs text-muted">هنوز کاربری انتخاب نشده</p>
               )}
             </div>
+          ) : null}
+
+          {mode === "create" ? (
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={notifyUsers}
+                onChange={(e) => setNotifyUsers(e.target.checked)}
+                className="mt-1"
+              />
+              <span>
+                اطلاع‌رسانی به کاربران
+                <span className="block text-xs text-muted">
+                  {type === "public"
+                    ? "بعد از ثبت، یک اعلان عمومی برای همه ساخته می‌شود (فقط اگر کد فعال باشد)."
+                    : "بعد از ثبت، برای هر کاربر انتخاب‌شده یک اعلان شخصی ساخته می‌شود (فقط اگر کد فعال باشد)."}
+                </span>
+              </span>
+            </label>
           ) : null}
 
           {error ? <p className="text-sm text-danger">{error}</p> : null}

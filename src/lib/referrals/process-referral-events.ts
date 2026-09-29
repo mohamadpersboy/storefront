@@ -2,6 +2,10 @@ import { Order } from "@/models/Order";
 import { Coupon } from "@/models/Coupon";
 import { Referral } from "@/models/Referral";
 import { getReferralSettings } from "@/models/ReferralSettings";
+import {
+  notifyReferralFirstPurchase,
+  notifyReferralReward,
+} from "@/lib/notifications/events";
 import type { UserDocument } from "@/models/User";
 import {
   generateUniqueReferralCode,
@@ -46,6 +50,12 @@ export async function processReferralEventsAfterOrder(
 
   const referral = await Referral.findOne({ invitee: customer._id, status: "pending" });
   if (!referral) return; // قبلاً رسیدگی شده یا اصلاً رکوردی ثبت نشده
+
+  // اولین خرید واقعی زیرمجموعه — صرف‌نظر از واجد شرایط بودن پاداش.
+  await notifyReferralFirstPurchase({
+    referralId: referral._id,
+    referrerId: referral.referrer,
+  });
 
   const settings = await getReferralSettings();
 
@@ -98,4 +108,16 @@ export async function processReferralEventsAfterOrder(
   referral.rewardCoupon = coupon._id;
   referral.rewardedAt = new Date();
   await referral.save();
+
+  await notifyReferralReward({
+    referralId: referral._id,
+    referrerId: referral.referrer,
+    coupon: {
+      code: coupon.code,
+      discountPercentage: coupon.discountPercentage,
+      maxDiscountAmount: coupon.maxDiscountAmount,
+      minOrderAmount: coupon.minOrderAmount,
+      expiresAt: coupon.expiresAt,
+    },
+  });
 }

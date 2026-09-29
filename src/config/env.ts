@@ -8,6 +8,8 @@ import { z } from "zod";
  * present at startup instead of failing deep inside a request handler,
  * and keeps every consumer statically typed.
  */
+const emptyToUndefined = (value: unknown) => (value === "" ? undefined : value);
+
 const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
@@ -39,6 +41,29 @@ const envSchema = z.object({
   // real Merchant ID issued after Zarinpal's business verification.
   // Switching later is env-only, no code change (see CLAUDE.md).
   ZARINPAL_MODE: z.enum(["sandbox", "production"]).default("sandbox"),
+
+  // Notifications (سیستم اطلاع‌رسانی درون‌برنامه‌ای)
+  //
+  // همه اختیاری‌اند و مقدار پیش‌فرض دارند. مقدارِ خالیِ `KEY=` در
+  // `.env` به‌عنوان «تنظیم‌نشده» حساب می‌شود، نه صفر.
+  //
+  // `CRON_SECRET`: Vercel Cron آن را به‌صورت `Authorization: Bearer`
+  // می‌فرستد. اگر تنظیم نباشد، Route کران همیشه ۵۰۳ برمی‌گرداند
+  // (هرگز بدون Secret اجرا نمی‌شود).
+  CRON_SECRET: z.preprocess(emptyToUndefined, z.string().min(16).optional()),
+  NOTIFICATION_TIMEZONE: z.preprocess(emptyToUndefined, z.string().default("Asia/Tehran")),
+  SPECIAL_OFFER_NOTIFICATION_HOUR: z.preprocess(
+    emptyToUndefined,
+    z.coerce.number().int().min(0).max(23).default(10),
+  ),
+  SPECIAL_OFFER_NOTIFICATION_MINUTE: z.preprocess(
+    emptyToUndefined,
+    z.coerce.number().int().min(0).max(59).default(0),
+  ),
+  COUPON_EXPIRY_REMINDER_HOURS: z.preprocess(
+    emptyToUndefined,
+    z.coerce.number().int().min(1).max(168).default(24),
+  ),
 
   // App
   //

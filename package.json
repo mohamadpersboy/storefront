@@ -13,6 +13,10 @@
   },
   "dependencies": {
     "@neshan-maps-platform/leaflet": "^1.0.8",
+    "@tiptap/extension-image": "^3.31.3",
+    "@tiptap/pm": "^3.31.3",
+    "@tiptap/react": "^3.31.3",
+    "@tiptap/starter-kit": "^3.31.3",
     "cloudinary": "^2.10.1",
     "clsx": "^2.1.1",
     "jalaali-js": "^2.0.1",
@@ -26,6 +30,7 @@
     "react-dom": "19.2.8",
     "react-easy-crop": "^6.2.3",
     "recharts": "^3.10.1",
+    "sanitize-html": "^2.17.7",
     "tailwind-merge": "^3.6.0",
     "xlsx": "^0.18.5",
     "zod": "^4.4.3"
@@ -36,6 +41,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/sanitize-html": "^2.16.2",
     "@vitejs/plugin-react": "^6.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",

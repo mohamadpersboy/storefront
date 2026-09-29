@@ -3241,6 +3241,20 @@ scripts/vercel-env-sync.sh
 `lastLoginAt?`, `deletedAt` (Soft Delete), timestamps. Query Middleware
 خودکار کاربران Soft-deleted را فیلتر می‌کند.
 
+### Notification / NotificationRead (سیستم اطلاع‌رسانی — فقط درون‌برنامه‌ای)
+`Notification`: `audience` (`public`|`user`)، `user` (null برای عمومی)،
+`type` (announcement|promotion|coupon|special_offer|order|referral|
+coupon_expiry|system)، `title`، `content` + `contentFormat` (`text` برای
+شخصی؛ `html` فقط عمومیِ ادمین، Sanitize‌شده در سرور)، `imageUrl`
+(فقط Cloudinary)، `link` (مسیر داخلی یا https)، `ref {kind,id}`،
+`status` (draft|published|archived)، `publishAt`، `expiresAt`،
+`dedupeKey` (Unique جزئی)، `createdBy`. **محتوا Snapshot است** (متن/کد/
+مبلغ در لحظه ساخت)؛ `ref` فقط ردیابی است. `NotificationRead {user,
+notification, readAt}` (Unique روی جفت). `User.notificationsSeenAt`
+(اضافه‌شونده): «خواندن همه» فقط این را جلو می‌برد (`$max`)؛ مبنا =
+`max(notificationsSeenAt, user.createdAt)` پس اعلان‌های قدیمی‌تر از
+ثبت‌نام هرگز unread نمی‌شوند.
+
 ### Otp
 `phoneNumber`, `codeHash` (HMAC، نه Plaintext), `expiresAt` (TTL Index
 — MongoDB خودش پاک می‌کند), `attempts`, `consumedAt?`, `requestedIp?`.
@@ -3596,6 +3610,50 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 بخش ۱۱، توسعه مستقیماً روی `main` ثبت می‌شود.
 
 ## 13. Important Decisions Log
+
+**🔔 سیستم اطلاع‌رسانی (Notification System) — فاز نهایی:**
+- منطق فقط در `src/lib/notifications/`: `visibility.ts` (تنها تعریف
+  «قابل مشاهده»)، `queries.ts` (لیست/شمارش/خواندن)، `service.ts` (تنها
+  نقطه ساخت)، `events.ts` (`notifyOrderCreated`, `notifyOrderStatusChanged`,
+  `notifyPaymentResult`, `notifyCouponCreated`, `notifyReferral*`)،
+  `scheduled.ts` (منطق Cron)، `templates.ts` (همه متن‌ها)، `dedupe.ts`.
+  Event Bus/Queue/Worker ساخته نشد.
+- Best-effort فقط برای اعلان اطلاعاتی بعد از موفقیت عملیات اصلی
+  (سفارش، پرداخت، رفرال، کوپن). ساخت دستی ادمین Best-effort نیست.
+- Guest فقط اعلان عمومی می‌بیند و Read State ندارد (`isRead: true`،
+  `unread-count` = ۰). کاربر: عمومی + شخصیِ خودش. اعلان دیگران/Draft/
+  منقضی/زمان‌بندی‌شده = ۴۰۴. پاسخ‌ها `Cache-Control: private, no-store`
+  (Cache عمومی عمداً حذف شد؛ درستی مهم‌تر).
+- API: `GET /api/v1/notifications`, `/unread-count`, `/:id`,
+  `PATCH /:id/read`, `PATCH /read-all`؛ ادمین: `/api/v1/notifications/manage`
+  (+`/:id`) با `NOTIFICATIONS_READ/MANAGE` (Admin و Super Admin). پیشوند
+  `/admin` استفاده نشد (با convention پروژه نمی‌خواند).
+- انتشار → فقط Archive؛ حذف واقعی فقط Draft. منقضی‌شده حذف نمی‌شود؛
+  فقط از Queryهای نمایش خارج می‌شود و در Admin با Badge «منقضی» دیده می‌شود.
+- Rich Text: Tiptap (`ssr:false`، dynamic) در Dashboard؛ Sanitize سمت
+  سرور با `sanitize-html` (Allowlist در `sanitize.ts`، هنگام ذخیره و
+  هنگام خروجی). اعلان شخصی فقط متن ساده. تصویر شاخص فقط Cloudinary
+  (`notification-image` در `/api/v1/uploads/sign`).
+- Cron: `vercel.json` (`30 6 * * *` UTC = ۱۰:۰۰ تهران) → `GET
+  /api/v1/cron/notifications` (فقط احراز هویت با `CRON_SECRET`؛ بدون
+  Secret ۵۰۳) → `runScheduledNotifications`. ساعت/دقیقه/Time Zone/۲۴
+  ساعت از env (`SPECIAL_OFFER_NOTIFICATION_HOUR/MINUTE`,
+  `NOTIFICATION_TIMEZONE`, `COUPON_EXPIRY_REMINDER_HOURS`). اگر ساعت env را
+  عوض کردی، Schedule در `vercel.json` را هم هماهنگ کن (Vercel Cron فقط UTC).
+- اعلان روزانه شگفت‌انگیز: تعداد **محصولاتِ** Offer فعالی که `createdAt`
+  آن‌ها بعد از آخرین اعلان روزانه است (بدون تغییر مدل AmazingOffer). صفر
+  = اعلان نمی‌سازد (روز بعد جبران می‌شود). `dedupeKey` روزانه.
+- یادآوری انقضای کوپن: فقط کوپن `private` فعال، شروع‌شده، منقضی‌نشده،
+  کمتر از `COUPON_EXPIRY_REMINDER_HOURS` تا انقضا، مصرف‌نشده توسط آن
+  کاربر؛ `dedupeKey = coupon-expiry:{coupon}:{user}:{h}h`.
+- کوپن: چک‌باکس «اطلاع‌رسانی به کاربران» (پیش‌فرض false، فقط هنگام
+  ساخت): public → اعلان عمومی؛ private → اعلان شخصی برای هر کاربر مجاز.
+  کوپن پاداش رفرال همیشه اعلان شخصی می‌سازد.
+- Order: اعلان‌های ثبت سفارش، هر وضعیت واقعی State Machine (به‌جز
+  `pending`)، و نتیجه پرداخت در Callback زرین‌پال؛ `dedupeKey` روی
+  (سفارش، وضعیت)/(پرداخت). Referral: ثبت‌نام، اولین خرید، پاداش.
+- تست: فقط Unit/Mocked (Vitest)، بدون زیرساخت DB واقعی. کارهای
+  ثبت‌نشده: Push/Email/SMS اعلان **پیاده‌سازی نشد** (خارج از Scope).
 
 **📱 بازطراحی کامل جدول‌های Dashboard برای موبایل (بدون اسکرول
 افقی):** طبق درخواست صریح کارفرما («اکثراً با موبایل به داشبورد سر
@@ -4278,6 +4336,11 @@ Commitِ قبلی، یا تست قبل از فعال‌کردن `enabled` در �
 
 ## 15. TODO (نزدیک)
 
+- [ ] **Notification System:** در Vercel `CRON_SECRET` (حداقل ۱۶ نویسه) را
+  تنظیم کن، Deploy کن و اجرای واقعی Cron + Bell/`/notifications` +
+  ادیتور Dashboard را دستی تست کن. تست DB/API واقعی (نیاز به
+  `mongodb-memory-server` → N.5) و اسکریپت `verify`/`madge` (خارج از Scope) هنوز
+  انجام نشده. زمان یادآوری انقضا فعلاً فقط ۲۴ ساعت (تک‌مقدار env).
 - [ ] تست واقعی Orders روی Vercel (ساخت سفارش دستی، جستجوی محصول
   زنده، تغییر وضعیت با State Machine، بررسی کسر/بازگردانی موجودی،
   دریافت واقعی پیامک اطلاع‌رسانی تغییر وضعیت)
@@ -4357,6 +4420,9 @@ Commitِ قبلی، یا تست قبل از فعال‌کردن `enabled` در �
 `SMS_IR_LINE_NUMBER`, `SMS_IR_OTP_TEMPLATE_ID` (=963650)،
 `ZARINPAL_MERCHANT_ID`, `ZARINPAL_MODE` (=sandbox پیش‌فرض)،
 `NEXT_PUBLIC_APP_URL` (اختیاری — خودکار از VERCEL_URL)، `NODE_ENV`.
+اعلان‌ها (همه اختیاری): `CRON_SECRET`, `NOTIFICATION_TIMEZONE`,
+`SPECIAL_OFFER_NOTIFICATION_HOUR`, `SPECIAL_OFFER_NOTIFICATION_MINUTE`,
+`COUPON_EXPIRY_REMINDER_HOURS`.
 
 `SMS_IR_LINE_NUMBER` فعلاً فقط برای استفاده احتمالی آینده از متد Bulk
 نگه داشته شده؛ OTP از آن استفاده نمی‌کند. هیچ مقدار واقعی Secret هرگز

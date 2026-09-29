@@ -5,6 +5,7 @@ import "@/models/Order"; // registers "Order" for populate() below
 import { verifyZarinpalPayment } from "@/lib/payment/zarinpal";
 import { adjustWalletBalance } from "@/lib/wallet/wallet-service";
 import { env } from "@/config/env";
+import { notifyPaymentResult } from "@/lib/notifications/events";
 
 /**
  * Public — Zarinpal redirects the *customer's* browser here after they
@@ -30,7 +31,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(resultUrl);
   }
 
-  const order = payment.order as unknown as { orderNumber: number; customer: unknown } | null;
+  const order = payment.order as unknown as {
+    _id: unknown;
+    orderNumber: number;
+    customer: unknown;
+  } | null;
   if (order) resultUrl.searchParams.set("orderNumber", String(order.orderNumber));
   resultUrl.searchParams.set("amount", String(payment.amount));
 
@@ -46,6 +51,19 @@ export async function GET(request: NextRequest) {
   const orderNumber = order?.orderNumber;
   const walletAmount = payment.walletAmount;
   const customerId = order?.customer ? String(order.customer) : null;
+
+  const paymentId = String(payment._id);
+
+  async function notifyResult(success: boolean) {
+    if (!order || !customerId) return;
+    await notifyPaymentResult({
+      paymentId,
+      orderId: String(order._id),
+      orderNumber: order.orderNumber,
+      customerId,
+      success,
+    });
+  }
 
   async function refundWalletPortionIfAny(reason: string) {
     if (walletAmount > 0 && customerId) {
@@ -78,6 +96,7 @@ export async function GET(request: NextRequest) {
     await refundWalletPortionIfAny(
       `استرداد بخش کیف پول — سفارش #${orderNumber} توسط مشتری لغو شد`,
     );
+    await notifyResult(false);
     resultUrl.searchParams.set("status", "failed");
     return NextResponse.redirect(resultUrl);
   }
@@ -93,6 +112,7 @@ export async function GET(request: NextRequest) {
     payment.cardPan = verification.cardPan;
     payment.paidAt = new Date();
     await payment.save();
+    await notifyResult(true);
 
     resultUrl.searchParams.set("status", "success");
   } else {
@@ -102,6 +122,7 @@ export async function GET(request: NextRequest) {
     await refundWalletPortionIfAny(
       `استرداد بخش کیف پول — پرداخت سفارش #${orderNumber} توسط درگاه تأیید نشد`,
     );
+    await notifyResult(false);
     resultUrl.searchParams.set("status", "failed");
   }
 

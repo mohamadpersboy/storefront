@@ -2,74 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell, Ticket, Truck, Heart, CheckCircle2 } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
-
-type MockNotification = {
-  id: string;
-  title: string;
-  description: string;
-  time: string;
-  read: boolean;
-  icon: typeof Bell;
-  iconBg: string;
-  iconColor: string;
-};
-
-/**
- * داده Mock — طبق درخواست صریح کارفرما («چون فعلا داده‌ای نداریم از
- * mock استفاده کن») و طبق بند ۱۳ Master Workflow (Mock فقط جایی که
- * API واقعی هنوز آماده نیست، با نام فیلد هماهنگ با ساختار واقعی
- * Backend). ساختار فیلدها (title/description/time/read) با آنچه
- * از یک Notification واقعی انتظار می‌رود هماهنگ است تا بعداً فقط
- * منبع داده عوض شود، نه شکل داده.
- *
- * محتوا مختص مشتری Storefront است (نه اعلان‌های ادمین مثل «سفارش
- * جدید ثبت شد» که در رفرنس کارفرما بود ولی برای Dashboard مناسب‌تر
- * است، نه برای کاربر نهایی فروشگاه).
- */
-const MOCK_NOTIFICATIONS: MockNotification[] = [
-  {
-    id: "1",
-    title: "سفارش شما ارسال شد",
-    description: "سفارش #۱۴۲۲ به مبلغ ۴,۸۵۰,۰۰۰ تومان تحویل پست شد",
-    time: "۱۴۰۵/۰۵/۱۸ - ۱۰:۳۰",
-    read: false,
-    icon: Truck,
-    iconBg: "bg-blue-50",
-    iconColor: "text-blue-600",
-  },
-  {
-    id: "2",
-    title: "کد تخفیف ویژه برای شما",
-    description: "کد SAGHCHI20 با ۲۰٪ تخفیف تا پایان هفته فعال است",
-    time: "۱۴۰۵/۰۵/۱۷ - ۱۸:۰۰",
-    read: false,
-    icon: Ticket,
-    iconBg: "bg-purple-50",
-    iconColor: "text-purple-600",
-  },
-  {
-    id: "3",
-    title: "محصول موردعلاقه شما تخفیف خورد",
-    description: "فرش ۱۲ متری طرح باستان ۱۵٪ تخفیف خورد",
-    time: "۱۴۰۵/۰۵/۱۶ - ۰۹:۱۵",
-    read: true,
-    icon: Heart,
-    iconBg: "bg-rose-50",
-    iconColor: "text-rose-600",
-  },
-  {
-    id: "4",
-    title: "پرداخت با موفقیت انجام شد",
-    description: "پرداخت سفارش #۱۳۹۸ تأیید و ثبت شد",
-    time: "۱۴۰۵/۰۵/۱۴ - ۱۲:۴۰",
-    read: true,
-    icon: CheckCircle2,
-    iconBg: "bg-emerald-50",
-    iconColor: "text-emerald-600",
-  },
-];
+import { Bell } from "lucide-react";
+import { NotificationItem } from "@/components/storefront/notification-item";
+import { POPUP_LIMIT, type NotificationDTO } from "@/lib/notifications/constants";
 
 /**
  * دکمه اعلان‌ها + پاپ‌آپ.
@@ -95,28 +30,61 @@ const MOCK_NOTIFICATIONS: MockNotification[] = [
  */
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [items, setItems] = useState<NotificationDTO[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loggedIn, setLoggedIn] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const hasUnread = notifications.some((item) => !item.read);
+
+  const [reloadToken, setReloadToken] = useState(0);
+
+  // شمارنده unread (و اینکه کاربر واردشده است) — یک‌بار هنگام Mount.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/v1/notifications/unread-count", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((body) => {
+        if (cancelled || !body?.success) return;
+        setUnreadCount(body.data.count);
+        setLoggedIn(body.data.authenticated);
+      })
+      .catch(() => undefined); // شمارنده اختیاری است؛ خطا UI را خراب نمی‌کند.
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // لیست پاپ‌آپ — هر بار باز شدن (و «تلاش دوباره»).
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetch(`/api/v1/notifications?limit=${POPUP_LIMIT}`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((body) => {
+        if (cancelled) return;
+        if (!body?.success) throw new Error();
+        setFailed(false);
+        setItems(body.data);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, reloadToken]);
 
   useEffect(() => {
     if (!open) return;
 
     function handlePointerDown(event: PointerEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setOpen(false);
       }
     }
-
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
+      if (event.key === "Escape") setOpen(false);
     }
-
     document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
@@ -125,24 +93,39 @@ export function NotificationBell() {
     };
   }, [open]);
 
-  function markAllAsRead() {
-    setNotifications((items) => items.map((item) => ({ ...item, read: true })));
+  async function markAllAsRead() {
+    setItems((list) => list?.map((item) => ({ ...item, isRead: true })) ?? list);
+    setUnreadCount(0);
+    try {
+      await fetch("/api/v1/notifications/read-all", { method: "PATCH" });
+    } catch {
+      /* شکست شبکه: شمارنده در بازدید بعدی از سرور درست می‌شود. */
+    }
   }
+
+  function handleItemRead(id: string) {
+    setItems((list) => list?.map((i) => (i.id === id ? { ...i, isRead: true } : i)) ?? list);
+    setUnreadCount((c) => Math.max(0, c - 1));
+  }
+
+  const hasUnread = unreadCount > 0;
 
   return (
     <div ref={containerRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        aria-label="اعلان‌ها"
-        aria-haspopup="true"
+        aria-label={hasUnread ? `اعلان‌ها، ${unreadCount} خوانده‌نشده` : "اعلان‌ها"}
+        aria-haspopup="dialog"
         aria-expanded={open}
         className="relative flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-400 active:bg-gray-200"
       >
         <Bell className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
-        {hasUnread && (
-          <span className="absolute end-2.5 top-2.5 h-2 w-2 rounded-full bg-[var(--color-primary)] ring-2 ring-white" />
-        )}
+        {hasUnread ? (
+          <span className="absolute -end-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--color-primary)] px-1 text-[10px] font-bold text-white ring-2 ring-white">
+            {unreadCount > 9 ? "۹+" : new Intl.NumberFormat("fa-IR").format(unreadCount)}
+          </span>
+        ) : null}
       </button>
 
       {open && (
@@ -152,9 +135,6 @@ export function NotificationBell() {
           className="fixed left-4 z-50 w-[min(340px,calc(100vw-32px))] overflow-visible rounded-2xl border border-black/5 bg-white shadow-[0_16px_40px_rgba(3,23,37,0.18)]"
           style={{ top: "calc(env(safe-area-inset-top) + 68px)" }}
         >
-          {/* فلش کوچک — دقیقاً زیر دکمه Bell (نه Search/Support)،
-              مماس با لبه پایین Top Bar، تا مشخص باشد این پاپ‌آپ
-              مال کدام دکمه است. */}
           <span
             aria-hidden="true"
             className="absolute -top-2 h-0 w-0 border-x-8 border-b-8 border-x-transparent border-b-white"
@@ -163,10 +143,8 @@ export function NotificationBell() {
 
           <div className="overflow-hidden rounded-2xl">
             <div className="flex items-center justify-between border-b border-black/5 px-4 py-3">
-              <p className="text-sm font-semibold text-[var(--sf-ink)]">
-                اعلان‌ها
-              </p>
-              {hasUnread && (
+              <p className="text-sm font-semibold text-[var(--sf-ink)]">اعلان‌ها</p>
+              {hasUnread && loggedIn ? (
                 <button
                   type="button"
                   onClick={markAllAsRead}
@@ -174,64 +152,50 @@ export function NotificationBell() {
                 >
                   علامت‌گذاری همه
                 </button>
-              )}
+              ) : null}
             </div>
 
-            {notifications.length === 0 ? (
+            {items === null && !failed ? (
+              <div className="flex flex-col gap-3 p-4" aria-busy="true">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex gap-3">
+                    <div className="h-9 w-9 animate-pulse rounded-xl bg-gray-100" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 w-2/3 animate-pulse rounded bg-gray-100" />
+                      <div className="h-3 w-1/2 animate-pulse rounded bg-gray-100" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : failed ? (
+              <div className="px-4 py-8 text-center">
+                <p className="text-sm text-gray-500">دریافت اعلان‌ها ناموفق بود</p>
+                <button
+                  type="button"
+                  onClick={() => setReloadToken((t) => t + 1)}
+                  className="mt-2 text-sm font-medium text-[var(--color-primary)]"
+                >
+                  تلاش دوباره
+                </button>
+              </div>
+            ) : items && items.length === 0 ? (
               <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
-                <Bell
-                  className="h-8 w-8 text-gray-300"
-                  strokeWidth={1.5}
-                  aria-hidden="true"
-                />
-                <p className="text-sm text-gray-400">
-                  اعلانی برای نمایش وجود ندارد
-                </p>
+                <Bell className="h-8 w-8 text-gray-300" strokeWidth={1.5} aria-hidden="true" />
+                <p className="text-sm text-gray-400">اعلان جدیدی ندارید.</p>
               </div>
             ) : (
-              <ul className="max-h-[60vh] overflow-y-auto">
-                {notifications.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <li
-                      key={item.id}
-                      className={cn(
-                        "flex gap-3 border-b border-black/5 px-4 py-3 last:border-b-0",
-                        !item.read && "bg-[var(--color-primary-soft)]/40",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
-                          item.iconBg,
-                          item.iconColor,
-                        )}
-                      >
-                        <Icon className="h-4.5 w-4.5" strokeWidth={2} aria-hidden="true" />
-                      </span>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-medium text-[var(--sf-ink)]">
-                            {item.title}
-                          </p>
-                          {!item.read && (
-                            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-primary)]" />
-                          )}
-                        </div>
-                        <p className="mt-0.5 truncate text-xs text-gray-500">
-                          {item.description}
-                        </p>
-                        <p className="mt-1 text-[11px] text-gray-400">{item.time}</p>
-                      </div>
-                    </li>
-                  );
-                })}
+              <ul className="max-h-[60vh] divide-y divide-black/5 overflow-y-auto">
+                {items?.map((item) => (
+                  <li key={item.id}>
+                    <NotificationItem item={item} canMarkRead={loggedIn} onRead={handleItemRead} />
+                  </li>
+                ))}
               </ul>
             )}
 
             <Link
               href="/notifications"
+              onClick={() => setOpen(false)}
               className="block border-t border-black/5 px-4 py-3 text-center text-sm font-medium text-[var(--color-primary)]"
             >
               مشاهده همه اعلان‌ها

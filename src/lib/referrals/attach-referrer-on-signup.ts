@@ -1,6 +1,7 @@
 import { User, type UserDocument } from "@/models/User";
 import { Referral } from "@/models/Referral";
 import { getReferralSettings } from "@/models/ReferralSettings";
+import { notifyReferralSignup } from "@/lib/notifications/events";
 
 /**
  * فقط برای کاربری که همین لحظه (اولین‌بار) در `POST
@@ -39,10 +40,12 @@ export async function attachReferrerOnSignup(
   newUser.referredBy = referrer._id;
   await newUser.save();
 
-  await Referral.create({
+  const referral = await Referral.create({
     referrer: referrer._id,
     invitee: newUser._id,
     code,
     status: "pending",
   });
+
+  await notifyReferralSignup({ referralId: referral._id, referrerId: referrer._id });
 }

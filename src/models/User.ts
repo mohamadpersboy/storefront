@@ -27,6 +27,14 @@ export interface IUser {
   referralCode?: string;
   /** اگر این کاربر با کد رفرال شخص دیگری ثبت‌نام کرده، همان معرف. */
   referredBy?: Types.ObjectId | null;
+  /**
+   * «همه را خوانده کن» بدون به‌روزرسانی تک‌تک اعلان‌ها: هر اعلانی که
+   * `publishAt` آن ≤ این زمان باشد خوانده حساب می‌شود. `undefined`
+   * (کاربرانِ قبل از این قابلیت و کاربر تازه) یعنی مبنا = `createdAt`
+   * کاربر، پس اعلان‌های عمومیِ قدیمی‌تر از ثبت‌نام او هرگز unread
+   * نمی‌شوند. فقط افزایشی است (`$max`).
+   */
+  notificationsSeenAt?: Date | null;
   deletedAt?: Date | null; // soft delete
   createdAt: Date;
   updatedAt: Date;
@@ -65,6 +73,7 @@ const UserSchema = new Schema<IUser>(
       ref: "User",
       default: null,
     },
+    notificationsSeenAt: { type: Date },
     deletedAt: { type: Date, default: null, index: true },
   },
   { timestamps: true },

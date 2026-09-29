@@ -19,6 +19,11 @@ const couponFieldsSchema = z.object({
   allowedUserIds: z.array(z.string().regex(objectIdRegex)).default([]),
   usageLimit: z.number().int().min(1).nullable().optional(),
   perUserLimit: z.number().int().min(1).nullable().optional(),
+  /**
+   * فقط هنگام ساخت: اگر true باشد بعد از ساخت موفق، اعلان درون‌برنامه‌ای
+   * (عمومی یا شخصی) ساخته می‌شود. پیش‌فرض false — اجباری نیست.
+   */
+  notifyUsers: z.boolean().default(false),
 });
 
 export const createCouponSchema = couponFieldsSchema
@@ -31,7 +36,7 @@ export const createCouponSchema = couponFieldsSchema
     path: ["startsAt"],
   });
 
-export const updateCouponSchema = couponFieldsSchema.partial().refine(
+export const updateCouponSchema = couponFieldsSchema.omit({ notifyUsers: true }).partial().refine(
   (data) => !data.startsAt || !data.expiresAt || data.startsAt < data.expiresAt,
   { message: "تاریخ شروع باید قبل از تاریخ انقضا باشد", path: ["startsAt"] },
 );

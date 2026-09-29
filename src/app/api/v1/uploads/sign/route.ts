@@ -5,6 +5,7 @@ import {
   BANNER_IMAGES_FOLDER,
   CATEGORY_IMAGES_FOLDER,
   BRAND_IMAGES_FOLDER,
+  NOTIFICATION_IMAGES_FOLDER,
 } from "@/lib/cloudinary/config";
 import { PERMISSIONS, type Permission } from "@/lib/constants/rbac";
 import { requireApiUser } from "@/lib/auth/api-guard";
@@ -16,7 +17,8 @@ type UploadTarget =
   | "bank-logo"
   | "banner-image"
   | "category-image"
-  | "brand-image";
+  | "brand-image"
+  | "notification-image";
 
 const TARGET_CONFIG: Record<UploadTarget, { folder: string; permission: Permission }> = {
   "product-image": { folder: PRODUCT_IMAGES_FOLDER, permission: PERMISSIONS.PRODUCTS_CREATE },
@@ -29,6 +31,10 @@ const TARGET_CONFIG: Record<UploadTarget, { folder: string; permission: Permissi
   "brand-image": {
     folder: BRAND_IMAGES_FOLDER,
     permission: PERMISSIONS.BRANDS_CREATE,
+  },
+  "notification-image": {
+    folder: NOTIFICATION_IMAGES_FOLDER,
+    permission: PERMISSIONS.NOTIFICATIONS_MANAGE,
   },
 };
 
@@ -53,7 +59,9 @@ export async function POST(request: Request) {
           ? "category-image"
           : body?.target === "brand-image"
             ? "brand-image"
-            : "product-image";
+            : body?.target === "notification-image"
+              ? "notification-image"
+              : "product-image";
   const config = TARGET_CONFIG[target];
 
   const guard = await requireApiUser(config.permission);

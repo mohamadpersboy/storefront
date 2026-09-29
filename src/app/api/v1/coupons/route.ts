@@ -7,6 +7,7 @@ import { requireApiUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { createCouponSchema, couponsListQuerySchema } from "@/lib/validations/coupons";
 import { logActivity } from "@/lib/audit/log-activity";
+import { notifyCouponCreated } from "@/lib/notifications/events";
 
 type LeanCoupon = ICoupon & { _id: Types.ObjectId };
 
@@ -104,8 +105,10 @@ export async function POST(request: Request) {
     });
   }
 
+  const { notifyUsers, ...couponData } = parsed.data;
+
   const coupon = await Coupon.create({
-    ...parsed.data,
+    ...couponData,
     code,
     maxDiscountAmount: parsed.data.maxDiscountAmount ?? null,
     startsAt: parsed.data.startsAt ?? null,
@@ -121,6 +124,23 @@ export async function POST(request: Request) {
     targetId: coupon.id,
     description: `کد تخفیف «${coupon.code}» ایجاد شد (${coupon.discountPercentage}٪)`,
   });
+
+  if (notifyUsers) {
+    // بعد از ساخت موفق Coupon: Coupon هرگز Orphan نمی‌شود و شکست اعلان
+    // (Best-effort) ساخت Coupon را بی‌اثر نمی‌کند. Snapshot در متن اعلان.
+    await notifyCouponCreated({
+      id: coupon._id,
+      code: coupon.code,
+      discountPercentage: coupon.discountPercentage,
+      maxDiscountAmount: coupon.maxDiscountAmount,
+      minOrderAmount: coupon.minOrderAmount,
+      startsAt: coupon.startsAt,
+      expiresAt: coupon.expiresAt,
+      type: coupon.type,
+      status: coupon.status,
+      allowedUsers: coupon.allowedUsers,
+    });
+  }
 
   return apiSuccess({ id: coupon.id }, { message: "کد تخفیف ایجاد شد", status: 201 });
 }

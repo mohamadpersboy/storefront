@@ -7,6 +7,7 @@ import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { updateOrderStatusSchema } from "@/lib/validations/orders";
 import { canTransitionOrderStatus, type OrderStatus } from "@/lib/constants/order-status";
 import { logActivity } from "@/lib/audit/log-activity";
+import { notifyOrderStatusChanged } from "@/lib/notifications/events";
 
 export async function PATCH(
   request: Request,
@@ -77,6 +78,13 @@ export async function PATCH(
   // اکنون فقط دستی و از طریق دکمهٔ «ارسال وضعیت به مشتری» در صفحهٔ
   // جزئیات سفارش انجام می‌شود (ببینید:
   // POST /api/v1/orders/:id/notify-status).
+
+  await notifyOrderStatusChanged({
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    customerId: order.customer,
+    status: nextStatus,
+  });
 
   return apiSuccess(
     { id: order.id, status: order.status },
