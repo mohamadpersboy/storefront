@@ -1,6 +1,7 @@
 import type { OrderStatus } from "@/lib/constants/order-status";
 import { formatJalali } from "@/lib/utils/jalali";
 import { formatToman, toPersianDigits } from "@/lib/utils/format";
+import { formatRemainingTime } from "./remaining-time";
 
 /**
  * تمام متن‌های اعلان یک‌جا (هم‌الگو با قالب‌های پیامک) تا تغییر متن
@@ -90,12 +91,12 @@ export function personalCouponText(c: CouponSnapshot): NotificationText {
   };
 }
 
-export function couponExpiryReminderText(c: CouponSnapshot, hoursLeft: number): NotificationText {
+/** زمان باقی‌مانده واقعی (از `now` تا انقضا)، نه مقدار config. */
+export function couponExpiryReminderText(c: CouponSnapshot, now: Date): NotificationText {
+  const remaining = formatRemainingTime(c.expiresAt.getTime() - now.getTime());
+  const phrase = remaining === "کمتر از یک ساعت" ? remaining : `فقط ${remaining}`;
   return {
-    title:
-      hoursLeft <= 24
-        ? "⏰ کد تخفیف شما فقط ۲۴ ساعت دیگر اعتبار دارد"
-        : "⏰ کد تخفیف شما به‌زودی منقضی می‌شود",
+    title: `⏰ کد تخفیف شما ${phrase} دیگر اعتبار دارد`,
     content: couponLines(c).join("\n"),
   };
 }

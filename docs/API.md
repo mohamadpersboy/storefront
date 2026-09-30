@@ -480,6 +480,11 @@ UI: `/dashboard/checks` (لیست با Search/Filter/Pagination)،
 | `PATCH /api/v1/notifications/read-all` | کاربر | فقط `notificationsSeenAt` را جلو می‌برد. |
 | `GET/POST /api/v1/notifications/manage` | `notifications.read` / `notifications.manage` | لیست (فیلتر `search`, `status`, `type`) / ساخت اعلان عمومی. |
 | `GET/PATCH/DELETE /api/v1/notifications/manage/:id` | ادمین | PATCH: ویرایش/انتشار/آرشیو. DELETE فقط Draft (منتشرشده ۴۰۹). |
-| `GET /api/v1/cron/notifications` | `Authorization: Bearer $CRON_SECRET` | فقط Vercel Cron. بدون Secret ۵۰۳. |
+| `GET /api/v1/cron/notifications` | `Authorization: Bearer $CRON_SECRET` | فقط Vercel Cron (دو Slot در `vercel.json`؛ ایمن برای اجرای مکرر). بدون Secret ۵۰۳. |
 
 `POST /api/v1/coupons` فیلد اختیاری `notifyUsers` (پیش‌فرض `false`) می‌پذیرد.
+
+`publishAt`/`expiresAt` در `manage` یا `YYYY-MM-DD` (تفسیر با Time Zone کسب‌وکار:
+شروع = ابتدای روز، پایان = انتهای روز) یا زمان کامل ISO هستند. `publishAt` ≤ اکنون
+هنگام انتشار به «اکنون» تبدیل می‌شود؛ بعد از زنده شدن اعلان، انتقال آن به آینده
+۴۲۲ می‌دهد. تصاویر داخل `content` فقط از `https://res.cloudinary.com`.

@@ -6,6 +6,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import { Bold, Heading2, ImageIcon, Italic, Link2, List, ListOrdered, Unlink } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { isSafeNotificationImageUrl } from "@/lib/notifications/links";
 
 /**
  * ویرایشگر Rich Text اعلان (Tiptap). فقط از `next/dynamic` با
@@ -114,8 +115,13 @@ export default function RichTextEditor({
           aria-label="افزودن تصویر"
           className={btn(false)}
           onClick={() => {
-            const url = askHttps("آدرس تصویر (https)");
-            if (url) editor.chain().focus().setImage({ src: url }).run();
+            const url = window.prompt("آدرس تصویر (فقط https://res.cloudinary.com)", "https://res.cloudinary.com/")?.trim();
+            if (!url) return;
+            if (!isSafeNotificationImageUrl(url)) {
+              window.alert("فقط تصویر آپلودشده در Cloudinary مجاز است");
+              return;
+            }
+            editor.chain().focus().setImage({ src: url }).run();
           }}
         >
           <ImageIcon className="size-4" />

@@ -1,4 +1,6 @@
 import type { INotification } from "@/models/Notification";
+import { DEFAULT_NOTIFICATION_CONFIG } from "./config";
+import { resolveAdminDate, type AdminDateInput } from "./dates";
 import { htmlHasContent, sanitizeNotificationHtml } from "./sanitize";
 import type { NotificationStatus, NotificationType } from "./constants";
 
@@ -8,27 +10,78 @@ export interface AdminNotificationInput {
   content?: string;
   imageUrl?: string | null;
   link?: string | null;
-  publishAt?: Date | null;
-  expiresAt?: Date | null;
+  /** `YYYY-MM-DD` (تفسیر: ابتدای روز محلی) یا زمان کامل. */
+  publishAt?: AdminDateInput;
+  /** `YYYY-MM-DD` (تفسیر: انتهای روز محلی) یا زمان کامل. */
+  expiresAt?: AdminDateInput;
   status?: NotificationStatus;
 }
 
-export type AdminUpdateResult =
-  | { ok: true; update: Partial<INotification> }
-  | { ok: false; field: string; message: string };
+export type AdminFieldError = { ok: false; field: string; message: string };
+export type AdminUpdateResult = { ok: true; update: Partial<INotification> } | AdminFieldError;
+
+const EXPIRY_ORDER_MESSAGE = "زمان انقضا باید بعد از زمان انتشار باشد";
+
+/**
+ * انتشار = نمایش از همین لحظه. اگر زمان درخواستیِ انتشار گذشته (یا
+ * همین لحظه) باشد، `now` می‌شود؛ وگرنه اعلان «قدیمی» حساب می‌شود و برای
+ * کاربری که «خواندن همه» زده خوانده دیده می‌شود.
+ */
+export function resolvePublishAt(requested: Date | null | undefined, now: Date): Date {
+  return requested && requested > now ? requested : now;
+}
+
+/** ساخت اعلان عمومی توسط ادمین (تابع خالص، قابل تست). */
+export function buildAdminCreate(
+  input: Required<Pick<AdminNotificationInput, "type" | "title">> &
+    Omit<AdminNotificationInput, "type" | "title"> & { status: "draft" | "published" },
+  now: Date,
+  timeZone: string = DEFAULT_NOTIFICATION_CONFIG.timeZone,
+):
+  | {
+      ok: true;
+      fields: {
+        content: string;
+        publishAt: Date;
+        expiresAt: Date | null;
+      };
+    }
+  | AdminFieldError {
+  const content = sanitizeNotificationHtml(input.content ?? "");
+  if (!htmlHasContent(content) && !input.imageUrl) {
+    return { ok: false, field: "content", message: "متن یا تصویر اعلان نمی‌تواند خالی باشد" };
+  }
+
+  const requested = resolveAdminDate(input.publishAt, "start", timeZone);
+  const publishAt =
+    input.status === "published" ? resolvePublishAt(requested, now) : (requested ?? now);
+  const expiresAt = resolveAdminDate(input.expiresAt, "end", timeZone) ?? null;
+
+  if (expiresAt && expiresAt <= publishAt) {
+    return { ok: false, field: "expiresAt", message: EXPIRY_ORDER_MESSAGE };
+  }
+  return { ok: true, fields: { content, publishAt, expiresAt } };
+}
 
 /**
  * ویرایش اعلان عمومی توسط ادمین (تابع خالص، قابل تست).
  *
  * - محتوا همیشه در سرور Sanitize می‌شود.
- * - draft → published بدون `publishAt` صریح: `publishAt = now` (تازه
- *   منتشر شده حساب می‌شود و برای همه unread است).
- * - بازگرداندن از archived → published، `publishAt` قبلی را نگه می‌دارد.
+ * - Draft → Published: `publishAt` = max(درخواستی، now). بدون مقدار جدید،
+ *   زمانِ آینده‌ی ذخیره‌شده‌ی پیش‌نویس حفظ می‌شود؛ `null` = «همین حالا».
+ * - بعد از «زنده شدن» اعلان (`status ≠ draft` و `publishAt ≤ now`):
+ *   `publishAt` هرگز به آینده منتقل نمی‌شود (۴۲۲)، و مقدار گذشته/برابر
+ *   نادیده گرفته می‌شود. زمان‌بندی جدید = اعلان جدید. این‌گونه Read State
+ *   (`notificationsSeenAt`) خراب نمی‌شود.
+ * - اعلانِ منتشرشده‌ی هنوز زمان‌بندی‌شده (`publishAt > now`) آزادانه
+ *   قابل تغییر است (هنوز برای کسی دیده نشده).
+ * - Archived → Published همان `publishAt` قبلی را نگه می‌دارد.
  */
 export function buildAdminUpdate(
   existing: Pick<INotification, "status" | "publishAt" | "expiresAt" | "content" | "imageUrl">,
   input: AdminNotificationInput,
   now: Date,
+  timeZone: string = DEFAULT_NOTIFICATION_CONFIG.timeZone,
 ): AdminUpdateResult {
   const update: Partial<INotification> = {};
 
@@ -53,22 +106,38 @@ export function buildAdminUpdate(
 
   if (input.status !== undefined) update.status = input.status;
 
-  if (input.publishAt !== undefined && input.publishAt !== null) {
-    update.publishAt = input.publishAt;
-  } else if (existing.status === "draft" && status === "published") {
-    update.publishAt = now;
+  const requested = resolveAdminDate(input.publishAt, "start", timeZone);
+  let publishAt = existing.publishAt;
+
+  if (existing.status === "draft") {
+    if (status === "published") {
+      publishAt = resolvePublishAt(requested === undefined ? existing.publishAt : requested, now);
+      update.publishAt = publishAt;
+    } else if (requested) {
+      publishAt = requested;
+      update.publishAt = publishAt;
+    }
+  } else if (existing.publishAt <= now) {
+    // اعلان زنده (یا زمانی زنده بوده): `publishAt` ثابت است.
+    if (requested && requested > now) {
+      return {
+        ok: false,
+        field: "publishAt",
+        message: "زمان انتشار بعد از انتشار قابل انتقال به آینده نیست؛ اعلان جدید بسازید",
+      };
+    }
+  } else if (requested) {
+    // هنوز زمان‌بندی‌شده و دیده‌نشده.
+    publishAt = resolvePublishAt(requested, now);
+    update.publishAt = publishAt;
   }
 
-  if (input.expiresAt !== undefined) update.expiresAt = input.expiresAt;
-
-  const publishAt = update.publishAt ?? existing.publishAt;
-  const expiresAt = input.expiresAt !== undefined ? input.expiresAt : existing.expiresAt;
+  if (input.expiresAt !== undefined) {
+    update.expiresAt = resolveAdminDate(input.expiresAt, "end", timeZone) ?? null;
+  }
+  const expiresAt = input.expiresAt !== undefined ? (update.expiresAt ?? null) : existing.expiresAt;
   if (expiresAt && expiresAt <= publishAt) {
-    return {
-      ok: false,
-      field: "expiresAt",
-      message: "زمان انقضا باید بعد از زمان انتشار باشد",
-    };
+    return { ok: false, field: "expiresAt", message: EXPIRY_ORDER_MESSAGE };
   }
 
   return { ok: true, update };

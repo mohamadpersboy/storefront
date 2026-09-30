@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getCurrentUser = vi.fn();
 const listVisible = vi.fn();
@@ -38,7 +38,7 @@ import { GET as detailGET } from "@/app/api/v1/notifications/[id]/route";
 import { PATCH as readPATCH } from "@/app/api/v1/notifications/[id]/read/route";
 import { PATCH as readAllPATCH } from "@/app/api/v1/notifications/read-all/route";
 import { GET as manageGET, POST as managePOST } from "@/app/api/v1/notifications/manage/route";
-import { DELETE as manageDELETE } from "@/app/api/v1/notifications/manage/[id]/route";
+import { DELETE as manageDELETE, PATCH as managePATCH } from "@/app/api/v1/notifications/manage/[id]/route";
 import { NextRequest } from "next/server";
 
 const user = (role: string) => ({
@@ -185,5 +185,74 @@ describe("admin API authorization", () => {
     findOne.mockResolvedValueOnce({ id: "n2", _id: "n2", title: "t", status: "draft", deleteOne });
     expect((await manageDELETE(req("/x"), ctx())).status).toBe(200);
     expect(deleteOne).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("admin API — fix batch (server-side, not just frontend)", () => {
+  const body = { title: "جشنواره", content: "<p>متن</p>" };
+  const patch = (b: unknown) =>
+    new Request("http://localhost/x", { method: "PATCH", body: JSON.stringify(b), headers: { "content-type": "application/json" } });
+  const liveDoc = (set = vi.fn(), save = vi.fn()) => ({
+    id: "n1",
+    title: "t",
+    status: "published",
+    publishAt: new Date("2026-09-20T07:00:00Z"),
+    expiresAt: null,
+    content: "<p>x</p>",
+    imageUrl: null,
+    set,
+    save,
+  });
+
+  beforeEach(() => {
+    getCurrentUser.mockResolvedValue(user("admin"));
+    createNotification.mockResolvedValue({ created: true, id: "n1" });
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-29T10:00:00Z")); // 13:30 Tehran
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("H1: POST publish with TODAY's date → stored publishAt is now (immediate publication)", async () => {
+    const res = await managePOST(json({ ...body, status: "published", publishAt: "2026-09-29" }));
+    expect(res.status).toBe(201);
+    expect(createNotification.mock.calls[0][0].publishAt).toEqual(new Date("2026-09-29T10:00:00Z"));
+  });
+
+  it("Low 2: POST expiry date is stored as the end of that Tehran day", async () => {
+    await managePOST(json({ ...body, status: "published", expiresAt: "2026-10-02" }));
+    expect(createNotification.mock.calls[0][0].expiresAt).toEqual(new Date("2026-10-02T20:29:59.999Z"));
+  });
+
+  it("POST: rich-text images are limited to Cloudinary (external image removed server-side)", async () => {
+    await managePOST(
+      json({
+        ...body,
+        content:
+          '<p>x</p><img src="https://example.com/a.jpg"><img src="https://res.cloudinary.com/demo/a.jpg"><img src="http://res.cloudinary.com/a.jpg">',
+      }),
+    );
+    const stored = createNotification.mock.calls[0][0].content as string;
+    expect(stored).toContain("https://res.cloudinary.com/demo/a.jpg");
+    expect(stored).not.toContain("example.com");
+    expect(stored).not.toContain("http://res.cloudinary.com");
+  });
+
+  it("Low 3: PATCH cannot move a live notification's publishAt into the future (422, nothing saved)", async () => {
+    const save = vi.fn();
+    findOne.mockResolvedValue(liveDoc(vi.fn(), save));
+    const res = await managePATCH(patch({ publishAt: "2026-10-10" }), ctx());
+    expect(res.status).toBe(422);
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it("PATCH: editing other fields of a live notification works and leaves publishAt untouched", async () => {
+    const set = vi.fn();
+    const save = vi.fn();
+    findOne.mockResolvedValue(liveDoc(set, save));
+    const res = await managePATCH(patch({ title: "عنوان جدید", publishAt: "2026-09-01" }), ctx());
+    expect(res.status).toBe(200);
+    expect(set.mock.calls[0][0]).toMatchObject({ title: "عنوان جدید" });
+    expect(set.mock.calls[0][0]).not.toHaveProperty("publishAt");
+    expect(save).toHaveBeenCalled();
   });
 });

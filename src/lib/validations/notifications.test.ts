@@ -36,14 +36,12 @@ describe("notification validation", () => {
     expect(r.imageUrl).toBeNull();
   });
 
-  it("expiry must be after publish", () => {
-    expect(
-      createNotificationSchema.safeParse({
-        title: "ab",
-        publishAt: "2026-10-02T00:00:00Z",
-        expiresAt: "2026-10-01T00:00:00Z",
-      }).success,
-    ).toBe(false);
+  it("accepts date-only and full ISO dates, rejects invalid ones", () => {
+    expect(createNotificationSchema.parse({ title: "ab", expiresAt: "2026-10-01" }).expiresAt).toBe("2026-10-01");
+    expect(createNotificationSchema.parse({ title: "ab", expiresAt: "2026-10-01T05:00:00Z" }).expiresAt).toBeInstanceOf(Date);
+    expect(createNotificationSchema.safeParse({ title: "ab", expiresAt: "2026-02-31" }).success).toBe(false);
+    expect(createNotificationSchema.safeParse({ title: "ab", publishAt: "garbage" }).success).toBe(false);
+    expect(createNotificationSchema.parse({ title: "ab", publishAt: null }).publishAt).toBeNull();
   });
 
   it("update is partial and allows archiving", () => {

@@ -14,8 +14,10 @@ describe("sanitizeNotificationHtml (XSS)", () => {
   });
 
   it("removes event handler attributes", () => {
-    const out = sanitizeNotificationHtml('<img src="https://x.test/a.png" onerror="alert(1)">');
-    expect(out).toContain('src="https://x.test/a.png"');
+    const out = sanitizeNotificationHtml(
+      '<img src="https://res.cloudinary.com/demo/a.png" onerror="alert(1)">',
+    );
+    expect(out).toContain('src="https://res.cloudinary.com/demo/a.png"');
     expect(out).not.toContain("onerror");
   });
 
@@ -28,6 +30,22 @@ describe("sanitizeNotificationHtml (XSS)", () => {
   it("drops data: and http: image sources", () => {
     expect(sanitizeNotificationHtml('<img src="data:image/png;base64,AAAA">')).not.toContain("data:");
     expect(sanitizeNotificationHtml('<img src="http://x.test/a.png">')).not.toContain("src=");
+  });
+
+  it("allows images only from https://res.cloudinary.com", () => {
+    expect(sanitizeNotificationHtml('<img src="https://res.cloudinary.com/demo/image/upload/a.jpg">')).toContain(
+      "<img",
+    );
+    for (const src of [
+      "https://example.com/image.jpg",
+      "http://res.cloudinary.com/demo/a.jpg",
+      "https://res.cloudinary.com.evil.test/a.jpg",
+      "https://evil.test/https://res.cloudinary.com/a.jpg",
+      "//res.cloudinary.com/a.jpg",
+      "/local.jpg",
+    ]) {
+      expect(sanitizeNotificationHtml(`<p>x</p><img src="${src}">`)).toBe("<p>x</p>");
+    }
   });
 
   it("drops iframe, style and inline style attributes", () => {

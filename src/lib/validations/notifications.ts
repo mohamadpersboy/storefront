@@ -4,6 +4,7 @@ import {
   NOTIFICATION_STATUSES,
   NOTIFICATION_TYPES,
 } from "@/lib/notifications/constants";
+import { isDateOnly, isValidDateOnly } from "@/lib/notifications/dates";
 import { isSafeNotificationImageUrl, isSafeNotificationLink } from "@/lib/notifications/links";
 
 /** لیست اعلان‌های بیننده (Guest/کاربر): Pagination استاندارد پروژه `page`/`limit`. */
@@ -27,6 +28,24 @@ const optionalImage = z
   .union([imageSchema, z.literal("").transform(() => null), z.null()])
   .optional();
 
+/**
+ * تاریخ ادمین: `YYYY-MM-DD` (تاریخ‌-فقط از انتخابگر؛ سرور با Time Zone
+ * کسب‌وکار تفسیر می‌کند) یا زمان کامل ISO (مقدار دست‌نخورده).
+ */
+const adminDate = z.string().transform((value, ctx): string | Date => {
+  if (isDateOnly(value)) {
+    if (isValidDateOnly(value)) return value;
+    ctx.addIssue({ code: "custom", message: "تاریخ نامعتبر است" });
+    return z.NEVER;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    ctx.addIssue({ code: "custom", message: "تاریخ نامعتبر است" });
+    return z.NEVER;
+  }
+  return parsed;
+});
+
 const notificationFieldsSchema = z.object({
   type: z.enum(ADMIN_NOTIFICATION_TYPES),
   title: z.string().trim().min(2, "عنوان حداقل ۲ نویسه باشد").max(120, "عنوان حداکثر ۱۲۰ نویسه باشد"),
@@ -34,18 +53,13 @@ const notificationFieldsSchema = z.object({
   content: z.string().max(20000, "متن بیش از حد طولانی است"),
   imageUrl: optionalImage,
   link: optionalLink,
-  publishAt: z.coerce.date().nullable().optional(),
-  expiresAt: z.coerce.date().nullable().optional(),
+  publishAt: adminDate.nullable().optional(),
+  expiresAt: adminDate.nullable().optional(),
   status: z.enum(NOTIFICATION_STATUSES),
 });
 
-const expiryAfterPublish = (data: { publishAt?: Date | null; expiresAt?: Date | null }) =>
-  !data.publishAt || !data.expiresAt || data.publishAt < data.expiresAt;
-const expiryMessage = {
-  message: "زمان انقضا باید بعد از زمان انتشار باشد",
-  path: ["expiresAt"],
-};
-
+// ترتیب انتشار/انقضا بعد از تفسیر Time Zone در `admin.ts` بررسی می‌شود
+// (تاریخ‌-فقط را نمی‌توان اینجا مقایسه کرد).
 // پیش‌فرض‌ها فقط برای ساخت‌اند. در ویرایش (PATCH) نباید اعمال شوند،
 // وگرنه ارسال `{status}` به‌تنهایی نوع و متن اعلان را ریست می‌کرد.
 export const createNotificationSchema = notificationFieldsSchema
@@ -53,12 +67,9 @@ export const createNotificationSchema = notificationFieldsSchema
     type: z.enum(ADMIN_NOTIFICATION_TYPES).default("announcement"),
     content: z.string().max(20000, "متن بیش از حد طولانی است").default(""),
     status: z.enum(["draft", "published"]).default("draft"),
-  })
-  .refine(expiryAfterPublish, expiryMessage);
+  });
 
-export const updateNotificationSchema = notificationFieldsSchema
-  .partial()
-  .refine(expiryAfterPublish, expiryMessage);
+export const updateNotificationSchema = notificationFieldsSchema.partial();
 
 export const adminNotificationsListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

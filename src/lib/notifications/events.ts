@@ -136,18 +136,18 @@ export async function notifyCouponCreated(coupon: CouponForNotification, now = n
 export function buildCouponExpiryReminder(p: {
   coupon: CouponSnapshot & { id: Id };
   userId: Id;
-  hours: number;
+  now: Date;
 }): NewNotification {
   const couponId = String(p.coupon.id);
   return {
     audience: "user",
     userId: p.userId,
     type: "coupon_expiry",
-    ...couponExpiryReminderText(p.coupon, p.hours),
+    ...couponExpiryReminderText(p.coupon, p.now),
     link: NOTIFICATION_LINKS.coupons,
     ref: { kind: "coupon", id: couponId },
     expiresAt: p.coupon.expiresAt,
-    dedupeKey: dedupeKeys.couponExpiry(couponId, String(p.userId), p.hours),
+    dedupeKey: dedupeKeys.couponExpiry(couponId, String(p.userId)),
   };
 }
 

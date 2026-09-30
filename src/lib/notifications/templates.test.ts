@@ -46,8 +46,15 @@ describe("notification templates", () => {
     expect(content).not.toContain("حداقل مبلغ سفارش");
   });
 
-  it("expiry reminder mentions 24 hours for the default lead time", () => {
-    expect(couponExpiryReminderText(coupon, 24).title).toContain("۲۴ ساعت");
+  it("expiry reminder shows the ACTUAL remaining time, not the configured lead time", () => {
+    const at = (h: number) => new Date(coupon.expiresAt.getTime() - h * 3600_000);
+    expect(couponExpiryReminderText(coupon, at(24)).title).toContain("فقط ۲۴ ساعت");
+    expect(couponExpiryReminderText(coupon, at(12)).title).toContain("فقط ۱۲ ساعت");
+    expect(couponExpiryReminderText(coupon, at(3)).title).toContain("فقط ۳ ساعت");
+    expect(couponExpiryReminderText(coupon, at(1)).title).toContain("فقط ۱ ساعت");
+    const soon = couponExpiryReminderText(coupon, new Date(coupon.expiresAt.getTime() - 20 * 60_000)).title;
+    expect(soon).toContain("کمتر از یک ساعت");
+    expect(soon).not.toContain("فقط");
   });
 
   it("daily special offer uses Persian digits", () => {
@@ -57,8 +64,8 @@ describe("notification templates", () => {
 
 describe("dedupeKeys", () => {
   it("are deterministic and distinct per subject", () => {
-    expect(dedupeKeys.couponExpiry("c1", "u1", 24)).toBe("coupon-expiry:c1:u1:24h");
-    expect(dedupeKeys.couponExpiry("c1", "u2", 24)).not.toBe(dedupeKeys.couponExpiry("c1", "u1", 24));
+    expect(dedupeKeys.couponExpiry("c1", "u1")).toBe("coupon-expiry:c1:u1");
+    expect(dedupeKeys.couponExpiry("c1", "u2")).not.toBe(dedupeKeys.couponExpiry("c1", "u1"));
     expect(dedupeKeys.orderStatus("o1", "shipped")).not.toBe(dedupeKeys.orderStatus("o1", "delivered"));
     expect(dedupeKeys.dailySpecialOffer("2026-09-29")).toBe("daily-special-offer:2026-09-29");
   });

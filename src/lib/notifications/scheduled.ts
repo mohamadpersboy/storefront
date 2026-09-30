@@ -117,7 +117,7 @@ export async function runCouponExpiryReminders(
         buildCouponExpiryReminder({
           coupon: { ...coupon, id: coupon._id },
           userId,
-          hours,
+          now,
         }),
       );
 

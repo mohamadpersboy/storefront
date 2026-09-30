@@ -5,6 +5,8 @@ import { ChevronRight } from "lucide-react";
 import { NotificationForm, type NotificationFormInitial } from "@/components/notifications/notification-form";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Notification } from "@/models/Notification";
+import { getNotificationConfig } from "@/lib/notifications/runtime-config";
+import { localDateKey } from "@/lib/notifications/timezone";
 
 export default async function EditNotificationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,6 +16,7 @@ export default async function EditNotificationPage({ params }: { params: Promise
   const doc = await Notification.findOne({ _id: id, audience: "public" }).lean();
   if (!doc) notFound();
 
+  const { timeZone } = getNotificationConfig();
   const initial: NotificationFormInitial = {
     id,
     type: (["announcement", "promotion", "coupon", "special_offer", "system"] as const).includes(
@@ -26,8 +29,11 @@ export default async function EditNotificationPage({ params }: { params: Promise
     imageUrl: doc.imageUrl ?? null,
     link: doc.link ?? null,
     status: doc.status,
-    publishAt: doc.publishAt.toISOString(),
-    expiresAt: doc.expiresAt ? doc.expiresAt.toISOString() : null,
+    // پیش‌نویس تاریخ انتخاب‌شده ندارد مگر واقعاً در آینده باشد.
+    publishDate:
+      doc.status === "draft" && doc.publishAt <= new Date() ? null : localDateKey(doc.publishAt, timeZone),
+    expiresDate: doc.expiresAt ? localDateKey(doc.expiresAt, timeZone) : null,
+    publishLocked: doc.status !== "draft" && doc.publishAt <= new Date(),
   };
 
   return (

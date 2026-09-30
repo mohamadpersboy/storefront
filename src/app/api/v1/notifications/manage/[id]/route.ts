@@ -7,6 +7,7 @@ import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { Notification } from "@/models/Notification";
 import { NotificationRead } from "@/models/NotificationRead";
 import { buildAdminUpdate, canHardDelete } from "@/lib/notifications/admin";
+import { getNotificationConfig } from "@/lib/notifications/runtime-config";
 import { toAdminNotificationDetailDTO, type LeanNotification } from "@/lib/notifications/serialize";
 import { updateNotificationSchema } from "@/lib/validations/notifications";
 
@@ -51,7 +52,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
   const doc = await findPublic(id);
   if (!doc) return apiError("اعلان پیدا نشد", { status: 404 });
 
-  const result = buildAdminUpdate(doc, parsed.data, new Date());
+  const result = buildAdminUpdate(doc, parsed.data, new Date(), getNotificationConfig().timeZone);
   if (!result.ok) {
     return apiError(result.message, {
       status: 422,

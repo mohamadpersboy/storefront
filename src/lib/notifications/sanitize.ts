@@ -1,9 +1,11 @@
 import sanitizeHtml from "sanitize-html";
+import { isSafeNotificationImageUrl } from "./links";
 
 /**
  * Allowlist مشخص برای محتوای Rich Text اعلان. هر تگ/ویژگی/Scheme
  * خارج از این فهرست حذف می‌شود؛ `<script>`، `on*=`، `javascript:` و
  * `data:` هرگز عبور نمی‌کنند. لینک‌ها همیشه `noopener noreferrer`.
+ * تصویر فقط از Cloudinary پروژه.
  */
 const HTML_OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: [
@@ -34,9 +36,10 @@ const HTML_OPTIONS: sanitizeHtml.IOptions = {
   allowedSchemesByTag: { img: ["https"] },
   allowProtocolRelative: false,
   disallowedTagsMode: "discard",
-  // تصویر فقط با آدرس مطلق https؛ src نسبی/خالی/بدون Scheme حذف می‌شود.
+  // تصویر فقط از Cloudinary پروژه (https://res.cloudinary.com)؛ هر منبع
+  // دیگر (Host دیگر، http، نسبی، خالی، data:) کل تگ را حذف می‌کند.
   exclusiveFilter: (frame) =>
-    frame.tag === "img" && !/^https:\/\//i.test(frame.attribs.src ?? ""),
+    frame.tag === "img" && !isSafeNotificationImageUrl(frame.attribs.src ?? ""),
   transformTags: {
     a: (tagName, attribs) => ({
       tagName,

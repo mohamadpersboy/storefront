@@ -56,6 +56,48 @@ describe("runDailySpecialOfferNotification", () => {
     expect(createNotification).not.toHaveBeenCalled();
   });
 
+  it("target-time boundary: 06:29 UTC is not due, 06:30 UTC (10:00 Tehran) runs", async () => {
+    offerDistinct.mockResolvedValue(["p1"]);
+    await expect(runDailySpecialOfferNotification(new Date("2026-09-29T06:29:59Z"), cfg)).resolves.toEqual({
+      status: "not_due",
+    });
+    await expect(runDailySpecialOfferNotification(new Date("2026-09-29T06:30:00Z"), cfg)).resolves.toMatchObject({
+      status: "created",
+    });
+  });
+
+  it("after target (Hobby ±59 min jitter, second slot at 07:30 UTC) still runs the same day", async () => {
+    offerDistinct.mockResolvedValue(["p1"]);
+    await expect(runDailySpecialOfferNotification(new Date("2026-09-29T07:45:00Z"), cfg)).resolves.toMatchObject({
+      status: "created",
+    });
+    expect(createNotification.mock.calls[0][0].dedupeKey).toBe("daily-special-offer:2026-09-29");
+  });
+
+  it("two cron slots on one day: the early not_due one never blocks, the later one delivers", async () => {
+    offerDistinct.mockResolvedValue(["p1"]);
+    const early = await runDailySpecialOfferNotification(new Date("2026-09-29T06:10:00Z"), cfg);
+    const late = await runDailySpecialOfferNotification(new Date("2026-09-29T07:40:00Z"), cfg);
+    expect([early.status, late.status]).toEqual(["not_due", "created"]);
+    expect(createNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it("first slot delivers, second slot the same day is already_ran (no duplicate)", async () => {
+    offerDistinct.mockResolvedValue(["p1"]);
+    const first = await runDailySpecialOfferNotification(new Date("2026-09-29T06:40:00Z"), cfg);
+    notifExists.mockResolvedValue({ _id: "n1" }); // now recorded
+    const second = await runDailySpecialOfferNotification(new Date("2026-09-29T07:40:00Z"), cfg);
+    expect([first.status, second.status]).toEqual(["created", "already_ran"]);
+    expect(createNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it("next day runs again with a new dedupeKey (a missed day is not shifted or doubled)", async () => {
+    offerDistinct.mockResolvedValue(["p1", "p2"]);
+    await runDailySpecialOfferNotification(new Date("2026-09-30T06:35:00Z"), cfg);
+    expect(notifExists).toHaveBeenCalledWith({ dedupeKey: "daily-special-offer:2026-09-30" });
+    expect(createNotification.mock.calls[0][0].dedupeKey).toBe("daily-special-offer:2026-09-30");
+  });
+
   it("does not run twice on the same local day", async () => {
     notifExists.mockResolvedValue({ _id: "x" });
     await expect(runDailySpecialOfferNotification(at1030, cfg)).resolves.toEqual({ status: "already_ran" });
@@ -136,7 +178,24 @@ describe("runCouponExpiryReminders", () => {
     const result = await runCouponExpiryReminders(now, cfg);
     expect(result).toEqual({ coupons: 1, created: 2 });
     const inputs = createNotifications.mock.calls[0][0] as { dedupeKey: string; userId: string }[];
-    expect(inputs.map((i) => i.dedupeKey)).toEqual(["coupon-expiry:c1:u1:24h", "coupon-expiry:c1:u2:24h"]);
+    expect(inputs.map((i) => i.dedupeKey)).toEqual(["coupon-expiry:c1:u1", "coupon-expiry:c1:u2"]);
+  });
+
+  it("reminder text uses the real remaining time (30 min left)", async () => {
+    couponFind.mockReturnValue(chain([coupon({ expiresAt: new Date(now.getTime() + 30 * 60_000) })]));
+    redemptionAggregate.mockResolvedValue([]);
+    await runCouponExpiryReminders(now, cfg);
+    const inputs = createNotifications.mock.calls[0][0] as { title: string }[];
+    expect(inputs[0].title).toContain("کمتر از یک ساعت");
+  });
+
+  it("dedupeKey ignores the configured lead time (config change cannot create a 2nd reminder)", async () => {
+    couponFind.mockReturnValue(chain([coupon()]));
+    redemptionAggregate.mockResolvedValue([]);
+    await runCouponExpiryReminders(now, cfg);
+    await runCouponExpiryReminders(now, { ...cfg, couponExpiryReminderHours: 48 });
+    const keys = (n: number) => (createNotifications.mock.calls[n][0] as { dedupeKey: string }[]).map((i) => i.dedupeKey);
+    expect(keys(1)).toEqual(keys(0));
   });
 
   it("skips users who already used the coupon", async () => {

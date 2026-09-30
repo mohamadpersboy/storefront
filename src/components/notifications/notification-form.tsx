@@ -27,6 +27,11 @@ const TYPE_LABELS: Record<(typeof ADMIN_NOTIFICATION_TYPES)[number], string> = {
   system: "سیستمی",
 };
 
+// انتخابگر تاریخ ISO نیمه‌شب UTC می‌دهد/می‌گیرد (روز تقویمی بدون زمان)؛
+// ما فقط بخش `YYYY-MM-DD` را نگه می‌داریم.
+const toPickerValue = (date: string | null) => (date ? `${date}T00:00:00.000Z` : null);
+const fromPickerValue = (iso: string | null) => (iso ? iso.slice(0, 10) : null);
+
 export interface NotificationFormInitial {
   id: string;
   type: (typeof ADMIN_NOTIFICATION_TYPES)[number];
@@ -35,8 +40,11 @@ export interface NotificationFormInitial {
   imageUrl: string | null;
   link: string | null;
   status: "draft" | "published" | "archived";
-  publishAt: string;
-  expiresAt: string | null;
+  /** تاریخ‌های `YYYY-MM-DD` به Time Zone کسب‌وکار (محاسبه‌شده در سرور). */
+  publishDate: string | null;
+  expiresDate: string | null;
+  /** اعلان زنده: زمان انتشار دیگر قابل تغییر نیست (Read State). */
+  publishLocked: boolean;
 }
 
 export function NotificationForm({ initial }: { initial?: NotificationFormInitial }) {
@@ -49,10 +57,13 @@ export function NotificationForm({ initial }: { initial?: NotificationFormInitia
   const [content, setContent] = useState(initial?.content ?? "");
   const [imageUrl, setImageUrl] = useState<string | null>(initial?.imageUrl ?? null);
   const [link, setLink] = useState(initial?.link ?? "");
-  const [publishAt, setPublishAt] = useState<string | null>(
-    initial && initial.status !== "draft" ? initial.publishAt : null,
-  );
-  const [expiresAt, setExpiresAt] = useState<string | null>(initial?.expiresAt ?? null);
+  // تاریخ‌ها به‌صورت `YYYY-MM-DD` ذخیره و فرستاده می‌شوند؛ سرور آن‌ها را
+  // با Time Zone کسب‌وکار (Asia/Tehran) تفسیر می‌کند: شروع = ابتدای روز،
+  // پایان = انتهای روز. در ویرایش، فیلدِ دست‌نخورده اصلاً فرستاده نمی‌شود.
+  const [publishDate, setPublishDate] = useState<string | null>(initial?.publishDate ?? null);
+  const [expiresDate, setExpiresDate] = useState<string | null>(initial?.expiresDate ?? null);
+  const [publishTouched, setPublishTouched] = useState(false);
+  const [expiresTouched, setExpiresTouched] = useState(false);
 
   const [pendingImage, setPendingImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -109,8 +120,8 @@ export function NotificationForm({ initial }: { initial?: NotificationFormInitia
       setError("عنوان الزامی است");
       return;
     }
-    if (publishAt && expiresAt && new Date(publishAt) >= new Date(expiresAt)) {
-      setError("زمان انقضا باید بعد از زمان انتشار باشد");
+    if (publishDate && expiresDate && publishDate > expiresDate) {
+      setError("تاریخ پایان باید بعد از تاریخ شروع باشد");
       return;
     }
 
@@ -120,8 +131,8 @@ export function NotificationForm({ initial }: { initial?: NotificationFormInitia
       content,
       imageUrl,
       link: link.trim() || null,
-      publishAt,
-      expiresAt,
+      ...(mode === "create" || publishTouched ? { publishAt: publishDate } : {}),
+      ...(mode === "create" || expiresTouched ? { expiresAt: expiresDate } : {}),
       status,
     };
 
@@ -217,11 +228,29 @@ export function NotificationForm({ initial }: { initial?: NotificationFormInitia
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-muted">تاریخ شروع نمایش (خالی = هنگام انتشار)</label>
-              <JalaliDatePicker value={publishAt} onChange={setPublishAt} allowEmpty />
+              {initial?.publishLocked ? (
+                <p className="text-xs text-muted">بعد از انتشار قابل تغییر نیست؛ برای زمان‌بندی جدید، اعلان تازه بسازید.</p>
+              ) : (
+                <JalaliDatePicker
+                  value={toPickerValue(publishDate)}
+                  onChange={(iso) => {
+                    setPublishDate(fromPickerValue(iso));
+                    setPublishTouched(true);
+                  }}
+                  allowEmpty
+                />
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-muted">تاریخ پایان نمایش (اختیاری)</label>
-              <JalaliDatePicker value={expiresAt} onChange={setExpiresAt} allowEmpty />
+              <JalaliDatePicker
+                value={toPickerValue(expiresDate)}
+                onChange={(iso) => {
+                  setExpiresDate(fromPickerValue(iso));
+                  setExpiresTouched(true);
+                }}
+                allowEmpty
+              />
             </div>
           </div>
 

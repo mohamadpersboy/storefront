@@ -3634,9 +3634,16 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
   سرور با `sanitize-html` (Allowlist در `sanitize.ts`، هنگام ذخیره و
   هنگام خروجی). اعلان شخصی فقط متن ساده. تصویر شاخص فقط Cloudinary
   (`notification-image` در `/api/v1/uploads/sign`).
-- Cron: `vercel.json` (`30 6 * * *` UTC = ۱۰:۰۰ تهران) → `GET
-  /api/v1/cron/notifications` (فقط احراز هویت با `CRON_SECRET`؛ بدون
-  Secret ۵۰۳) → `runScheduledNotifications`. ساعت/دقیقه/Time Zone/۲۴
+- Cron: `vercel.json` با **دو Slot** روی همان Route: `30 6 * * *` و
+  `30 7 * * *` (UTC؛ ۱۰:۰۰ و ۱۱:۰۰ تهران) → `GET /api/v1/cron/notifications`
+  (فقط احراز هویت با `CRON_SECRET`؛ بدون Secret ۵۰۳) →
+  `runScheduledNotifications`. **محدودیت Vercel:** در Hobby دقت Cron
+  ساعتی است (Slot اول بین ۰۶:۰۰ تا ۰۶:۵۹ UTC اجرا می‌شود) پس ۱۰:۰۰ تهران
+  **تضمین‌شدنی نیست**. اگر Slot اول قبل از ۱۰:۰۰ تهران اجرا شد `not_due`
+  است (بدون Skip روز)، و Slot دوم همان روز اعلان را می‌سازد؛ اگر Slot اول
+  بعد از ۱۰:۰۰ اجرا شد، Slot دوم `already_ran` است (`dedupeKey` روزانه، بدون
+  Duplicate). زمان تحویل در Hobby بین ۱۰:۰۰ تا حدود ۱۱:۵۹ تهران؛ در Pro
+  (دقت دقیقه) دقیقاً ۱۰:۰۰. `hasReachedLocalTime` نگه داشته شده. ساعت/دقیقه/Time Zone/۲۴
   ساعت از env (`SPECIAL_OFFER_NOTIFICATION_HOUR/MINUTE`,
   `NOTIFICATION_TIMEZONE`, `COUPON_EXPIRY_REMINDER_HOURS`). اگر ساعت env را
   عوض کردی، Schedule در `vercel.json` را هم هماهنگ کن (Vercel Cron فقط UTC).
@@ -3652,6 +3659,25 @@ Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: ت
 - Order: اعلان‌های ثبت سفارش، هر وضعیت واقعی State Machine (به‌جز
   `pending`)، و نتیجه پرداخت در Callback زرین‌پال؛ `dedupeKey` روی
   (سفارش، وضعیت)/(پرداخت). Referral: ثبت‌نام، اولین خرید، پاداش.
+- تاریخ‌های فرم اعلان با Time Zone کسب‌وکار (`NOTIFICATION_TIMEZONE`،
+  پیش‌فرض Asia/Tehran) تفسیر می‌شوند، نه UTC: شروع = ابتدای روز محلی،
+  پایان = انتهای روز محلی (۲۳:۵۹:۵۹.۹۹۹). فرم `YYYY-MM-DD` می‌فرستد (فقط
+  فیلد لمس‌شده)؛ `dates.ts` تبدیل می‌کند. **انتشار:** اگر `publishAt` ≤ now
+  باشد `now` می‌شود (سرور، در POST و PATCH) تا اعلان برای کاربری که «خواندن
+  همه» زده unread بماند. **بعد از زنده شدن** اعلان، `publishAt` به آینده
+  منتقل نمی‌شود (۴۲۲) و مقدار گذشته نادیده گرفته می‌شود؛ زمان‌بندی جدید =
+  اعلان جدید. اعلان منتشرشده‌ی هنوز زمان‌بندی‌شده آزادانه ویرایش می‌شود.
+- تصاویر Rich Text فقط از `https://res.cloudinary.com` (Sanitizer سرور؛
+  تگ `img` با منبع دیگر کامل حذف می‌شود).
+- متن یادآوری انقضا زمان باقی‌مانده واقعی را نشان می‌دهد (`remaining-time.ts`،
+  رو به پایین: «۱۲ ساعت»، «کمتر از یک ساعت»، از ۴۸ ساعت به بعد «N روز»).
+  `dedupeKey` = `coupon-expiry:{coupon}:{user}` (بدون ساعت؛ تغییر config
+  یادآوری دوم نمی‌سازد).
+- محدودیت‌های شناخته‌شده (خارج از Scope): اعلان پرداخت فقط برای Callback
+  زرین‌پال (نه کیف پول/دستی)؛ کوپنی که بعداً فعال شود اعلان نمی‌سازد؛
+  `GET /notifications/[id]` اعلان را read می‌کند؛ `?page` خارج از محدوده
+  پیام «خالی» می‌دهد؛ `countUnread` همه `NotificationRead`های بعد از مبنا
+  را می‌خواند؛ تست DB واقعی وجود ندارد.
 - تست: فقط Unit/Mocked (Vitest)، بدون زیرساخت DB واقعی. کارهای
   ثبت‌نشده: Push/Email/SMS اعلان **پیاده‌سازی نشد** (خارج از Scope).
 

@@ -4,6 +4,7 @@ export interface ZonedParts {
   day: number;
   hour: number;
   minute: number;
+  second: number;
 }
 
 /** اجزای تاریخ/ساعت یک لحظه در یک Time Zone مشخص (بدون وابستگی به TZ سرور). */
@@ -15,6 +16,7 @@ export function getZonedParts(date: Date, timeZone: string): ZonedParts {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    second: "2-digit",
     hourCycle: "h23",
   }).formatToParts(date);
   const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
@@ -24,6 +26,7 @@ export function getZonedParts(date: Date, timeZone: string): ZonedParts {
     day: get("day"),
     hour: get("hour"),
     minute: get("minute"),
+    second: get("second"),
   };
 }
 

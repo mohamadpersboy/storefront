@@ -6,7 +6,8 @@ import { logActivity } from "@/lib/audit/log-activity";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { Notification } from "@/models/Notification";
 import { createNotification } from "@/lib/notifications/service";
-import { htmlHasContent, sanitizeNotificationHtml } from "@/lib/notifications/sanitize";
+import { buildAdminCreate } from "@/lib/notifications/admin";
+import { getNotificationConfig } from "@/lib/notifications/runtime-config";
 import { toAdminNotificationDTO, type LeanNotification } from "@/lib/notifications/serialize";
 import {
   adminNotificationsListQuerySchema,
@@ -76,12 +77,11 @@ export async function POST(request: Request) {
   }
   const data = parsed.data;
 
-  const content = sanitizeNotificationHtml(data.content);
-  if (!htmlHasContent(content) && !data.imageUrl) {
-    return apiError("متن یا تصویر اعلان نمی‌تواند خالی باشد", {
-      status: 422,
-      errors: { content: ["متن یا تصویر اعلان نمی‌تواند خالی باشد"] },
-    });
+  // Sanitize، تفسیر تاریخ‌ها با Time Zone کسب‌وکار، و «انتشار = از همین
+  // لحظه اگر زمان درخواستی گذشته باشد» — همه در Service، نه Frontend.
+  const built = buildAdminCreate(data, new Date(), getNotificationConfig().timeZone);
+  if (!built.ok) {
+    return apiError(built.message, { status: 422, errors: { [built.field]: [built.message] } });
   }
 
   await connectToDatabase();
@@ -91,13 +91,13 @@ export async function POST(request: Request) {
     audience: "public",
     type: data.type,
     title: data.title,
-    content,
+    content: built.fields.content,
     contentFormat: "html",
     imageUrl: data.imageUrl ?? null,
     link: data.link ?? null,
     status: data.status,
-    publishAt: data.publishAt ?? new Date(),
-    expiresAt: data.expiresAt ?? null,
+    publishAt: built.fields.publishAt,
+    expiresAt: built.fields.expiresAt,
     createdBy: actor._id,
   });
 

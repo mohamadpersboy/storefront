@@ -6,8 +6,9 @@ export const dedupeKeys = {
   paymentFailed: (paymentId: string) => `payment-failed:${paymentId}`,
   couponPublic: (couponId: string) => `coupon-public:${couponId}`,
   couponPersonal: (couponId: string, userId: string) => `coupon-personal:${couponId}:${userId}`,
-  couponExpiry: (couponId: string, userId: string, hours: number) =>
-    `coupon-expiry:${couponId}:${userId}:${hours}h`,
+  // فقط یک یادآوری برای هر (کوپن، کاربر)؛ عمداً بدون «ساعت» تا تغییر
+  // config یادآوری دوم نسازد.
+  couponExpiry: (couponId: string, userId: string) => `coupon-expiry:${couponId}:${userId}`,
   referralSignup: (referralId: string) => `referral-signup:${referralId}`,
   referralFirstPurchase: (referralId: string) => `referral-first-purchase:${referralId}`,
   referralReward: (referralId: string) => `referral-reward:${referralId}`,
