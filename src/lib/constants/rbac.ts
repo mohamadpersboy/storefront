@@ -75,6 +75,9 @@ export const PERMISSIONS = {
 
   NOTIFICATIONS_READ: "notifications.read",
   NOTIFICATIONS_MANAGE: "notifications.manage",
+
+  REVIEWS_READ: "reviews.read",
+  REVIEWS_MANAGE: "reviews.manage",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -97,6 +100,7 @@ const STAFF_PERMISSIONS: Permission[] = [
   PERMISSIONS.WALLET_READ,
   PERMISSIONS.BANKS_READ,
   PERMISSIONS.CHECKS_READ,
+  PERMISSIONS.REVIEWS_READ,
 ];
 
 const ADMIN_PERMISSIONS: Permission[] = [
@@ -127,6 +131,7 @@ const ADMIN_PERMISSIONS: Permission[] = [
   PERMISSIONS.CHECKS_TRANSFER,
   PERMISSIONS.NOTIFICATIONS_READ,
   PERMISSIONS.NOTIFICATIONS_MANAGE,
+  PERMISSIONS.REVIEWS_MANAGE,
 ];
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {

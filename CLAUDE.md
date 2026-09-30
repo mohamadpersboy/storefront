@@ -26,6 +26,63 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: سیستم نظرات و امتیازدهی (Reviews) — فقط Backend + Dashboard؛
+Storefront عمداً خارج از Scope است و در Phase جدا ساخته می‌شود.**
+
+- **مدل:** `src/models/Review.ts` (نگاه کنید بخش ۹). Soft delete با `deletedAt`،
+  Snapshot خریدار (`isVerifiedBuyer` + `order`)، Unique جزئی
+  `{user, product}` با `deletedAt: {$type: "null"}` — فقط یک Review فعال
+  برای هر کاربر/محصول؛ بعد از حذف دوباره مجاز است؛ ثبت هم‌زمان → ۴۰۹.
+- **Service:** `src/lib/reviews/` — `service.ts` (create/deleteOwn/adminDelete/
+  moderate)، `eligibility.ts` (خریدار + قوانین محصول)، `images.ts`
+  (اعتبارسنجی Cloudinary)، `queries.ts` (Query عمومی + آمار + لیست ادمین)،
+  `serialize.ts`، `constants.ts` (۴۸۰ نویسه، ۲ تصویر، ۳:۴، Lifecycle).
+  Validation: `src/lib/validations/reviews.ts`. Route فقط orchestration است.
+- **Verified Buyer:** سفارش همین کاربر + شامل همین محصول + `status = delivered`
+  (`shipped/cancelled/returned` نه). Snapshot هنگام ثبت؛ اگر Order بعداً
+  `returned` شود (مسیر `delivered → returned` در State Machine مجاز است)،
+  `isVerifiedBuyer` عوض نمی‌شود.
+- **قوانین محصول:** `published` مجاز | `archived` فقط خریدار قبلی (وگرنه ۴۰۳) |
+  `draft`/حذف‌شده → ۴۰۴. Review قدیمی با آرشیو شدن محصول حذف نمی‌شود.
+- **Lifecycle:** ثبت = `pending`؛ `pending→approved|rejected`،
+  `approved→rejected`؛ `rejected→approved` ممنوع (۴۰۹). تغییر وضعیت با فیلتر
+  اتمیک روی وضعیت مبدأ. Review تغییرناپذیر است (User و Admin ویرایش ندارند).
+  `rejectionReason` اختیاری، حداکثر ۳۰۰ نویسه.
+- **Visibility:** فقط `approved + deletedAt: null` — تعریف یکتا:
+  `publicVisibleReviewFilter` در `queries.ts`. آمار (میانگین/تعداد/توصیه/
+  خریدار) با Aggregation هنگام Query (`getProductReviewStats`)، بدون فیلد
+  جدید روی Product. **Storefront API ساخته نشده**؛ Phase بعد از همین
+  Service استفاده می‌کند.
+- **API مشتری:** `POST /api/v1/reviews`، `DELETE /api/v1/reviews/:id`
+  (نظر دیگران → ۴۰۴). فقط `requireAuthenticatedUser`؛ `status`/
+  `isVerifiedBuyer`/`order`/`moderatedBy`/`deletedAt` هرگز از Client خوانده
+  نمی‌شوند. هر کاربر Login‌شده (از جمله Staff/Admin) می‌تواند ثبت کند.
+- **API ادمین:** `GET /reviews/admin` (فیلتر: status, product, user, rating,
+  verified, search)، `GET /reviews/admin/:id`، `POST .../approve`،
+  `POST .../reject`، `DELETE /reviews/admin/:id` (Soft).
+- **RBAC:** `REVIEWS_READ` (Staff/Admin/Super Admin)، `REVIEWS_MANAGE`
+  (Admin/Super Admin). Activity Log: `review.approved|rejected|deleted`.
+- **تصاویر (N.5-1، N.5-4):** target جدید `review-image` در
+  `POST /api/v1/uploads/sign` — بدون Permission ادمین، اما فقط برای کاربر
+  Login‌شده‌ای که خریدار همان محصول است و محصول معتبر است (body:
+  `{target, productId}`). پوشه امضاشده اختصاصی کاربر است:
+  `saghchi-carpet/reviews/<userId>` (مالکیت تصویر). Backend فقط `url+publicId`
+  می‌پذیرد؛ HTTPS، Host `res.cloudinary.com`، Cloud خودمان، بدون
+  Transformation، `publicId` هم‌خوان با URL و داخل پوشه همان کاربر، حداکثر ۲،
+  و ابعاد/نسبت **۳:۴ با تلورانس ۱٪** از Cloudinary Admin API (`api.resource`).
+  Cropper پروژه (`react-easy-crop`، `ImageCropModal`) بدون تغییر ۳:۴ است.
+  حذف Review: پاک‌سازی تصاویر Best-effort و غیرمسدودکننده.
+- **Dashboard:** `/dashboard/reviews` (لیست، فیلتر، جزئیات، Approve/Reject/
+  Delete با ConfirmDialog؛ Staff فقط مشاهده). متن Plain Text نمایش داده
+  می‌شود. منوی «نظرات» اضافه شد.
+- **تست:** ۵۶ تست جدید (مجموع ۷۳۵). Lint ✅ Typecheck ✅ Build ✅.
+- **محدودیت‌ها:** تست DB واقعی (Unique Index/Race) نیاز به
+  `mongodb-memory-server` دارد (تأییدنشده)؛ Unique Index فقط از نظر تعریف
+  Schema تست شده و Race با شبیه‌سازی E11000. Rate limit نداریم (تأییدنشده).
+  آمار Aggregation فقط با Mock/ساختار تست نشده و باید روی Vercel دستی چک شود.
+
+---
+
 **آخرین کار:** کاربر یک Master Workflow جدید برای توسعه Storefront
 ارائه کرد («Storefront Development Workflow») که ترتیب Phaseهای
 Homepage را نسبت به لیست قبلی (بخش ۵) تغییر می‌دهد — ترتیب جدید و
@@ -3544,6 +3601,15 @@ Storefront: `FreeShippingBanner` روی صفحه اصلی، فقط اگر
 حالت‌های بند ۴۵ (منقضی/غیرفعال/Private غیرمجاز/سقف مصرف/...) بدون
 راه‌اندازی MongoDB قابل تست باشند (`validate-coupon.test.ts`).
 
+### Review (`src/models/Review.ts`)
+
+`product`، `user`، `rating` (int 1–5)، `text` (Plain، ≤۴۸۰)، `recommendation`
+(`recommend|not_recommend`)، `status` (`pending|approved|rejected`)،
+`isVerifiedBuyer`، `order`، `images[{url,publicId,width,height}]` (≤۲،
+ابعاد از Cloudinary)، `moderatedBy`، `moderatedAt`، `rejectionReason`،
+`deletedAt`. Indexها: `{product,status,createdAt:-1}`، `{status,createdAt:-1}`،
+`{user,createdAt:-1}`، Unique جزئی `{user,product}` (`deletedAt` null).
+
 ## 10. UI System (Design Tokens)
 
 منبع: `src/app/globals.css`، منطبق با بخش ۱۳-۱۷ Master Prompt.
@@ -4361,6 +4427,11 @@ Commitِ قبلی، یا تست قبل از فعال‌کردن `enabled` در �
 کارفرما بعد از این Push که آیا مشکل برطرف شده.
 
 ## 15. TODO (نزدیک)
+
+- [ ] **Reviews:** تست دستی روی Vercel: ثبت نظر، آپلود تصویر ۳:۴ (خریدار
+  `delivered`)، Approve/Reject/Delete در `/dashboard/reviews`، و بررسی
+  Unique Index واقعی. سپس Phase Storefront (نمایش نظرات، فرم، Cropper ۳:۴،
+  Pagination) با `listApprovedReviews`/`getProductReviewStats`.
 
 - [ ] **Notification System:** در Vercel `CRON_SECRET` (حداقل ۱۶ نویسه) را
   تنظیم کن، Deploy کن و اجرای واقعی Cron + Bell/`/notifications` +

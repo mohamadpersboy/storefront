@@ -7,9 +7,13 @@ import {
   BRAND_IMAGES_FOLDER,
   NOTIFICATION_IMAGES_FOLDER,
 } from "@/lib/cloudinary/config";
+import { connectToDatabase } from "@/lib/db/connect";
+import { reviewImageFolderForUser } from "@/lib/reviews/images";
+import { checkReviewImageUploadEligibility } from "@/lib/reviews/service";
+import { reviewImageSignSchema } from "@/lib/validations/reviews";
 import { PERMISSIONS, type Permission } from "@/lib/constants/rbac";
-import { requireApiUser } from "@/lib/auth/api-guard";
-import { apiSuccess } from "@/lib/utils/api-response";
+import { requireApiUser, requireAuthenticatedUser } from "@/lib/auth/api-guard";
+import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { env } from "@/config/env";
 
 type UploadTarget =
@@ -50,6 +54,28 @@ const TARGET_CONFIG: Record<UploadTarget, { folder: string; permission: Permissi
  */
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}) as Record<string, unknown>);
+
+  // Customer-aware: هر کاربر Login‌شده فقط در صورت «خریدار بودن همین
+  // محصول» امضای آپلود می‌گیرد؛ پوشه اختصاصی کاربر مالکیت را ثابت می‌کند.
+  if (body?.target === "review-image") {
+    const authGuard = await requireAuthenticatedUser();
+    if (authGuard.response) return authGuard.response;
+
+    const parsed = reviewImageSignSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiError("اطلاعات وارد شده نامعتبر است", {
+        status: 422,
+        errors: parsed.error.flatten().fieldErrors,
+      });
+    }
+
+    await connectToDatabase();
+    const eligibility = await checkReviewImageUploadEligibility(authGuard.user.id, parsed.data.productId);
+    if (!eligibility.ok) return apiError(eligibility.message, { status: eligibility.status });
+
+    return signFor(reviewImageFolderForUser(authGuard.user.id));
+  }
+
   const target: UploadTarget =
     body?.target === "bank-logo"
       ? "bank-logo"
@@ -67,11 +93,13 @@ export async function POST(request: Request) {
   const guard = await requireApiUser(config.permission);
   if (guard.response) return guard.response;
 
-  const timestamp = Math.round(Date.now() / 1000);
-  const paramsToSign = { timestamp, folder: config.folder };
+  return signFor(config.folder);
+}
 
+function signFor(folder: string) {
+  const timestamp = Math.round(Date.now() / 1000);
   const signature = cloudinary.utils.api_sign_request(
-    paramsToSign,
+    { timestamp, folder },
     env.CLOUDINARY_API_SECRET,
   );
 
@@ -80,6 +108,6 @@ export async function POST(request: Request) {
     signature,
     apiKey: env.CLOUDINARY_API_KEY,
     cloudName: env.CLOUDINARY_CLOUD_NAME,
-    folder: config.folder,
+    folder,
   });
 }

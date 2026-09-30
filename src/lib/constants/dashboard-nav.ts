@@ -14,6 +14,7 @@ import {
   Settings,
   Landmark,
   Bell,
+  MessageSquare,
 } from "lucide-react";
 
 export interface DashboardNavItem {
@@ -38,6 +39,7 @@ export const dashboardNav: DashboardNavItem[] = [
   { label: "درخواست‌های برداشت", href: "/dashboard/wallets/withdrawals", icon: Wallet, enabled: true },
   { label: "چک‌های دریافتی", href: "/dashboard/checks", icon: Landmark, enabled: true },
   { label: "اطلاع‌رسانی", href: "/dashboard/notifications", icon: Bell, enabled: true },
+  { label: "نظرات", href: "/dashboard/reviews", icon: MessageSquare, enabled: true },
   { label: "تنظیمات", href: "/dashboard/settings", icon: Settings, enabled: true },
 ];
 

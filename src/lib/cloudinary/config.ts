@@ -16,3 +16,4 @@ export const BANNER_IMAGES_FOLDER = "saghchi-carpet/banners";
 export const CATEGORY_IMAGES_FOLDER = "saghchi-carpet/categories";
 export const BRAND_IMAGES_FOLDER = "saghchi-carpet/brands";
 export const NOTIFICATION_IMAGES_FOLDER = "saghchi-carpet/notifications";
+export const REVIEW_IMAGES_FOLDER = "saghchi-carpet/reviews";
