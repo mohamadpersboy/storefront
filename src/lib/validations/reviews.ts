@@ -57,3 +57,11 @@ export const adminReviewsListQuerySchema = z.object({
   search: z.string().trim().max(100).optional(),
 });
 export type AdminReviewsListQuery = z.infer<typeof adminReviewsListQuerySchema>;
+
+/** Query عمومی خواندن Reviewها (Storefront). */
+export const publicReviewsQuerySchema = z.object({
+  productId: objectId,
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(20).default(10),
+});
+export type PublicReviewsQuery = z.infer<typeof publicReviewsQuerySchema>;

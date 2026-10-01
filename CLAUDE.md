@@ -26,8 +26,39 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار: سیستم نظرات و امتیازدهی (Reviews) — فقط Backend + Dashboard؛
-Storefront عمداً خارج از Scope است و در Phase جدا ساخته می‌شود.**
+**آخرین کار: Reviews Storefront (فقط نمایش) — کارت خلاصه + Sheet لیست نظرات
+در صفحه محصول. ثبت/آپلود/حذف نظر از Storefront هنوز ساخته نشده (Phase جدا).**
+
+- **API عمومی:** `GET /api/v1/reviews?productId=&page=&limit=` (بدون Login؛ limit ≤ ۲۰،
+  پیش‌فرض ۱۰). خروجی: `data.items` (DTO عمومی) + `data.stats` + `pagination` (سطح بالا).
+  فقط `publicVisibleReviewFilter` (approved + حذف‌نشده)؛ محصول `draft`/حذف‌شده/ناموجود → ۴۰۴،
+  `archived` مجاز. Service: `lib/reviews/public-list.ts` (`getPublicReviewsPage`).
+- **DTO عمومی:** `lib/reviews/public-serialize.ts` — فقط `displayName, rating, recommendation,
+  text, isVerifiedBuyer, images[{url,width,height}], createdAt`. نام: «محمد رضایی» → «محمد ر.»،
+  بدون نام/شبیه شماره → «کاربر». `publicId`، شناسه کاربر/Review، `order`، `status` و … هرگز نمی‌روند.
+  `notRecommendCount` = `ratingCount − recommendCount` (Backend Stats فیلد جدا ندارد؛ Backend تغییر نکرد).
+- **Summary (Server):** `lib/storefront/get-product-review-summary.ts` (`getProductReviewStats`)،
+  خطا → `null` و کارت پنهان می‌شود (صفحه نمی‌افتد). `product-reviews-summary-card.tsx` بین
+  «ویژگی‌های محصول» و «محصولات مشابه»؛ هدر فقط متنی. بدون Review: «هنوز نظری ثبت نشده» / «بدون امتیاز»،
+  شمارنده‌ها ۰ و بدون دکمه. فرمت‌ها: `lib/storefront/review-summary-format.ts`.
+- **Sheet:** `storefront-sheet.tsx` (کامپوننت جدید؛ `ProductPriceChartButton` دست‌نخورده) —
+  موبایل Bottom Sheet با Drag روی هدر (`bottom-sheet-math.ts`)، دسکتاپ Modal (`max-w-lg`، Drag غیرفعال)،
+  `max-h-[85vh]`، Scroll Lock شمارنده‌ای (`lib/storefront/scroll-lock.ts`، Sheet+Lightbox هم‌زمان امن)،
+  `role="dialog"`/`aria-modal`، Escape، Focus به دیالوگ و بازگشت به دکمه «خواندن نظرات».
+- **لیست:** `product-reviews-sheet.tsx` — Fetch فقط بعد از باز شدن، `ui/pagination` کنترل‌شده،
+  Race با `cancelled` + `AbortController`، صفحه خالی → آخرین صفحه معتبر، Skeleton، `ui/error-state` + Retry.
+  Stats فقط از Props (Render اولیه) — با تغییر صفحه دوباره Fetch نمی‌شود.
+- **تصاویر:** Thumbnail ۴۸×۶۴ (۳:۴) زیر متن، `review-image-lightbox.tsx` (Portal، `object-contain`،
+  Escape/Overlay/Close؛ بدون Gallery).
+- **تست:** ۲۸ تست جدید (مجموع ۷۶۳). Lint ✅ Typecheck ✅ Build ✅.
+- **محدودیت‌ها:** تست UI (Sheet/Drag/Lightbox) خودکار نیست (`environment: node`) — دستی روی
+  Vercel/موبایل بررسی شود. Focus Trap کامل نداریم (فقط Focus اولیه و بازگشت). Scroll Lock روی دسکتاپ
+  عرض Scrollbar را جبران نمی‌کند. `Button` مشترک `ref` نمی‌پذیرد؛ دکمه از Wrapper پیدا می‌شود.
+- **TODO:** Phase جدا: فرم ثبت Review (Cropper ۳:۴، `review-image` sign)، حذف نظر خود کاربر.
+
+---
+
+**قبلاً: سیستم نظرات و امتیازدهی (Reviews) — Backend + Dashboard.**
 
 - **مدل:** `src/models/Review.ts` (نگاه کنید بخش ۹). Soft delete با `deletedAt`،
   Snapshot خریدار (`isVerifiedBuyer` + `order`)، Unique جزئی

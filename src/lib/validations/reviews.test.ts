@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createReviewSchema, rejectReviewSchema } from "@/lib/validations/reviews";
+import { createReviewSchema, publicReviewsQuerySchema, rejectReviewSchema } from "@/lib/validations/reviews";
 
 const base = {
   productId: "64b7f0c2a1b2c3d4e5f60718",
@@ -67,5 +67,18 @@ describe("rejectReviewSchema", () => {
 
   it("limits the reason length", () => {
     expect(rejectReviewSchema.safeParse({ rejectionReason: "ا".repeat(301) }).success).toBe(false);
+  });
+});
+
+describe("publicReviewsQuerySchema", () => {
+  const ok = { productId: "64b7f0c2a1b2c3d4e5f60718" };
+  it("applies defaults and coerces numbers", () => {
+    expect(publicReviewsQuerySchema.parse(ok)).toMatchObject({ page: 1, limit: 10 });
+    expect(publicReviewsQuerySchema.parse({ ...ok, page: "2", limit: "5" })).toMatchObject({ page: 2, limit: 5 });
+  });
+  it("rejects bad productId, page and limit", () => {
+    for (const bad of [{}, { productId: "x" }, { ...ok, page: 0 }, { ...ok, limit: 0 }, { ...ok, limit: 21 }, { ...ok, page: 1.5 }]) {
+      expect(publicReviewsQuerySchema.safeParse(bad).success).toBe(false);
+    }
   });
 });

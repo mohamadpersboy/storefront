@@ -8,6 +8,7 @@ import {
   getSimilarProductCards,
   getFrequentlyBoughtTogetherCards,
 } from "@/lib/storefront/get-related-products";
+import { getProductReviewSummary } from "@/lib/storefront/get-product-review-summary";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { ProductTopBar } from "@/components/storefront/product-top-bar";
 import { ProductAmazingOfferBanner } from "@/components/storefront/product-amazing-offer-banner";
@@ -16,6 +17,7 @@ import { ProductInfoHeader } from "@/components/storefront/product-info-header";
 import { ProductPurchasePanel } from "@/components/storefront/product-purchase-panel";
 import { ProductDescriptionCard } from "@/components/storefront/product-description-card";
 import { ProductTechnicalSpecsCard } from "@/components/storefront/product-technical-specs-card";
+import { ProductReviewsSummaryCard } from "@/components/storefront/product-reviews-summary-card";
 import { RelatedProductsCarousel } from "@/components/storefront/related-products-carousel";
 import { ProductTechnicalNotes } from "@/components/storefront/product-technical-notes";
 
@@ -115,9 +117,12 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   // `allSettled` به‌جای `all`، خطای یکی مستقل از دیگری می‌ماند و در
   // بدترین حالت فقط همان ردیف خالی می‌شود (Component خودش با آرایه
   // خالی چیزی رندر نمی‌کند).
-  const [similarProductsResult, boughtTogetherProductsResult] = await Promise.allSettled([
-    getSimilarProductCards(product.id, product.title),
-    getFrequentlyBoughtTogetherCards(product.id),
+  // `getProductReviewSummary` خودش خطا را می‌بلعد (null) و کارت Review
+  // را فقط پنهان می‌کند؛ Stats روی همین Render Server گرفته می‌شود.
+  const [similarProductsResult, boughtTogetherProductsResult, reviewSummary] = await Promise.all([
+    Promise.allSettled([getSimilarProductCards(product.id, product.title)]).then(([r]) => r),
+    Promise.allSettled([getFrequentlyBoughtTogetherCards(product.id)]).then(([r]) => r),
+    getProductReviewSummary(product.id),
   ]);
   const similarProducts =
     similarProductsResult.status === "fulfilled" ? similarProductsResult.value : [];
@@ -155,6 +160,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
       {product.technicalSpecifications.length > 0 && (
         <ProductTechnicalSpecsCard specs={product.technicalSpecifications} />
       )}
+      {reviewSummary && <ProductReviewsSummaryCard productId={product.id} stats={reviewSummary} />}
       <RelatedProductsCarousel
         title="محصولات مشابه"
         icon={Sparkles}
