@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import {
@@ -26,6 +32,8 @@ type StorefrontSheetProps = {
   closeOnEscape?: boolean;
   /** Ref ناحیه اسکرول (مثلاً برای بازگشت به بالا هنگام تغییر صفحه). */
   scrollRef?: RefObject<HTMLDivElement | null>;
+  /** ارتفاع ثابت و بلند (نزدیک بالای صفحه در موبایل) — برای پاپ‌آپ‌های پرمحتوا. */
+  tall?: boolean;
 };
 
 const DESKTOP_QUERY = "(min-width: 640px)";
@@ -49,6 +57,7 @@ export function StorefrontSheet({
   returnFocusRef,
   closeOnEscape = true,
   scrollRef,
+  tall = false,
 }: StorefrontSheetProps) {
   const [visible, setVisible] = useState(false);
   const [dragOffsetPx, setDragOffsetPx] = useState(0);
@@ -73,7 +82,10 @@ export function StorefrontSheet({
   // بازگرداندن Focus + پاک‌سازی Timer (بدون Listener باقی‌مانده).
   useEffect(() => {
     if (!open) return;
-    const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const active =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     const target = returnFocusRef?.current ?? active;
     return () => {
       target?.focus();
@@ -129,17 +141,29 @@ export function StorefrontSheet({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={requestClose} aria-hidden="true" />
+      <div
+        className="absolute inset-0 bg-black/40"
+        onClick={requestClose}
+        aria-hidden="true"
+      />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
         tabIndex={-1}
-        className="relative flex max-h-[85vh] w-full max-w-lg flex-col rounded-t-3xl bg-white outline-none sm:rounded-3xl"
+        className={`relative flex w-full max-w-lg flex-col rounded-t-3xl bg-white outline-none sm:rounded-3xl ${
+          tall
+            ? "h-[calc(100dvh-3.5rem)] max-h-[calc(100dvh-3.5rem)] sm:h-[85vh] sm:max-h-[85vh]"
+            : "max-h-[85vh]"
+        }`}
         style={{
-          transform: visible ? `translateY(${dragOffsetPx}px)` : "translateY(100%)",
-          transition: isDragging ? "none" : `transform ${SHEET_TRANSITION_MS}ms cubic-bezier(0.32,0.72,0,1)`,
+          transform: visible
+            ? `translateY(${dragOffsetPx}px)`
+            : "translateY(100%)",
+          transition: isDragging
+            ? "none"
+            : `transform ${SHEET_TRANSITION_MS}ms cubic-bezier(0.32,0.72,0,1)`,
         }}
       >
         <div
@@ -149,7 +173,10 @@ export function StorefrontSheet({
           onPointerUp={handleDragEnd}
           onPointerCancel={handleDragEnd}
         >
-          <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-gray-300 sm:hidden" aria-hidden="true" />
+          <div
+            className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-gray-300 sm:hidden"
+            aria-hidden="true"
+          />
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">{header}</div>
             <button
@@ -164,12 +191,17 @@ export function StorefrontSheet({
           </div>
         </div>
 
-        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
+        <div
+          ref={scrollRef}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4"
+        >
           {children}
         </div>
 
         {footer ? (
-          <div className="shrink-0 pb-[env(safe-area-inset-bottom)]">{footer}</div>
+          <div className="shrink-0 pb-[env(safe-area-inset-bottom)]">
+            {footer}
+          </div>
         ) : (
           <div className="shrink-0 pb-[env(safe-area-inset-bottom)]" />
         )}

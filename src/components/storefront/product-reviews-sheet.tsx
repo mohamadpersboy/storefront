@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/error-state";
 import { Pagination } from "@/components/ui/pagination";
@@ -28,9 +35,14 @@ type ListState = { items: PublicReviewDTO[]; totalPages: number };
 export function ProductReviewsSheet({
   productId,
   stats,
+  hasReviews,
+  children,
 }: {
   productId: string;
   stats: PublicReviewStats;
+  hasReviews: boolean;
+  /** ناحیه نظر کاربر (ثبت/نمایش/حذف) — اولین مورد پاپ‌آپ. */
+  children?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -117,7 +129,7 @@ export function ProductReviewsSheet({
           aria-expanded={open}
           className="w-full"
         >
-          خواندن نظرات
+          {hasReviews ? "خواندن نظرات" : "ثبت اولین نظر"}
         </Button>
       </div>
 
@@ -128,6 +140,7 @@ export function ProductReviewsSheet({
         returnFocusRef={triggerRef}
         closeOnEscape={lightboxImage === null}
         scrollRef={scrollRef}
+        tall
         header={
           <>
             <p className="text-sm font-semibold text-[var(--sf-ink)]">
@@ -148,6 +161,7 @@ export function ProductReviewsSheet({
           ) : null
         }
       >
+        {children ? <div className="mb-3">{children}</div> : null}
         {error ? (
           <ErrorState
             title="دریافت نظرات ناموفق بود"
@@ -170,6 +184,11 @@ export function ProductReviewsSheet({
             }
             aria-busy={loading}
           >
+            {list && list.items.length === 0 ? (
+              <p className="py-6 text-center text-sm text-gray-500">
+                هنوز نظری ثبت نشده
+              </p>
+            ) : null}
             {list?.items.map((review, index) => (
               <ReviewListItem
                 key={`${page}-${index}`}

@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MyReviewCard } from "@/components/storefront/my-review-card";
 import { ProductReviewForm } from "@/components/storefront/product-review-form";
-import { StorefrontSheet } from "@/components/storefront/storefront-sheet";
 import { Button } from "@/components/ui/button";
 import type { MyReviewDTO, MyReviewState } from "@/lib/reviews/my-review";
 import type { ReviewPayload } from "@/lib/storefront/review-form";
@@ -19,10 +18,11 @@ import {
 } from "@/lib/storefront/review-form-messages";
 
 /**
- * ناحیه ثبت/نمایش/حذف نظر کاربر زیر کارت «نظرات کاربران».
- * `state` از سرور می‌آید؛ `null` یعنی کاربر وارد نشده یا وضعیت در
- * دسترس نیست. صفحه با `key` این کامپوننت را Remount می‌کند تا State
- * سرور و Client هم‌خوان بماند.
+ * ناحیه ثبت/نمایش/حذف نظر کاربر؛ اولین مورد داخل پاپ‌آپ نظرات.
+ * `state` از سرور می‌آید؛ `null` یعنی وضعیت در دسترس نیست. با بسته شدن
+ * پاپ‌آپ این کامپوننت Unmount می‌شود و اگر ثبت/حذفی شده بود،
+ * `router.refresh()` آمار و وضعیت سرور را تازه می‌کند. تأیید حذف داخل
+ * همین کارت است (بدون Sheet تو در تو، تا Escape فقط یک لایه را ببندد).
  */
 export function ProductReviewActions({
   productId,
@@ -40,14 +40,21 @@ export function ProductReviewActions({
     state?.review ?? null,
   );
   const [justSubmitted, setJustSubmitted] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const deleteButtonRef = useRef<HTMLDivElement>(null);
+  const dirtyRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (dirtyRef.current) router.refresh();
+    };
+  }, [router]);
 
   if (!isAuthenticated) {
     return (
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 rounded-2xl bg-gray-100 p-3">
         <p className="text-sm text-gray-600">{REVIEW_GUEST_MESSAGE}</p>
         <Link
           href={`/login?redirect=${encodeURIComponent(`/products/${slug}`)}`}
@@ -76,6 +83,8 @@ export function ProductReviewActions({
       createdAt: new Date().toISOString(),
     });
     setJustSubmitted(true);
+    setFormOpen(false);
+    dirtyRef.current = true;
   }
 
   async function handleDelete() {
@@ -97,6 +106,7 @@ export function ProductReviewActions({
       setConfirmOpen(false);
       setReview(null);
       setJustSubmitted(false);
+      dirtyRef.current = true;
       return;
     }
     const mapped = mapReviewDeleteError(status);
@@ -104,25 +114,60 @@ export function ProductReviewActions({
     if (mapped.refresh) router.refresh();
   }
 
-  const canDelete = review !== null;
   const showForm = review === null && state.canReview;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       {review ? (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm font-semibold text-[var(--sf-ink)]">نظر شما</p>
+        <div className="rounded-2xl bg-gray-100 p-3">
+          <p className="mb-2 text-sm font-semibold text-[var(--sf-ink)]">
+            نظر شما
+          </p>
           {justSubmitted ? (
             <p
               role="status"
-              className="rounded-xl bg-green-50 px-3 py-2 text-xs text-green-700"
+              className="mb-2 rounded-xl bg-green-50 px-3 py-2 text-xs text-green-700"
             >
               {REVIEW_SUBMIT_SUCCESS_MESSAGE}
             </p>
           ) : null}
           <MyReviewCard review={review} />
-          <div ref={deleteButtonRef} className="flex">
-            {canDelete ? (
+
+          {confirmOpen ? (
+            <div className="mt-3 flex flex-col gap-2 rounded-xl bg-white p-3">
+              <p className="text-sm text-[var(--sf-ink)]">
+                {REVIEW_DELETE_CONFIRM_MESSAGE}
+              </p>
+              {deleteError ? (
+                <p role="alert" className="text-xs text-red-600">
+                  {deleteError}
+                </p>
+              ) : null}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex-1"
+                >
+                  {deleting ? "در حال حذف…" : "حذف"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setConfirmOpen(false)}
+                  disabled={deleting}
+                  className="flex-1"
+                >
+                  انصراف
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 flex">
               <Button
                 type="button"
                 variant="secondary"
@@ -136,69 +181,41 @@ export function ProductReviewActions({
                   ? "حذف و ثبت نظر جدید"
                   : "حذف نظر"}
               </Button>
-            ) : null}
-          </div>
+            </div>
+          )}
         </div>
       ) : null}
 
       {showForm ? (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm font-semibold text-[var(--sf-ink)]">ثبت نظر</p>
-          <ProductReviewForm
-            productId={productId}
-            canAddImages={state.canAddImages}
-            onSubmitted={handleSubmitted}
-          />
-        </div>
+        formOpen ? (
+          <div className="rounded-2xl bg-gray-100 p-3">
+            <p className="mb-3 text-sm font-semibold text-[var(--sf-ink)]">
+              ثبت نظر
+            </p>
+            <ProductReviewForm
+              productId={productId}
+              canAddImages={state.canAddImages}
+              onSubmitted={handleSubmitted}
+            />
+          </div>
+        ) : (
+          <Button
+            type="button"
+            onClick={() => setFormOpen(true)}
+            className="w-full"
+          >
+            ثبت نظر
+          </Button>
+        )
       ) : null}
 
       {!state.canReview && !review ? (
-        <p className="text-sm text-gray-600">
+        <p className="rounded-2xl bg-gray-100 p-3 text-sm text-gray-600">
           {state.ineligibleReason === "buyers_only"
             ? REVIEW_BUYERS_ONLY_MESSAGE
             : REVIEW_UNAVAILABLE_MESSAGE}
         </p>
       ) : null}
-
-      <StorefrontSheet
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        ariaLabel="حذف نظر"
-        header={
-          <p className="text-sm font-semibold text-[var(--sf-ink)]">حذف نظر</p>
-        }
-      >
-        <div className="flex flex-col gap-4 p-4">
-          <p className="text-sm text-[var(--sf-ink)]">
-            {REVIEW_DELETE_CONFIRM_MESSAGE}
-          </p>
-          {deleteError ? (
-            <p role="alert" className="text-sm text-red-600">
-              {deleteError}
-            </p>
-          ) : null}
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="danger"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="flex-1"
-            >
-              {deleting ? "در حال حذف…" : "حذف"}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setConfirmOpen(false)}
-              disabled={deleting}
-              className="flex-1"
-            >
-              انصراف
-            </Button>
-          </div>
-        </div>
-      </StorefrontSheet>
     </div>
   );
 }

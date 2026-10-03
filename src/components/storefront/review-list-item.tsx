@@ -1,6 +1,10 @@
 import Image from "next/image";
 import { ReviewStars } from "@/components/storefront/review-stars";
-import type { PublicReviewDTO, PublicReviewImageDTO } from "@/lib/reviews/public-serialize";
+import type {
+  PublicReviewDTO,
+  PublicReviewImageDTO,
+} from "@/lib/reviews/public-serialize";
+import { collapseBlankLines } from "@/lib/storefront/review-text";
 import { formatJalali } from "@/lib/utils/jalali";
 
 const RECOMMENDATION_TEXT = {
@@ -21,25 +25,36 @@ export function ReviewListItem({
   onImageClick: (image: PublicReviewImageDTO) => void;
 }) {
   return (
-    <article className="border-b border-gray-100 py-4 last:border-b-0">
+    <article className="mb-3 rounded-2xl bg-gray-100 p-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="truncate text-sm font-medium text-[var(--sf-ink)]">
-          {review.displayName}
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="truncate text-sm font-medium text-[var(--sf-ink)]">
+            {review.displayName}
+          </p>
           {review.isVerifiedBuyer ? (
-            <span className="ms-2 text-xs font-normal text-gray-500">خریدار</span>
+            <span className="shrink-0 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
+              خریدار
+            </span>
           ) : null}
-        </p>
-        <time dateTime={review.createdAt} className="shrink-0 text-xs text-gray-400">
+        </div>
+        <time
+          dateTime={review.createdAt}
+          className="shrink-0 text-xs text-gray-400"
+        >
           {formatJalali(review.createdAt)}
         </time>
       </div>
 
-      <div className="mt-1.5 flex items-center gap-2">
-        <ReviewStars rating={review.rating} className="size-3.5" />
-        <span className="text-xs text-gray-500">{RECOMMENDATION_TEXT[review.recommendation]}</span>
-      </div>
+      <p className="mt-2 line-clamp-5 text-sm leading-7 break-words whitespace-pre-line text-gray-700">
+        {collapseBlankLines(review.text)}
+      </p>
 
-      <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-7 text-gray-600">{review.text}</p>
+      <div className="mt-2 flex items-center gap-2">
+        <ReviewStars rating={review.rating} className="size-3.5" />
+        <span className="text-xs text-gray-500">
+          {RECOMMENDATION_TEXT[review.recommendation]}
+        </span>
+      </div>
 
       {review.images.length > 0 ? (
         <div className="mt-2 flex gap-2">

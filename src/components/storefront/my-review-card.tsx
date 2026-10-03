@@ -9,6 +9,7 @@ import {
   REVIEW_PENDING_MESSAGE,
   REVIEW_REJECTED_MESSAGE,
 } from "@/lib/storefront/review-form-messages";
+import { collapseBlankLines } from "@/lib/storefront/review-text";
 import { formatJalali } from "@/lib/utils/jalali";
 
 const STATUS_STYLE: Record<MyReviewDTO["status"], string> = {
@@ -20,10 +21,11 @@ const STATUS_STYLE: Record<MyReviewDTO["status"], string> = {
 /**
  * نظر خودِ کاربر (فقط خواندنی، بدون ویرایش). دلیل رد هرگز نمایش داده
  * نمی‌شود (DTO آن را ندارد). Plain Text؛ بدون dangerouslySetInnerHTML.
+ * ترتیب مثل لیست عمومی: وضعیت/تاریخ، متن (حداکثر ۵ خط)، ستاره/توصیه، تصاویر.
  */
 export function MyReviewCard({ review }: { review: MyReviewDTO }) {
   return (
-    <article className="flex flex-col gap-3">
+    <article className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <span
           className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLE[review.status]}`}
@@ -42,6 +44,10 @@ export function MyReviewCard({ review }: { review: MyReviewDTO }) {
         <p className="text-xs text-gray-600">{REVIEW_REJECTED_MESSAGE}</p>
       ) : null}
 
+      <p className="line-clamp-5 text-sm leading-7 break-words whitespace-pre-line text-gray-700">
+        {collapseBlankLines(review.text)}
+      </p>
+
       <div className="flex items-center gap-2">
         <ReviewStars rating={review.rating} className="size-3.5" />
         <span className="text-xs text-gray-500">
@@ -49,16 +55,12 @@ export function MyReviewCard({ review }: { review: MyReviewDTO }) {
         </span>
       </div>
 
-      <p className="text-sm leading-7 break-words whitespace-pre-line text-[var(--sf-ink)]">
-        {review.text}
-      </p>
-
       {review.images.length > 0 ? (
         <ul className="flex gap-2">
           {review.images.map((img) => (
             <li
               key={img.url}
-              className="relative h-16 w-12 overflow-hidden rounded-md bg-gray-100"
+              className="relative h-16 w-12 overflow-hidden rounded-md bg-gray-200"
             >
               <Image
                 src={img.url}
