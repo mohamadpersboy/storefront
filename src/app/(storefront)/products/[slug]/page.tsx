@@ -10,6 +10,8 @@ import {
 } from "@/lib/storefront/get-related-products";
 import { getProductReviewSummary } from "@/lib/storefront/get-product-review-summary";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { getMyReviewState } from "@/lib/reviews/my-review";
+import { ProductReviewActions } from "@/components/storefront/product-review-actions";
 import { ProductTopBar } from "@/components/storefront/product-top-bar";
 import { ProductAmazingOfferBanner } from "@/components/storefront/product-amazing-offer-banner";
 import { ProductImageGallery } from "@/components/storefront/product-image-gallery";
@@ -119,10 +121,18 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   // خالی چیزی رندر نمی‌کند).
   // `getProductReviewSummary` خودش خطا را می‌بلعد (null) و کارت Review
   // را فقط پنهان می‌کند؛ Stats روی همین Render Server گرفته می‌شود.
-  const [similarProductsResult, boughtTogetherProductsResult, reviewSummary] = await Promise.all([
+  // وضعیت نظر کاربر فقط برای کاربر Login‌شده؛ خطا → null (ناحیه ثبت نظر
+  // پنهان می‌شود ولی صفحه خراب نمی‌شود).
+  const [similarProductsResult, boughtTogetherProductsResult, reviewSummary, myReviewState] = await Promise.all([
     Promise.allSettled([getSimilarProductCards(product.id, product.title)]).then(([r]) => r),
     Promise.allSettled([getFrequentlyBoughtTogetherCards(product.id)]).then(([r]) => r),
     getProductReviewSummary(product.id),
+    userId
+      ? getMyReviewState(userId, product.id).catch((error) => {
+          console.error("getMyReviewState failed:", error);
+          return null;
+        })
+      : Promise.resolve(null),
   ]);
   const similarProducts =
     similarProductsResult.status === "fulfilled" ? similarProductsResult.value : [];
@@ -160,7 +170,17 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
       {product.technicalSpecifications.length > 0 && (
         <ProductTechnicalSpecsCard specs={product.technicalSpecifications} />
       )}
-      {reviewSummary && <ProductReviewsSummaryCard productId={product.id} stats={reviewSummary} />}
+      {reviewSummary && (
+        <ProductReviewsSummaryCard productId={product.id} stats={reviewSummary}>
+          <ProductReviewActions
+            key={`${myReviewState?.review?.id ?? "none"}-${myReviewState?.review?.status ?? "none"}-${myReviewState?.canReview ?? "x"}-${myReviewState?.canAddImages ?? "x"}-${userId ?? "guest"}`}
+            productId={product.id}
+            slug={slug}
+            isAuthenticated={Boolean(userId)}
+            state={myReviewState}
+          />
+        </ProductReviewsSummaryCard>
+      )}
       <RelatedProductsCarousel
         title="محصولات مشابه"
         icon={Sparkles}

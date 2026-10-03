@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ProductReviewsSheet } from "@/components/storefront/product-reviews-sheet";
 import { ReviewStars } from "@/components/storefront/review-stars";
 import type { PublicReviewStats } from "@/lib/reviews/public-serialize";
@@ -22,16 +23,21 @@ import { toPersianDigits } from "@/lib/utils/format";
 export function ProductReviewsSummaryCard({
   productId,
   stats,
+  children,
 }: {
   productId: string;
   stats: PublicReviewStats;
+  /** ناحیه ثبت/نمایش نظر کاربر؛ حتی بدون نظر عمومی دیده می‌شود. */
+  children?: ReactNode;
 }) {
   const hasReviews = stats.ratingCount > 0;
 
   return (
     <section className="px-4 pt-3 sm:mx-auto sm:max-w-md sm:px-6">
       <div className="rounded-2xl bg-white p-4 shadow-sm">
-        <p className="mb-3 text-sm font-semibold text-[var(--sf-ink)]">نظرات کاربران</p>
+        <p className="mb-3 text-sm font-semibold text-[var(--sf-ink)]">
+          نظرات کاربران
+        </p>
 
         <div className="flex items-center gap-3">
           {hasReviews ? (
@@ -44,12 +50,16 @@ export function ProductReviewsSummaryCard({
               </p>
               <div className="flex flex-col gap-1">
                 <ReviewStars rating={stats.averageRating} />
-                <p className="text-xs text-gray-500">{formatReviewCount(stats.ratingCount)}</p>
+                <p className="text-xs text-gray-500">
+                  {formatReviewCount(stats.ratingCount)}
+                </p>
               </div>
             </>
           ) : (
             <div className="flex flex-col gap-0.5">
-              <p className="text-sm font-medium text-[var(--sf-ink)]">{NO_REVIEWS_TEXT}</p>
+              <p className="text-sm font-medium text-[var(--sf-ink)]">
+                {NO_REVIEWS_TEXT}
+              </p>
               <p className="text-xs text-gray-500">{NO_RATING_TEXT}</p>
             </div>
           )}
@@ -65,6 +75,10 @@ export function ProductReviewsSummaryCard({
           <div className="mt-3">
             <ProductReviewsSheet productId={productId} stats={stats} />
           </div>
+        ) : null}
+
+        {children ? (
+          <div className="mt-4 border-t border-gray-100 pt-4">{children}</div>
         ) : null}
       </div>
     </section>

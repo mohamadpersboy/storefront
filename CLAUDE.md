@@ -26,8 +26,20 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار: Reviews Storefront (فقط نمایش) — کارت خلاصه + Sheet لیست نظرات
-در صفحه محصول. ثبت/آپلود/حذف نظر از Storefront هنوز ساخته نشده (Phase جدا).**
+**آخرین کار: Review Submission & User Delete (Storefront) — فرم ثبت نظر، آپلود تصویر،
+نمایش «نظر شما» و حذف نظر خود کاربر در صفحه محصول.**
+
+- **سرویس سرور:** `lib/reviews/my-review.ts` (`getMyReviewState`) — بدون Route جدید؛ DTO بدون
+  `rejectionReason`/`publicId`. `canReview` فقط از Eligibility می‌آید (نه از وجود Review).
+- **UI:** `product-review-actions.tsx` (Guest → لینک ورود با `redirect`؛ Pending/Approved/Rejected؛
+  حذف با تأیید در `StorefrontSheet`)، `product-review-form.tsx`، `review-rating-input.tsx`
+  (Radiogroup، RTL)، `review-image-picker.tsx` (Cropper ۳:۴ + Cloudinary، حداکثر ۲)، `my-review-card.tsx`.
+  Helperهای خالص: `lib/storefront/review-form.ts`، `review-form-messages.ts`.
+- **رفتار:** پس از POST موفق State محلی به Pending می‌رود (بدون Refresh)؛ خطای ۴۰۱/۴۰۳/۴۰۴/۴۰۹
+  `router.refresh()` می‌زند. Review ردشده تا حذف شدن مانع ثبت جدید است («حذف و ثبت نظر جدید»).
+- **محدودیت:** تصاویر آپلودشده‌ای که نظر ثبت نمی‌شود در Cloudinary می‌مانند (Cleanup نداریم).
+
+**قبلاً: Reviews Storefront (فقط نمایش) — کارت خلاصه + Sheet لیست نظرات.**
 
 - **API عمومی:** `GET /api/v1/reviews?productId=&page=&limit=` (بدون Login؛ limit ≤ ۲۰،
   پیش‌فرض ۱۰). خروجی: `data.items` (DTO عمومی) + `data.stats` + `pagination` (سطح بالا).
@@ -54,7 +66,7 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 - **محدودیت‌ها:** تست UI (Sheet/Drag/Lightbox) خودکار نیست (`environment: node`) — دستی روی
   Vercel/موبایل بررسی شود. Focus Trap کامل نداریم (فقط Focus اولیه و بازگشت). Scroll Lock روی دسکتاپ
   عرض Scrollbar را جبران نمی‌کند. `Button` مشترک `ref` نمی‌پذیرد؛ دکمه از Wrapper پیدا می‌شود.
-- **TODO:** Phase جدا: فرم ثبت Review (Cropper ۳:۴، `review-image` sign)، حذف نظر خود کاربر.
+- **TODO:** (انجام شد در Phase «Review Submission & User Delete».)
 
 ---
 
