@@ -104,7 +104,7 @@ export function ProductCard({ item }: { item: ProductCardData }) {
   return (
     <Link
       href={`/products/${item.product.slug}`}
-      className="block w-[152px] shrink-0 border-e border-gray-200 px-3 last:border-e-0 sm:w-[168px]"
+      className="block w-[152px] shrink-0 border-e border-gray-200 px-3 last:border-e-0 tab:w-[168px]"
     >
       <p
         className={`mb-2 text-center text-[11px] font-bold text-[var(--sf-cherry)] ${offer ? "" : "invisible"}`}
@@ -114,7 +114,7 @@ export function ProductCard({ item }: { item: ProductCardData }) {
 
       {/* عرض/ارتفاع تصویر عمداً پیکسل ثابت است (نه Aspect Ratio روی
           `w-full`) تا مستقل از Padding/عرض اطراف همیشه یکسان بماند. */}
-      <div className="relative h-[171px] w-[128px] overflow-hidden rounded-lg bg-gray-100 sm:h-[192px] sm:w-[144px]">
+      <div className="relative h-[171px] w-[128px] overflow-hidden rounded-lg bg-gray-100 tab:h-[192px] tab:w-[144px]">
         <Image
           src={item.product.imageUrl}
           alt={item.product.title}

@@ -1,5 +1,6 @@
 "use client";
 
+import { getOverlayRoot } from "@/lib/storefront/overlay-root";
 import {
   useEffect,
   useRef,
@@ -36,7 +37,7 @@ type StorefrontSheetProps = {
   tall?: boolean;
 };
 
-const DESKTOP_QUERY = "(min-width: 640px)";
+const DESKTOP_QUERY = "(min-width: 640px) and (max-width: 1023.98px)";
 
 /**
  * پوسته مشترک Storefront: موبایل = Bottom Sheet (اسلاید از پایین،
@@ -140,7 +141,7 @@ export function StorefrontSheet({
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center tab:items-center tab:p-4">
       <div
         className="absolute inset-0 bg-black/40"
         onClick={requestClose}
@@ -152,9 +153,9 @@ export function StorefrontSheet({
         aria-modal="true"
         aria-label={ariaLabel}
         tabIndex={-1}
-        className={`relative flex w-full max-w-lg flex-col rounded-t-3xl bg-white outline-none sm:rounded-3xl ${
+        className={`relative flex w-full max-w-lg flex-col rounded-t-3xl bg-white outline-none tab:rounded-3xl ${
           tall
-            ? "h-[calc(100dvh-3.5rem)] max-h-[calc(100dvh-3.5rem)] sm:h-[85vh] sm:max-h-[85vh]"
+            ? "h-[calc(100dvh-3.5rem)] max-h-[calc(100dvh-3.5rem)] tab:h-[85vh] tab:max-h-[85vh]"
             : "max-h-[85vh]"
         }`}
         style={{
@@ -167,14 +168,14 @@ export function StorefrontSheet({
         }}
       >
         <div
-          className="shrink-0 cursor-grab touch-none px-4 pt-3 pb-3 active:cursor-grabbing sm:cursor-default sm:pt-4"
+          className="shrink-0 cursor-grab touch-none px-4 pt-3 pb-3 active:cursor-grabbing tab:cursor-default tab:pt-4"
           onPointerDown={handleDragStart}
           onPointerMove={handleDragMove}
           onPointerUp={handleDragEnd}
           onPointerCancel={handleDragEnd}
         >
           <div
-            className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-gray-300 sm:hidden"
+            className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-gray-300 tab:hidden"
             aria-hidden="true"
           />
           <div className="flex items-start justify-between gap-3">
@@ -207,6 +208,6 @@ export function StorefrontSheet({
         )}
       </div>
     </div>,
-    document.body,
+    getOverlayRoot(),
   );
 }

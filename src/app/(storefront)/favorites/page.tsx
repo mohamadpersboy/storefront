@@ -31,7 +31,7 @@ export default async function FavoritesPage({ searchParams }: FavoritesPageProps
     <div>
       <PageHeader title="علاقه‌مندی‌ها" />
 
-      <div className="px-4 py-4 sm:px-6">
+      <div className="px-4 py-4 tab:px-6">
         <FavoritesGrid initialItems={items} />
 
         {items.length > 0 && totalPages > 1 ? (

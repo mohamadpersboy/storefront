@@ -208,7 +208,7 @@ export function CategoryFilterBar({
           type="button"
           onClick={() => setDrawerOpen(true)}
           aria-label="فیلتر"
-          className="relative flex w-12 shrink-0 items-center justify-center border-s border-black/10 text-gray-500 active:bg-gray-50 lg:hidden"
+          className="relative flex w-12 shrink-0 items-center justify-center border-s border-black/10 text-gray-500 active:bg-gray-50"
         >
           <SlidersHorizontal className="size-5" strokeWidth={1.75} aria-hidden="true" />
           {activeFiltersExist && (
@@ -240,7 +240,7 @@ export function CategoryFilterBar({
       </div>
 
       {drawerOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/40" onClick={() => setDrawerOpen(false)} />
           <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4 shadow-[0_-16px_40px_rgba(3,23,37,0.18)]">
             <div className="mb-3 flex items-center justify-between">
@@ -291,53 +291,6 @@ export function CategoryFilterBar({
         </div>
       ) : null}
     </div>
-  );
-}
-
-/** Sidebar فیلترهای دسکتاپ — همیشه‌نمایان، کنار Grid محصولات (بند ۱۲ درخواست). */
-export function CategoryFilterSidebar({
-  basePath,
-  active,
-  facets,
-}: {
-  basePath: string;
-  active: ActiveCategoryFilters;
-  facets: CategoryFacets;
-}) {
-  const { toggleBrand, toggleAttr, applyPriceRange, clearAll } = useCategoryFilterActions(basePath);
-  const [prevActive, setPrevActive] = useState(active);
-  const [priceMin, setPriceMin] = useState(active.minPrice ? String(active.minPrice) : "");
-  const [priceMax, setPriceMax] = useState(active.maxPrice ? String(active.maxPrice) : "");
-  if (active !== prevActive) {
-    setPrevActive(active);
-    setPriceMin(active.minPrice ? String(active.minPrice) : "");
-    setPriceMax(active.maxPrice ? String(active.maxPrice) : "");
-  }
-
-  return (
-    <aside className="hidden w-64 shrink-0 rounded-2xl border border-black/5 bg-white p-4 shadow-[0_16px_40px_rgba(3,23,37,0.06)] lg:block">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-bold text-[var(--sf-ink)]">فیلترها</h2>
-        {hasActiveFilters(active) ? (
-          <button type="button" onClick={clearAll} className="text-xs text-[var(--sf-accent)]">
-            پاک کردن
-          </button>
-        ) : null}
-      </div>
-
-      <CategoryFilterFields
-        facets={facets}
-        activeBrandSlugs={active.brand}
-        activeAttrs={active.attrs}
-        priceMin={priceMin}
-        priceMax={priceMax}
-        onToggleBrand={toggleBrand}
-        onToggleAttr={toggleAttr}
-        onPriceMinChange={setPriceMin}
-        onPriceMaxChange={setPriceMax}
-        onPriceBlur={() => applyPriceRange(priceMin, priceMax)}
-      />
-    </aside>
   );
 }
 

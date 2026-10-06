@@ -1,6 +1,14 @@
 @import "tailwindcss";
 
 /*
+ * Variant `tab`: فقط بازهٔ تبلت (۶۴۰ تا ۱۰۲۳px). Storefront به‌جای `sm:`
+ * از `tab:` استفاده می‌کند، چون از ۱۰۲۴px به بالا محتوا داخل قاب
+ * موبایل (۲۸rem) رندر می‌شود و باید همان استایل پایهٔ موبایل را بگیرد.
+ * Breakpoint سراسری `sm` تغییر نمی‌کند (Dashboard وابسته به آن است).
+ */
+@custom-variant tab (@media (min-width: 640px) and (max-width: 1023.98px));
+
+/*
  * Design tokens for کارت‌من — فروشگاه فرش.
  * Light mode only (per spec). RTL-first, Persian market.
  * Indigo is the single brand/accent color; everything else is neutral.
@@ -123,8 +131,87 @@ body {
  * مستقیم <body> عنصر Storefront باشد فعال می‌شود؛ Dashboard دست‌نخورده
  * می‌ماند.
  */
-body:has(> .storefront) {
+body:has(> .storefront),
+body:has(> .sf-stage) {
   background: #f3f4f6;
+}
+
+/*
+ * قاب دسکتاپ (Desktop App Frame) — فقط ≥۱۰۲۴px.
+ * زیر ۱۰۲۴px همهٔ لایه‌ها `display: contents` هستند، پس موبایل و تبلت
+ * دقیقاً مثل قبل رندر می‌شوند.
+ *
+ * ساختار دو لایه: `.sf-frame` (بیرونی) با `transform` بلوک شامل‌کنندهٔ
+ * عناصر `position: fixed` می‌شود؛ `.sf-frame__scroller` (درونی) تنها
+ * Scroll Container است. `transform` عمداً روی Scroller نیست، وگرنه
+ * عناصر fixed همراه محتوا Scroll می‌کردند.
+ */
+.sf-stage,
+.sf-frame,
+.sf-frame__scroller,
+.sf-overlay-root {
+  display: contents;
+}
+
+.sf-stage__aside {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .sf-stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3rem;
+    height: 100dvh;
+    overflow: hidden;
+    background: color-mix(in srgb, #499bed 6%, #ffffff);
+  }
+
+  .sf-frame {
+    display: block;
+    position: relative;
+    flex: none;
+    width: 28rem;
+    height: calc(100dvh - 3rem);
+    margin-block: 1.5rem;
+    border-radius: 2rem;
+    background: #ffffff;
+    box-shadow: 0 1.5rem 3rem -1rem rgb(3 23 37 / 0.18);
+    overflow: hidden;
+    transform: translateZ(0);
+  }
+
+  .sf-frame__scroller {
+    display: block;
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+  }
+
+  .sf-frame .storefront.sf-root {
+    min-height: 100%;
+  }
+
+  .sf-overlay-root {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+  }
+
+  .sf-overlay-root > * {
+    pointer-events: auto;
+  }
+
+  .sf-stage__aside {
+    display: block;
+    max-width: 20rem;
+    color: #031725;
+  }
 }
 
 /*

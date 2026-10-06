@@ -19,6 +19,7 @@ import {
   shouldDismissBottomSheet,
   SHEET_TRANSITION_MS,
 } from "@/lib/storefront/bottom-sheet-math";
+import { getOverlayRoot } from "@/lib/storefront/overlay-root";
 
 type ProductPriceChartButtonProps = {
   history: WeeklyPricePoint[];
@@ -167,21 +168,21 @@ export function ProductPriceChartButton({ history }: ProductPriceChartButtonProp
   }
 
   const popup = open && (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center tab:items-center tab:p-4">
       <div className="absolute inset-0 bg-black/40" onClick={closeSheet} aria-hidden="true" />
       <div
         ref={sheetRef}
         role="dialog"
         aria-modal="true"
         aria-label="نمودار تغییرات قیمت"
-        className="relative w-full max-w-md rounded-t-3xl bg-white p-4 pb-[calc(env(safe-area-inset-bottom)+16px)] sm:rounded-3xl sm:pb-4"
+        className="relative w-full max-w-md rounded-t-3xl bg-white p-4 pb-[calc(env(safe-area-inset-bottom)+16px)] tab:rounded-3xl tab:pb-4"
         style={{
           transform: visible ? `translateY(${dragOffsetPx}px)` : "translateY(100%)",
           transition: isDragging ? "none" : `transform ${SHEET_TRANSITION_MS}ms cubic-bezier(0.32,0.72,0,1)`,
         }}
       >
         <div
-          className="-mx-4 -mt-4 cursor-grab touch-none px-4 pt-3 pb-3 active:cursor-grabbing sm:mx-0 sm:mt-0 sm:px-0 sm:pt-0"
+          className="-mx-4 -mt-4 cursor-grab touch-none px-4 pt-3 pb-3 active:cursor-grabbing tab:mx-0 tab:mt-0 tab:px-0 tab:pt-0"
           onPointerDown={handleDragStart}
           onPointerMove={handleDragMove}
           onPointerUp={handleDragEnd}
@@ -264,7 +265,7 @@ export function ProductPriceChartButton({ history }: ProductPriceChartButtonProp
         <LineChartIcon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
       </button>
 
-      {mounted && popup ? createPortal(popup, document.body) : null}
+      {mounted && popup ? createPortal(popup, getOverlayRoot()) : null}
     </>
   );
 }

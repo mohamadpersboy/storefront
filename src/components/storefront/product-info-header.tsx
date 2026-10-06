@@ -34,7 +34,7 @@ export function ProductInfoHeader({ title, categories, brandName }: ProductInfoH
   const hasChips = categories.length > 0 || brandName;
 
   return (
-    <section className="px-4 pt-4 sm:mx-auto sm:max-w-md sm:px-6">
+    <section className="px-4 pt-4 tab:mx-auto tab:max-w-md tab:px-6">
       {hasChips && (
         <div className="mb-2 flex flex-wrap items-center gap-2">
           {categories.map((category) => (

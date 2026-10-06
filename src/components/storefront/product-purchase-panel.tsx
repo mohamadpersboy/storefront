@@ -144,7 +144,7 @@ export function ProductPurchasePanel({
 
   return (
     <>
-      <section className="flex flex-col gap-3 px-4 pt-3 sm:mx-auto sm:max-w-md sm:px-6">
+      <section className="flex flex-col gap-3 px-4 pt-3 tab:mx-auto tab:max-w-md tab:px-6">
         {/* قیمت — بدون بک‌گراند، وسط‌چین (طبق دستور صریح کارفرما) */}
         <div className="flex flex-col items-center gap-2 py-1 text-center">
           <div className="flex items-baseline justify-center gap-2">

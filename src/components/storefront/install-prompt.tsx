@@ -113,8 +113,8 @@ export function InstallPrompt() {
       role="dialog"
       aria-label="پیشنهاد نصب اپلیکیشن"
       className={cn(
-        "fixed inset-x-3 z-50 sm:inset-x-auto sm:right-4 sm:w-96",
-        "bottom-[calc(76px+env(safe-area-inset-bottom)+12px)] sm:bottom-4",
+        "fixed inset-x-3 z-50 tab:inset-x-auto tab:right-4 tab:w-96",
+        "bottom-[calc(76px+env(safe-area-inset-bottom)+12px)] tab:bottom-4",
         "flex items-center gap-3 rounded-2xl border border-black/5",
         "bg-white/95 p-3 shadow-lg backdrop-blur-xl",
       )}

@@ -35,7 +35,7 @@ export default async function NotificationsPage({
     <div>
       <PageHeader title="اعلان‌ها" />
 
-      <div className="space-y-4 px-4 py-4 sm:px-6">
+      <div className="space-y-4 px-4 py-4 tab:px-6">
         {items.length === 0 ? (
           <EmptyState
             icon={Bell}

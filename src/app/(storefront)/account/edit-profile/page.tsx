@@ -13,7 +13,7 @@ export default async function EditProfilePage() {
   return (
     <div>
       <PageHeader title="ویرایش اطلاعات کاربری" />
-      <div className="space-y-4 px-4 py-4 sm:px-6">
+      <div className="space-y-4 px-4 py-4 tab:px-6">
         <EditFullNameForm initialFullName={user.fullName ?? ""} />
         <ChangePhoneForm currentPhoneNumber={user.phoneNumber} />
       </div>

@@ -56,7 +56,7 @@ export default async function AboutPage() {
           actionHref="/"
         />
       ) : (
-        <div className="px-4 py-4 sm:mx-auto sm:max-w-2xl sm:px-6">
+        <div className="px-4 py-4 tab:mx-auto tab:max-w-2xl tab:px-6">
           {doc.imageUrl ? (
             <div className="relative mb-4 aspect-[16/9] w-full overflow-hidden rounded-2xl">
               <Image
@@ -70,8 +70,8 @@ export default async function AboutPage() {
             </div>
           ) : null}
 
-          <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
-            <h1 className="text-base font-bold text-[var(--sf-ink)] sm:text-lg">
+          <div className="rounded-2xl bg-white p-4 shadow-sm tab:p-6">
+            <h1 className="text-base font-bold text-[var(--sf-ink)] tab:text-lg">
               {doc.title}
             </h1>
             <p className="mt-3 whitespace-pre-line text-sm leading-7 text-gray-600">

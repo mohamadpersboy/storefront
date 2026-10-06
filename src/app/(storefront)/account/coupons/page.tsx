@@ -37,7 +37,7 @@ export default async function CouponsPage({ searchParams }: CouponsPageProps) {
     <div>
       <PageHeader title="کدهای تخفیف من" />
 
-      <div className="space-y-4 px-4 py-4 sm:px-6">
+      <div className="space-y-4 px-4 py-4 tab:px-6">
         {items.length === 0 ? (
           <EmptyState
             icon={Ticket}

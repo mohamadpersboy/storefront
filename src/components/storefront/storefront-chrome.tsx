@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { MobileBottomBar } from "@/components/storefront/mobile-bottom-bar";
 import { InstallPrompt } from "@/components/storefront/install-prompt";
+import { useFrameScroll } from "@/components/storefront/use-frame-scroll";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -26,13 +27,14 @@ const HIDDEN_BOTTOM_BAR_PREFIXES = ["/products/", "/cart"];
  */
 export function StorefrontChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  useFrameScroll();
   const hideGlobalBottomBar = HIDDEN_BOTTOM_BAR_PREFIXES.some((prefix) =>
     pathname?.startsWith(prefix),
   );
 
   return (
     <>
-      <div className={cn(!hideGlobalBottomBar && "pb-[76px] sm:pb-0")}>{children}</div>
+      <div className={cn(!hideGlobalBottomBar && "pb-[76px] tab:pb-0")}>{children}</div>
       {!hideGlobalBottomBar && <MobileBottomBar />}
       {!hideGlobalBottomBar && <InstallPrompt />}
     </>

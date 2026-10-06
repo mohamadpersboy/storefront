@@ -13,7 +13,7 @@ export default function OrdersLoading() {
         </div>
       </div>
 
-      <div className="space-y-4 px-4 py-4 sm:px-6">
+      <div className="space-y-4 px-4 py-4 tab:px-6">
         <div className="flex gap-2">
           {Array.from({ length: 4 }).map((_, index) => (
             <div key={index} className="h-8 w-20 shrink-0 animate-pulse rounded-full bg-gray-100" />

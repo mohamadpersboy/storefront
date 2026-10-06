@@ -238,7 +238,7 @@ export default async function ContactPage() {
     <div>
       <PageHeader title="تماس با ما" />
 
-      <div className="px-4 pb-10 pt-4 sm:mx-auto sm:max-w-2xl sm:px-6">
+      <div className="px-4 pb-10 pt-4 tab:mx-auto tab:max-w-2xl tab:px-6">
         {isEmpty ? (
           <EmptyState
             icon={MessageCircle}
@@ -397,7 +397,7 @@ export default async function ContactPage() {
                       ارتباط از طریق شبکه‌های اجتماعی و پیام‌رسان‌ها
                     </h2>
                   </div>
-                  <div className="mx-auto flex max-w-[17rem] flex-wrap items-start justify-center gap-x-4 gap-y-4 sm:max-w-none">
+                  <div className="mx-auto flex max-w-[17rem] flex-wrap items-start justify-center gap-x-4 gap-y-4 tab:max-w-none">
                     {channels.map((ch) => {
                       const Icon = ch.icon;
                       return (

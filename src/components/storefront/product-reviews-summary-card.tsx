@@ -59,7 +59,7 @@ export function ProductReviewsSummaryCard({
   const hasReviews = stats.ratingCount > 0;
 
   return (
-    <section className="px-4 pt-3 sm:mx-auto sm:max-w-md sm:px-6">
+    <section className="px-4 pt-3 tab:mx-auto tab:max-w-md tab:px-6">
       <div className="rounded-2xl bg-white p-4 shadow-sm">
         <div className="mb-4 flex items-center gap-2.5">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--sf-accent-soft)] text-[var(--sf-accent)]">

@@ -70,7 +70,7 @@ export function BankInfoCard({
   const [revealed, setRevealed] = useState(false);
 
   return (
-    <div className="space-y-3 px-4 py-4 sm:px-6">
+    <div className="space-y-3 px-4 py-4 tab:px-6">
       <div className="relative overflow-hidden rounded-[var(--radius-lg)] bg-gradient-to-br from-slate-800 via-slate-900 to-black p-5 text-white shadow-lg">
         <div
           aria-hidden="true"

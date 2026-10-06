@@ -97,7 +97,7 @@ export default async function AccountPage() {
     <div>
       <PageHeader title="حساب من" />
 
-      <div className="space-y-6 px-4 py-4 sm:px-6">
+      <div className="space-y-6 px-4 py-4 tab:px-6">
         {/* پروفایل */}
         <section className="relative rounded-[var(--radius-lg)] border border-black/5 bg-white p-4">
           <Link

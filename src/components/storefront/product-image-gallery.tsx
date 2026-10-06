@@ -18,6 +18,7 @@ import {
   shouldResetFocusOnScroll,
   ZOOM_MIN_SCALE,
 } from "@/lib/storefront/product-gallery-math";
+import { getScrollTarget, getScrollTop, getViewportWidth } from "@/lib/storefront/scroll-container";
 
 export type ProductGalleryImage = {
   url: string;
@@ -181,14 +182,15 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
     if (!hasActiveState) return;
 
     function handleScroll() {
-      if (shouldResetFocusOnScroll(scrollYAtActiveRef.current, window.scrollY)) {
+      if (shouldResetFocusOnScroll(scrollYAtActiveRef.current, getScrollTop())) {
         setIsFocused(false);
         setZoom(null);
       }
     }
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    const target = getScrollTarget();
+    target.addEventListener("scroll", handleScroll, { passive: true });
+    return () => target.removeEventListener("scroll", handleScroll);
   }, [hasActiveState]);
 
   function scrollFocusedSlideFullyIntoView(tappedIndex: number) {
@@ -202,7 +204,7 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
 
     const containerWidthPx = track.clientWidth;
     const gapPx = parseFloat(getComputedStyle(track).columnGap || "") || 12;
-    const focusedWidthPx = getFocusedSlideWidthPx(containerWidthPx, window.innerWidth);
+    const focusedWidthPx = getFocusedSlideWidthPx(containerWidthPx, getViewportWidth());
 
     const alignToRightEdge = shouldAlignSlideToRightEdge(
       itemRectBeforeGrow.left,
@@ -229,7 +231,7 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
 
   // --- Tap: باز/بسته‌کردن Focus برای همه تصاویر با هم ---
   function toggleFocusFromTap(index: number) {
-    scrollYAtActiveRef.current = window.scrollY;
+    scrollYAtActiveRef.current = getScrollTop();
 
     if (isFocused) {
       // بزرگ هستیم — این Tap (روی هر تصویری، Zoom‌شده یا نه) همه را
@@ -342,7 +344,7 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
       pinchRef.current = null;
       panRef.current = null;
       setIsLiveGesture(false);
-      scrollYAtActiveRef.current = window.scrollY;
+      scrollYAtActiveRef.current = getScrollTop();
       setZoom((current) => {
         if (!current || current.index !== index) return current;
         return current.scale <= ZOOM_MIN_SCALE + 0.01 ? null : current;
@@ -370,7 +372,7 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
 
   if (images.length === 0) {
     return (
-      <section className="px-4 pt-4 sm:mx-auto sm:max-w-md sm:px-6">
+      <section className="px-4 pt-4 tab:mx-auto tab:max-w-md tab:px-6">
         <div className="mx-auto flex aspect-[3/4] w-[60%] items-center justify-center rounded-2xl border border-dashed border-gray-200 text-sm text-gray-400">
           تصویری برای این محصول ثبت نشده است
         </div>
@@ -381,7 +383,7 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
   const isTrackScrollLocked = zoom !== null && zoom.scale > ZOOM_MIN_SCALE + 0.01;
 
   return (
-    <section className="px-4 pt-4 sm:mx-auto sm:max-w-md sm:px-6">
+    <section className="px-4 pt-4 tab:mx-auto tab:max-w-md tab:px-6">
       <div
         ref={trackRef}
         dir="ltr"

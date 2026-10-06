@@ -14,7 +14,7 @@ export default function FavoritesLoading() {
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-xl flex-col gap-3 px-4 py-4 sm:px-6">
+      <div className="mx-auto flex max-w-xl flex-col gap-3 px-4 py-4 tab:px-6">
         {Array.from({ length: 6 }).map((_, index) => (
           <div
             key={index}

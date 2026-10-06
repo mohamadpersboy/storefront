@@ -125,11 +125,11 @@ export function ProductCartAdditionsSummary({ additions, onRemoved, onUpdated }:
 
   return (
     <div
-      className="grid transition-[grid-template-rows] duration-300 ease-out sm:mx-auto sm:max-w-md"
+      className="grid transition-[grid-template-rows] duration-300 ease-out tab:mx-auto tab:max-w-md"
       style={{ gridTemplateRows: visible ? "1fr" : "0fr" }}
     >
       <div className={cn("overflow-hidden transition-opacity duration-300", visible ? "opacity-100" : "opacity-0")}>
-        <section className="px-4 pt-4 sm:px-6">
+        <section className="px-4 pt-4 tab:px-6">
           <div className="rounded-2xl bg-white p-4 shadow-sm">
             <p className="mb-3 text-xs font-bold text-[var(--sf-ink)]">از این محصول به سبد خرید اضافه شده است</p>
 

@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Pagination } from "@/components/ui/pagination";
+import { scrollToTop } from "@/lib/storefront/scroll-container";
 
 /**
  * فقط یک Wrapper نازک روی `Pagination` عمومی موجود پروژه
@@ -27,7 +28,7 @@ export function CategoryPagination({
     else params.delete("page");
     const qs = params.toString();
     router.push(qs ? `${basePath}?${qs}` : basePath, { scroll: false });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToTop("smooth");
   }
 
   return <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />;

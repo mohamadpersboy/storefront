@@ -28,7 +28,7 @@ const FEATURES = [
  */
 export function FeaturesRow() {
   return (
-    <section className="pt-6 px-4 sm:px-6">
+    <section className="pt-6 px-4 tab:px-6">
       <div className="grid grid-cols-4 gap-2">
         {FEATURES.map(({ icon: Icon, title, subtitle, iconClassName }) => (
           <div key={title} className="flex flex-col items-center text-center">

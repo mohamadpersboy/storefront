@@ -1,5 +1,6 @@
 "use client";
 
+import { getOverlayRoot } from "@/lib/storefront/overlay-root";
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
@@ -176,7 +177,7 @@ export function ReviewImagePicker({
               onCancel={() => setPendingSrc(null)}
               onCropped={handleCropped}
             />,
-            document.body,
+            getOverlayRoot(),
           )
         : null}
     </div>

@@ -3034,6 +3034,15 @@ ESLint ✅، Vitest (۴۸۹) ✅، Build ✅.
     (مسیر `/categories/all`، محدودیت فیلتر قیمت، عدم Drag-to-Dismiss
     در Drawer موبایل).
 
+## Desktop Mobile-App Frame (فاز اخیر)
+
+- ≥۱۰۲۴px: Storefront واقعی یک‌بار داخل قاب `28rem` رندر می‌شود (`DesktopAppFrame`، استایل `.sf-*` در globals.css). <۱۰۲۴px: بدون تغییر (`display: contents`).
+- `@custom-variant tab` (۶۴۰–۱۰۲۳px). در Storefront فقط `tab:` مجاز است؛ `sm:`/`md:`/`lg:`/`xl:`/`2xl:` ممنوع (Guard: `breakpoint-guard.test.ts`). `--breakpoint-sm` سراسری و Dashboard دست‌نخورده.
+- ساختار دو لایه: `.sf-frame` (transform، بلوک شامل‌کنندهٔ fixed) و `[data-sf-scroller]` (تنها Scroll Container). Overlay ها با `getOverlayRoot()` (`#sf-overlay-root` داخل قاب، وگرنه `body`) Portal می‌شوند.
+- `scroll-container.ts` (جایگزین `window.scrollY/scrollTo/innerWidth`)، `scroll-lock.ts` (قاب را هم قفل می‌کند)، `use-frame-scroll.ts` + `scroll-memory.ts` (بازیابی Back/Forward/Refresh؛ ناوبری جدید = بالا).
+- `CategoryFilterSidebar` حذف شد (فقط Drawer).
+- Zoom مرورگر ≥۱۵۰٪ روی صفحه ۱۴۴۰px، عرض CSS را زیر ۱۰۲۴ می‌برد → حالت تبلت (طبق Breakpoint).
+
 ## 4. In Progress
 
 **فعلاً در دست اجرا: Product Details Page (نگاه کنید بخش ۲ برای

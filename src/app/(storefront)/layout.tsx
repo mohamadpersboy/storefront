@@ -1,4 +1,5 @@
 import type { Viewport } from "next";
+import { DesktopAppFrame } from "@/components/storefront/desktop-app-frame";
 import { StorefrontChrome } from "@/components/storefront/storefront-chrome";
 
 /**
@@ -42,8 +43,10 @@ export default function StorefrontLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="storefront min-h-dvh bg-gray-100">
-      <StorefrontChrome>{children}</StorefrontChrome>
-    </div>
+    <DesktopAppFrame>
+      <div className="storefront sf-root min-h-dvh bg-gray-100">
+        <StorefrontChrome>{children}</StorefrontChrome>
+      </div>
+    </DesktopAppFrame>
   );
 }

@@ -12,7 +12,7 @@ export default function CouponsLoading() {
         </div>
       </div>
 
-      <div className="px-4 py-4 sm:px-6">
+      <div className="px-4 py-4 tab:px-6">
         <div className="divide-y divide-black/5 overflow-hidden rounded-[var(--radius-lg)] border border-black/5 bg-white">
           {Array.from({ length: 5 }).map((_, index) => (
             <div key={index} className="flex items-center gap-3 px-4 py-3.5">

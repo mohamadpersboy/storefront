@@ -22,7 +22,7 @@ export default async function AddressesPage() {
     <div>
       <PageHeader title="آدرس‌های من" />
 
-      <div className="space-y-3 px-4 py-4 sm:px-6">
+      <div className="space-y-3 px-4 py-4 tab:px-6">
         <Link
           href="/account/addresses/new"
           className="flex items-center justify-center gap-2 rounded-[var(--radius-lg)] border border-dashed border-black/15 bg-white py-3.5 text-sm font-bold text-[var(--color-primary)] active:bg-gray-50"

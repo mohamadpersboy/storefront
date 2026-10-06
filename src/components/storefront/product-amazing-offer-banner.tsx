@@ -34,7 +34,7 @@ export function ProductAmazingOfferBanner({ offer }: ProductAmazingOfferBannerPr
   const { label } = useOfferTimer(offer.startAt, offer.endAt);
 
   return (
-    <div className="px-4 pt-4 sm:mx-auto sm:max-w-md sm:px-6">
+    <div className="px-4 pt-4 tab:mx-auto tab:max-w-md tab:px-6">
       <div className="flex items-center justify-between gap-2 rounded-2xl border-2 border-[var(--sf-cherry)] bg-[var(--sf-cherry-soft)] p-3.5">
         <span className="flex shrink-0 items-center gap-1.5 text-xs font-bold text-[var(--sf-cherry)]">
           <Sparkles className="size-4" strokeWidth={2} aria-hidden="true" />

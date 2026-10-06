@@ -55,7 +55,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     <div>
       <PageHeader title="سفارش‌های من" />
 
-      <div className="space-y-4 px-4 py-4 sm:px-6">
+      <div className="space-y-4 px-4 py-4 tab:px-6">
         <OrderStatusTabs active={filter} />
 
         {items.length === 0 ? (

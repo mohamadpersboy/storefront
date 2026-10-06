@@ -25,7 +25,7 @@ export type FreeShippingBannerProps = {
  */
 export function FreeShippingBanner({ threshold }: FreeShippingBannerProps) {
   return (
-    <section className="px-4 pt-4 sm:px-6">
+    <section className="px-4 pt-4 tab:px-6">
       <div className="flex items-center gap-3 rounded-2xl bg-[var(--color-primary)] p-3.5">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15">
           <Truck
@@ -35,7 +35,7 @@ export function FreeShippingBanner({ threshold }: FreeShippingBannerProps) {
           />
         </div>
         <div className="flex-1">
-          <p className="text-xs font-bold text-white sm:text-sm">
+          <p className="text-xs font-bold text-white tab:text-sm">
             ارسال رایگان برای خریدهای بالای {threshold.toLocaleString("fa-IR")} تومان
           </p>
           <p className="mt-0.5 text-[11px] text-white/80">تحویل سریع به سراسر کشور</p>

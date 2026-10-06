@@ -1,5 +1,6 @@
 "use client";
 
+import { getOverlayRoot } from "@/lib/storefront/overlay-root";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
@@ -64,6 +65,6 @@ export function ReviewImageLightbox({
         onClick={(e) => e.stopPropagation()}
       />
     </div>,
-    document.body,
+    getOverlayRoot(),
   );
 }

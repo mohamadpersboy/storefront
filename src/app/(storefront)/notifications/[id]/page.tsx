@@ -39,7 +39,7 @@ export default async function NotificationDetailPage({
   return (
     <div>
       <PageHeader title="اعلان" />
-      <article className="space-y-3 px-4 py-4 sm:px-6">
+      <article className="space-y-3 px-4 py-4 tab:px-6">
         <h1 className="text-base font-semibold text-[var(--sf-ink)]">{notification.title}</h1>
         <p className="text-[11px] text-gray-400">{formatRelativeTime(notification.publishAt)}</p>
 

@@ -21,7 +21,7 @@ export function AboutUsCard({ title, content }: AboutUsCardData) {
   if (!content) return null;
 
   return (
-    <section className="px-4 pt-6 sm:px-6">
+    <section className="px-4 pt-6 tab:px-6">
       <div className="rounded-2xl bg-[var(--sf-ink)] p-5">
         <h2 className="text-base font-bold text-white">{title}</h2>
         <p className="mt-3 line-clamp-3 text-xs leading-6 text-white/60">{content}</p>

@@ -50,7 +50,7 @@ export default async function CategoriesIndexPage() {
     <div>
       <PageHeader title="دسته‌بندی فرش‌ها" />
 
-      <div className="px-4 py-3 sm:px-6">
+      <div className="px-4 py-3 tab:px-6">
         {/* یک نگهدارنده سفید حاشیه‌دار تمام‌عرض شامل باکس جستجو + دکمه
             فیلتر — عیناً هم‌الگو با نوار جستجوی `/categories/[slug]`
             (`CategoryFilterBar`) تا هر دو صفحه یک زبان بصری واحد

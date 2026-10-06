@@ -70,7 +70,7 @@ export function BankInfoSection({
   return (
     <>
       {!saved && (
-        <div className="mx-4 mt-4 flex items-center gap-2 rounded-[var(--radius-lg)] border border-dashed border-black/10 bg-white px-4 py-3 text-xs text-[var(--sf-ink)]/50 sm:mx-6">
+        <div className="mx-4 mt-4 flex items-center gap-2 rounded-[var(--radius-lg)] border border-dashed border-black/10 bg-white px-4 py-3 text-xs text-[var(--sf-ink)]/50 tab:mx-6">
           <CreditCard className="size-4 shrink-0 text-[var(--color-primary)]" strokeWidth={1.75} aria-hidden="true" />
           هنوز اطلاعات بانکی ثبت نکرده‌اید.
         </div>

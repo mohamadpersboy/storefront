@@ -128,7 +128,7 @@ export function CategoryShortcuts({ categories }: { categories: HomepageCategory
   if (categories.length === 0) return null;
 
   return (
-    <section className="px-4 pt-4 sm:px-6">
+    <section className="px-4 pt-4 tab:px-6">
       <div
         ref={scrollRef}
         dir="rtl"
@@ -141,7 +141,7 @@ export function CategoryShortcuts({ categories }: { categories: HomepageCategory
           <Link
             key={category.id}
             href={`/categories/${category.slug}`}
-            className="flex w-20 shrink-0 flex-col items-center gap-1.5 sm:w-24"
+            className="flex w-20 shrink-0 flex-col items-center gap-1.5 tab:w-24"
           >
             <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-black/5 bg-white shadow-[0_2px_8px_rgba(3,23,37,0.06)]">
               {category.imageUrl ? (

@@ -13,7 +13,7 @@ export default function OrderDetailLoading() {
         </div>
       </div>
 
-      <div className="space-y-4 px-4 py-4 sm:px-6">
+      <div className="space-y-4 px-4 py-4 tab:px-6">
         <div className="h-20 animate-pulse rounded-[var(--radius-lg)] bg-gray-100" />
 
         {Array.from({ length: 3 }).map((_, index) => (

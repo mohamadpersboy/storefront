@@ -44,7 +44,7 @@ export default async function FaqPage() {
     <div>
       <PageHeader title="سوالات متداول" />
 
-      <div className="px-4 py-4 sm:mx-auto sm:max-w-2xl sm:px-6">
+      <div className="px-4 py-4 tab:mx-auto tab:max-w-2xl tab:px-6">
         {faqs.length === 0 ? (
           <EmptyState
             icon={HelpCircle}

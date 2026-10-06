@@ -58,7 +58,6 @@ export function MobileTopBar({ support }: { support: SupportContactData }) {
   return (
     <div
       className={cn(
-        "sm:hidden",
         "sticky top-0 z-40",
         "border-b border-black/5 bg-white/75 backdrop-blur-xl",
         "px-4 pb-3 pt-[calc(env(safe-area-inset-top)+12px)]",

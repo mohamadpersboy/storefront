@@ -49,7 +49,7 @@ export default async function WalletPage() {
     <div>
       <PageHeader title="کیف پول من" />
 
-      <div className="space-y-5 px-4 py-4 sm:px-6">
+      <div className="space-y-5 px-4 py-4 tab:px-6">
         <div className="relative overflow-hidden rounded-[var(--radius-lg)] bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 p-5 text-white shadow-lg">
           <div
             aria-hidden="true"

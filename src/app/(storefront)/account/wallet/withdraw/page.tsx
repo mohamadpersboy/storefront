@@ -34,7 +34,7 @@ export default async function WalletWithdrawPage() {
       <PageHeader title="درخواست تسویه" />
 
       {!bankAccount ? (
-        <div className="mx-4 mt-4 space-y-3 rounded-[var(--radius-lg)] border border-dashed border-black/10 bg-white p-5 text-center sm:mx-6">
+        <div className="mx-4 mt-4 space-y-3 rounded-[var(--radius-lg)] border border-dashed border-black/10 bg-white p-5 text-center tab:mx-6">
           <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-violet-50 text-violet-600">
             <CreditCard className="size-6" strokeWidth={1.75} aria-hidden="true" />
           </span>

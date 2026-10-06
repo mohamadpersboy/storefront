@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { PackageSearch } from "lucide-react";
 import { PageHeader } from "@/components/storefront/page-header";
 import { BreadcrumbNav } from "@/components/storefront/breadcrumb-nav";
-import { CategoryFilterBar, CategoryFilterSidebar } from "@/components/storefront/category-filter-bar";
+import { CategoryFilterBar } from "@/components/storefront/category-filter-bar";
 import { ProductGrid } from "@/components/storefront/product-grid";
 import { CategoryPagination } from "@/components/storefront/category-pagination";
 import { EmptyState } from "@/components/storefront/empty-state";
@@ -100,7 +100,7 @@ export default async function CategoryDetailPage({ params, searchParams }: Categ
     <div>
       <PageHeader title={pageTitle} />
 
-      <div className="px-4 py-3 sm:px-6">
+      <div className="px-4 py-3 tab:px-6">
         <BreadcrumbNav
           items={[
             { label: "خانه", href: "/" },
@@ -119,9 +119,7 @@ export default async function CategoryDetailPage({ params, searchParams }: Categ
           />
         </div>
 
-        <div className="mt-4 lg:flex lg:items-start lg:gap-4">
-          <CategoryFilterSidebar basePath={basePath} active={activeFilters} facets={facets} />
-
+        <div className="mt-4">
           <div className="flex-1">
             {items.length > 0 ? (
               <>

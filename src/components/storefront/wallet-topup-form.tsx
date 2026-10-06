@@ -52,7 +52,7 @@ export function WalletTopupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 px-4 py-4 sm:px-6">
+    <form onSubmit={handleSubmit} className="space-y-4 px-4 py-4 tab:px-6">
       <div className="space-y-4 rounded-[var(--radius-lg)] border border-black/5 bg-white p-4">
         <p className="flex items-center gap-1.5 text-xs text-[var(--sf-ink)]/50">
           <Wallet className="size-3.5 text-emerald-600" strokeWidth={1.75} aria-hidden="true" />

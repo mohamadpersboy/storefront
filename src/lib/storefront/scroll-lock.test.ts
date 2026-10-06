@@ -2,7 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { acquireScrollLock, getScrollLockCount, releaseScrollLock } from "@/lib/storefront/scroll-lock";
 
 describe("scroll lock", () => {
-  const doc = { body: { style: { overflow: "" } }, documentElement: { style: { overflow: "" } } };
+  const doc = {
+    body: { style: { overflow: "" } },
+    documentElement: { style: { overflow: "" } },
+    querySelector: (): unknown => null,
+  };
 
   beforeEach(() => {
     doc.body.style.overflow = "auto";
@@ -41,5 +45,28 @@ describe("scroll lock", () => {
     releaseScrollLock();
     expect(getScrollLockCount()).toBe(0);
     expect(doc.body.style.overflow).toBe("auto");
+  });
+
+  it("also locks the frame scroller on desktop and keeps its scrollTop", () => {
+    const scroller = { style: { overflowY: "auto" }, scrollTop: 420, getClientRects: () => [{}] };
+    doc.querySelector = () => scroller;
+    acquireScrollLock();
+    expect(scroller.style.overflowY).toBe("hidden");
+    acquireScrollLock();
+    releaseScrollLock();
+    expect(scroller.style.overflowY).toBe("hidden");
+    releaseScrollLock();
+    expect(scroller.style.overflowY).toBe("auto");
+    expect(scroller.scrollTop).toBe(420);
+    doc.querySelector = () => null;
+  });
+
+  it("ignores a scroller without a box (display: contents on mobile)", () => {
+    const scroller = { style: { overflowY: "" }, getClientRects: () => [] };
+    doc.querySelector = () => scroller;
+    acquireScrollLock();
+    expect(scroller.style.overflowY).toBe("");
+    releaseScrollLock();
+    doc.querySelector = () => null;
   });
 });

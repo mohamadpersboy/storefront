@@ -145,7 +145,7 @@ export function AddressForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 px-4 py-4 sm:px-6">
+    <form onSubmit={handleSubmit} className="space-y-4 px-4 py-4 tab:px-6">
       <div className="overflow-hidden rounded-[var(--radius-lg)] border border-black/5 bg-white p-4">
         <div className="mb-3 flex items-center justify-between">
           <p className="flex items-center gap-1.5 text-sm font-bold text-[var(--sf-ink)]">

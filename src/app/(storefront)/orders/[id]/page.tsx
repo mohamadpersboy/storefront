@@ -73,7 +73,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
     <div>
       <PageHeader title={`سفارش #${toPersianDigits(order.orderNumber)}`} />
 
-      <div className="space-y-5 px-4 py-4 sm:px-6">
+      <div className="space-y-5 px-4 py-4 tab:px-6">
         <OrderStatusBanner status={order.status} note={latestNote} />
 
         <div className="rounded-[var(--radius-lg)] border border-black/5 bg-white p-5">

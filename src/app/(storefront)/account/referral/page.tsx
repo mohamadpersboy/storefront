@@ -59,7 +59,7 @@ export default async function ReferralPage() {
     <div>
       <PageHeader title="دعوت دوستان" />
 
-      <div className="space-y-5 px-4 py-4 sm:px-6">
+      <div className="space-y-5 px-4 py-4 tab:px-6">
         {/* بنر معرفی */}
         <section className="rounded-[var(--radius-lg)] bg-gradient-to-br from-[var(--sf-accent)] to-[var(--sf-ink-soft)] p-6 text-center text-white">
           <span className="mx-auto mb-3 flex size-14 items-center justify-center rounded-[var(--radius-md)] bg-white/15">

@@ -70,7 +70,7 @@ export function WalletWithdrawForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 px-4 py-4 sm:px-6">
+    <form onSubmit={handleSubmit} className="space-y-4 px-4 py-4 tab:px-6">
       <div className="flex items-start gap-2 rounded-[var(--radius-lg)] border border-black/5 bg-white px-4 py-3 text-xs text-[var(--sf-ink)]/60">
         <Info className="mt-0.5 size-3.5 shrink-0 text-[var(--color-primary)]" strokeWidth={1.75} aria-hidden="true" />
         <span>

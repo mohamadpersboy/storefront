@@ -22,7 +22,7 @@ const NAV_ITEMS: NavItem[] = [
 /**
  * Bottom Navigation موبایل Storefront.
  *
- * فقط زیر breakpoint `sm` نمایش داده می‌شود (`sm:hidden`) — در
+ * فقط زیر breakpoint `sm` نمایش داده می‌شود (`tab:hidden`) — در
  * Tablet/Desktop به‌جای آن Header استفاده خواهد شد (مرحله بعدی).
  * `itemCount` سبد خرید فعلاً همیشه صفر است چون این مرحله فقط
  * Navigation را می‌سازد، نه اتصال به Cart واقعی (که نیاز به Login
@@ -44,7 +44,7 @@ export function MobileBottomBar() {
     <nav
       aria-label="ناوبری اصلی"
       className={cn(
-        "fixed inset-x-0 bottom-0 z-40 sm:hidden",
+        "fixed inset-x-0 bottom-0 z-40",
         "border-t border-black/5 bg-white/75 backdrop-blur-xl",
         "pb-[env(safe-area-inset-bottom)]",
       )}

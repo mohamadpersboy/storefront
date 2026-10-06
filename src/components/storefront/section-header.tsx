@@ -45,7 +45,7 @@ export function SectionHeader({
         >
           <Icon className={`size-4 ${iconColorClassName}`} />
         </span>
-        <h2 className={`text-base font-bold sm:text-lg ${titleColorClassName}`}>{title}</h2>
+        <h2 className={`text-base font-bold tab:text-lg ${titleColorClassName}`}>{title}</h2>
       </div>
 
       {seeAllHref ? (

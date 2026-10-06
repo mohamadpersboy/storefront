@@ -21,7 +21,7 @@ export function AmazingOffersSection({ items }: { items: ProductCardData[] }) {
 
   return (
     <section className="pt-8">
-      <div className="px-4 sm:px-6">
+      <div className="px-4 tab:px-6">
         <SectionHeader
           title="شگفت‌انگیزها"
           icon={Sparkles}
@@ -34,7 +34,7 @@ export function AmazingOffersSection({ items }: { items: ProductCardData[] }) {
         />
       </div>
 
-      <div className="mt-3 flex overflow-x-auto pe-4 [scrollbar-width:none] ps-4 sm:pe-6 sm:ps-6 [&::-webkit-scrollbar]:hidden">
+      <div className="mt-3 flex overflow-x-auto pe-4 [scrollbar-width:none] ps-4 tab:pe-6 tab:ps-6 [&::-webkit-scrollbar]:hidden">
         {items.map((item) => (
           <ProductCard key={item.id} item={item} />
         ))}

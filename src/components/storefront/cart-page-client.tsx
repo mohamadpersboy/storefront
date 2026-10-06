@@ -237,7 +237,7 @@ export function CartPageClient({ initialCart, initialAddress, walletBalance }: C
 
   return (
     <div className="pb-[calc(env(safe-area-inset-bottom)+96px)]">
-      <div className="space-y-4 px-4 py-4 sm:px-6">
+      <div className="space-y-4 px-4 py-4 tab:px-6">
         {/* آدرس تحویل */}
         <div className="rounded-[var(--radius-lg)] border border-black/5 bg-white p-4">
           {initialAddress ? (
