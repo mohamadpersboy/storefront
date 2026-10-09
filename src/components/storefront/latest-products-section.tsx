@@ -29,7 +29,7 @@ export function LatestProductsSection({ items }: { items: ProductCardData[] }) {
           iconBgClassName="bg-[var(--sf-accent-soft)]"
           iconColorClassName="text-[var(--sf-accent)]"
           titleColorClassName="text-black"
-          seeAllHref="/products/latest"
+          seeAllHref="/categories/all?sort=newest"
           seeAllLabel="مشاهده بیشتر"
           seeAllClassName="text-black text-xs"
         />

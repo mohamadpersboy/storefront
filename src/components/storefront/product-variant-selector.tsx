@@ -49,12 +49,12 @@ export function ProductVariantSelector({
                 isDisabled
                   ? "cursor-not-allowed border border-gray-200 bg-gray-50 text-gray-300"
                   : isSelected
-                    ? "bg-[var(--sf-accent)] text-white shadow-sm"
+                    ? "bg-[var(--color-primary)] text-white shadow-sm"
                     : "border border-gray-200 bg-white text-[var(--sf-ink)] active:bg-gray-50",
               )}
             >
               {isSelected && !isDisabled && (
-                <span className="absolute -top-1.5 -end-1.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-[var(--sf-accent)]">
+                <span className="absolute -top-1.5 -end-1.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-[var(--color-primary)]">
                   <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} aria-hidden="true" />
                 </span>
               )}

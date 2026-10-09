@@ -64,7 +64,7 @@ export function ReviewListItem({
               type="button"
               onClick={() => onImageClick(image)}
               aria-label="مشاهده تصویر بزرگ"
-              className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-accent)]"
+              className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
             >
               <Image
                 src={image.url}

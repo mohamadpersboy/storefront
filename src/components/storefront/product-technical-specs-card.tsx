@@ -39,7 +39,7 @@ export function ProductTechnicalSpecsCard({ specs }: ProductTechnicalSpecsCardPr
     <section className="px-4 pt-3 tab:mx-auto tab:max-w-md tab:px-6">
       <div className="rounded-2xl bg-white p-4 shadow-sm">
         <div className="mb-3 flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--sf-accent-soft)] text-[var(--sf-accent)]">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
             <ListChecks className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
           </span>
           <p className="text-sm font-semibold text-[var(--sf-ink)]">ویژگی‌های محصول</p>

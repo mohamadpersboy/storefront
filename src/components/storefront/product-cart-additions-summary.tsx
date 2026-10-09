@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Minus, Trash2 } from "lucide-react";
+import { ChevronLeft, Minus, ShoppingCart, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatNumber, toPersianDigits, TOMAN_GLYPH } from "@/lib/utils/format";
 import { computeCartAdditionsTotal, type CartAddition } from "@/lib/storefront/product-purchase-math";
@@ -59,8 +59,8 @@ type ProductCartAdditionsSummaryProps = {
  * **نسخه سوم، طبق دستور دقیق بعدی کارفرما دربارهٔ دکمه:** رنگ دکمه
  * به خانواده آبی قبلی (`--sf-accent`) برگشت (نه سرمه‌ای تیره نسخه
  * قبل)، اما این‌بار به سبک Outline: زمینه آبی شفاف/کم‌رنگ
- * (`bg-[var(--sf-accent-soft)]/70`)، مرز و متن پررنگ/تمام‌رنگ
- * (`border-2 border-[var(--sf-accent)]`, `text-[var(--sf-accent)]`)
+ * (`bg-[var(--color-primary-soft)]/70`)، مرز و متن پررنگ/تمام‌رنگ
+ * (`border-2 border-[var(--color-primary)]`, `text-[var(--color-primary)]`)
  * — نه یک دکمه توپر با متن سفید مثل «افزودن به سبد خرید».
  */
 export function ProductCartAdditionsSummary({ additions, onRemoved, onUpdated }: ProductCartAdditionsSummaryProps) {
@@ -131,7 +131,12 @@ export function ProductCartAdditionsSummary({ additions, onRemoved, onUpdated }:
       <div className={cn("overflow-hidden transition-opacity duration-300", visible ? "opacity-100" : "opacity-0")}>
         <section className="px-4 pt-4 tab:px-6">
           <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <p className="mb-3 text-xs font-bold text-[var(--sf-ink)]">از این محصول به سبد خرید اضافه شده است</p>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
+                <ShoppingCart className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
+              </span>
+              <p className="text-sm font-semibold text-[var(--sf-ink)]">از این محصول به سبد خرید اضافه شده است</p>
+            </div>
 
             <ul className="flex flex-col gap-2.5">
               {additions.map((item) => (
@@ -166,7 +171,7 @@ export function ProductCartAdditionsSummary({ additions, onRemoved, onUpdated }:
                   {item.isAvailable === false ? (
                     <span className="shrink-0 text-xs font-bold text-red-600">ناموجود شده است</span>
                   ) : (
-                    <span className="shrink-0 text-xs font-bold text-[var(--sf-accent)]">
+                    <span className="shrink-0 text-xs font-bold text-[var(--color-primary)]">
                       {formatNumber(item.quantity * item.unitPrice)} {TOMAN_GLYPH}
                     </span>
                   )}
@@ -176,13 +181,13 @@ export function ProductCartAdditionsSummary({ additions, onRemoved, onUpdated }:
 
             <Link
               href="/cart"
-              className="mt-4 flex h-12 w-full items-stretch overflow-hidden rounded-xl border-2 border-[var(--sf-accent)] bg-[var(--sf-accent-soft)]/70 text-[var(--sf-accent)] transition-colors active:bg-[var(--sf-accent-soft)]"
+              className="mt-4 flex h-12 w-full items-stretch overflow-hidden rounded-xl border-2 border-[var(--color-primary)] bg-[var(--color-primary-soft)]/70 text-[var(--color-primary)] transition-colors active:bg-[var(--color-primary-soft)]"
             >
               <span className="flex flex-1 items-center justify-center gap-1 text-sm font-bold">
                 {formatNumber(total)}
-                <span className="text-[11px] font-medium text-[var(--sf-accent)]/80">{TOMAN_GLYPH}</span>
+                <span className="text-[11px] font-medium text-[var(--color-primary)]/80">{TOMAN_GLYPH}</span>
               </span>
-              <span aria-hidden="true" className="my-2.5 w-px bg-[var(--sf-accent)]/35" />
+              <span aria-hidden="true" className="my-2.5 w-px bg-[var(--color-primary)]/35" />
               <span className="flex items-center gap-1 px-4 text-sm font-bold">
                 پرداخت
                 <ChevronLeft className="size-4" strokeWidth={2.25} aria-hidden="true" />

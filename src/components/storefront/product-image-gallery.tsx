@@ -416,7 +416,7 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
               className={cn(
                 "relative aspect-[3/4] shrink-0 cursor-pointer overflow-hidden rounded-2xl outline-none",
                 "transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                "focus-visible:ring-2 focus-visible:ring-[var(--sf-accent)]",
+                "focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]",
                 isFocused ? "w-[min(80vw,90%)] shadow-lg" : "w-[60%]",
               )}
             >

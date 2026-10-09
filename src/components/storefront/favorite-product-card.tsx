@@ -30,7 +30,10 @@ type FavoriteProductCardProps = {
  * دستور، به‌جای نگه‌داشتن هر دو نسخه، مستقیم جایگزین شد (بدون کد
  * Dead جامانده) — Grid عمودی دیگر در این صفحه استفاده نمی‌شود.
  */
-export function FavoriteProductCard({ item, onRemoved }: FavoriteProductCardProps) {
+export function FavoriteProductCard({
+  item,
+  onRemoved,
+}: FavoriteProductCardProps) {
   const [pending, setPending] = useState(false);
   const offer = item.amazingOffer ?? null;
   const { elapsedPercent, label } = useOfferTimer(
@@ -38,7 +41,10 @@ export function FavoriteProductCard({ item, onRemoved }: FavoriteProductCardProp
     offer?.endAt ?? NO_OFFER_FALLBACK,
   );
   const hasRealDiscount = item.finalPrice < item.basePrice;
-  const discountPercent = computeDisplayDiscountPercent(item.basePrice, item.finalPrice);
+  const discountPercent = computeDisplayDiscountPercent(
+    item.basePrice,
+    item.finalPrice,
+  );
 
   async function handleRemove() {
     if (pending) return;
@@ -94,28 +100,30 @@ export function FavoriteProductCard({ item, onRemoved }: FavoriteProductCardProp
             نوار Progress فضای خالی بین برچسب و تایمر را پر می‌کند —
             وقتی Offer فعالی نیست با `invisible` پنهان می‌شود اما فضا
             رزرو می‌ماند (هم‌الگو با `ProductCard`). */}
-        <div className={`mb-1.5 flex items-center gap-2 ${offer ? "" : "invisible"}`}>
-          <span className="shrink-0 text-[11px] font-bold text-[var(--sf-cherry)]">
-            پیشنهاد شگفت‌انگیز
-          </span>
-          <div className="h-1 flex-1 overflow-hidden rounded-full bg-[var(--sf-cherry-soft)]">
-            <div
-              className="h-full rounded-full bg-[var(--sf-cherry)] transition-[width]"
-              style={{ width: `${elapsedPercent}%` }}
-            />
+        {offer ? (
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="shrink-0 text-[11px] font-bold text-[var(--sf-cherry)]">
+              پیشنهاد شگفت‌انگیز
+            </span>
+            <div className="h-1 flex-1 overflow-hidden rounded-full bg-[var(--sf-cherry-soft)]">
+              <div
+                className="h-full rounded-full bg-[var(--sf-cherry)] transition-[width]"
+                style={{ width: `${elapsedPercent}%` }}
+              />
+            </div>
+            <span
+              dir="ltr"
+              className="shrink-0 text-[11px] font-semibold tracking-widest text-[var(--sf-cherry)] tabular-nums"
+            >
+              {label}
+            </span>
           </div>
-          <span
-            dir="ltr"
-            className="shrink-0 text-[11px] font-semibold tracking-widest tabular-nums text-[var(--sf-cherry)]"
-          >
-            {label}
-          </span>
-        </div>
+        ) : null}
 
         <div className="flex items-start justify-between gap-2">
           <Link
             href={`/products/${item.product.slug}`}
-            className="line-clamp-2 text-xs font-bold leading-5 text-[var(--sf-ink)]"
+            className="line-clamp-2 text-xs leading-5 font-bold text-[var(--sf-ink)]"
           >
             {item.product.title}
           </Link>
@@ -142,9 +150,11 @@ export function FavoriteProductCard({ item, onRemoved }: FavoriteProductCardProp
           </span>
 
           <div className="text-left">
-            <p className="whitespace-nowrap text-sm font-bold text-[var(--sf-ink)]">
+            <p className="text-sm font-bold whitespace-nowrap text-[var(--sf-ink)]">
               {formatNumber(item.finalPrice)}{" "}
-              <span className="relative -top-0.5 text-[9px] font-medium">{TOMAN_GLYPH}</span>
+              <span className="relative -top-0.5 text-[9px] font-medium">
+                {TOMAN_GLYPH}
+              </span>
             </p>
             {hasRealDiscount ? (
               <p className="text-[10px] text-gray-400 line-through">

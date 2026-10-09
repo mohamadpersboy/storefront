@@ -147,16 +147,16 @@ export function ProductPurchasePanel({
       <section className="flex flex-col gap-3 px-4 pt-3 tab:mx-auto tab:max-w-md tab:px-6">
         {/* قیمت — بدون بک‌گراند، وسط‌چین (طبق دستور صریح کارفرما) */}
         <div className="flex flex-col items-center gap-2 py-1 text-center">
-          <div className="flex items-baseline justify-center gap-2">
-            <p className="text-2xl font-extrabold text-[var(--sf-ink)]">
-              {formatNumber(selectedVariant.finalPrice)}{" "}
-              <span className="text-xs font-medium text-gray-400">{TOMAN_GLYPH}</span>
-            </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
             {hasRealDiscount && (
               <span className="shrink-0 rounded-md bg-[var(--sf-cherry)] px-1.5 py-0.5 text-[11px] font-bold text-white">
                 ٪{toPersianDigits(discountPercent)}
               </span>
             )}
+            <p className="text-2xl font-extrabold text-[var(--sf-ink)]">
+              {formatNumber(selectedVariant.finalPrice)}{" "}
+              <span className="text-xs font-medium text-gray-400">{TOMAN_GLYPH}</span>
+            </p>
           </div>
 
           {hasRealDiscount && (

@@ -1640,6 +1640,13 @@ ESLint ✅، Vitest (۴۸۹) ✅، Build ✅.
 - تست‌ها: TypeScript ✅، ESLint ✅، Vitest (۴۹۰) ✅، Build ✅.
 
 
+**اصلاحات UI/ناوبری Storefront (صفحه محصول، علاقه‌مندی‌ها، صفحه اصلی):**
+- `getCategoryWithSubcategories` حالا Slug دسته سطح دوم را هم می‌پذیرد (قبلاً فقط `parentId: null` → Chip دسته سطح دوم در صفحه محصول خالی/۴۰۴ بود)؛ `parent` برای Breadcrumb برمی‌گردد.
+- صفحه محصول: تایمر شگفت‌انگیز `font-bold`؛ آیکون هدر نظرات هم‌اندازه بقیه (`h-7 w-7 rounded-lg`/`h-4 w-4`)؛ بج درصد تخفیف قبل از قیمت در DOM (سمت راست در RTL) با `flex-wrap`؛ آیکون `ShoppingCart` در عنوان خلاصه سبد؛ رنگ Primary آبی (`--sf-accent*`) در کامپوننت‌های همین صفحه با `--color-primary*` جایگزین شد.
+- علاقه‌مندی‌ها: ردیف برچسب شگفت‌انگیز فقط وقتی Offer هست رندر می‌شود (بدون `invisible`/فضای رزروشده).
+- صفحه اصلی: «مشاهده بیشتر» جدیدترین‌ها → `/categories/all?sort=newest`؛ پرفروش‌ترین‌ها/شگفت‌انگیزها → `/categories/all` (فیلتر اختصاصی پرفروش/شگفت‌انگیز در لیست هنوز نیست)؛ آیکون جستجو → `/categories/all` (دارای ورودی جستجو).
+- تست: Lint ✅ Typecheck ✅ Vitest (۸۱۶) ✅ Build ✅ (با Env ساختگی؛ بررسی بصری NOT VERIFIED).
+
 ## 3. Completed Features
 
 - ✅ Bootstrap پروژه (Next.js 16.3، TypeScript، Tailwind v4، فونت،

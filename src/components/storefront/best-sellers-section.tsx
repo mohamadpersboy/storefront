@@ -27,7 +27,7 @@ export function BestSellersSection({ items }: { items: ProductCardData[] }) {
           iconBgClassName="bg-[var(--sf-accent-soft)]"
           iconColorClassName="text-[var(--sf-accent)]"
           titleColorClassName="text-black"
-          seeAllHref="/products/best-selling"
+          seeAllHref="/categories/all"
           seeAllLabel="مشاهده بیشتر"
           seeAllClassName="text-black text-xs"
         />

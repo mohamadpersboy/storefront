@@ -105,6 +105,9 @@ export default async function CategoryDetailPage({ params, searchParams }: Categ
           items={[
             { label: "خانه", href: "/" },
             { label: "دسته‌بندی‌ها", href: "/categories" },
+            ...(category?.parent
+              ? [{ label: category.parent.name, href: `/categories/${category.parent.slug}` }]
+              : []),
             { label: pageTitle },
           ]}
         />

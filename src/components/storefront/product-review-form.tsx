@@ -138,7 +138,7 @@ export function ProductReviewForm({
                 value={value}
                 checked={recommendation === value}
                 onChange={() => setRecommendation(value)}
-                className="size-4 accent-[var(--sf-accent)]"
+                className="size-4 accent-[var(--color-primary)]"
               />
               {REVIEW_RECOMMENDATION_LABELS[value]}
             </label>

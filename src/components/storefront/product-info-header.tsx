@@ -47,7 +47,7 @@ export function ProductInfoHeader({ title, categories, brandName }: ProductInfoH
             </Link>
           ))}
           {brandName && (
-            <span className="inline-block rounded-full bg-[var(--sf-accent-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--sf-accent)]">
+            <span className="inline-block rounded-full bg-[var(--color-primary-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-primary)]">
               برند: {brandName}
             </span>
           )}

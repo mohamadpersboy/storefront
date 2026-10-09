@@ -127,7 +127,7 @@ export function ProductAddToCartBar({
               ? "cursor-not-allowed bg-gray-300"
               : success
                 ? "bg-[var(--color-success)]"
-                : "bg-[var(--sf-accent)] active:bg-[var(--sf-accent-hover)]",
+                : "bg-[var(--color-primary)] active:bg-[var(--color-primary-hover)]",
             pending && "opacity-70",
           )}
         >

@@ -74,7 +74,7 @@ export function MobileTopBar({ support }: { support: SupportContactData }) {
 
         <div className="flex items-center gap-2">
           <Link
-            href="/search"
+            href="/categories/all"
             aria-label="جستجو"
             className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-400 active:bg-gray-200"
           >

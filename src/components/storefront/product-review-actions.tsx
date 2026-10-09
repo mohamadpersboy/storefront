@@ -58,7 +58,7 @@ export function ProductReviewActions({
         <p className="text-sm text-gray-600">{REVIEW_GUEST_MESSAGE}</p>
         <Link
           href={`/login?redirect=${encodeURIComponent(`/products/${slug}`)}`}
-          className="inline-flex h-10 w-max items-center rounded-xl bg-[var(--sf-accent)] px-4 text-sm font-medium text-white"
+          className="inline-flex h-10 w-max items-center rounded-xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white"
         >
           ورود به حساب کاربری
         </Link>

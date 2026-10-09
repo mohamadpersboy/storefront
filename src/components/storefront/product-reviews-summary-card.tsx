@@ -61,11 +61,11 @@ export function ProductReviewsSummaryCard({
   return (
     <section className="px-4 pt-3 tab:mx-auto tab:max-w-md tab:px-6">
       <div className="rounded-2xl bg-white p-4 shadow-sm">
-        <div className="mb-4 flex items-center gap-2.5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--sf-accent-soft)] text-[var(--sf-accent)]">
+        <div className="mb-4 flex items-center gap-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
             <MessageSquare
-              className="size-[18px]"
-              strokeWidth={1.75}
+              className="h-4 w-4"
+              strokeWidth={1.9}
               aria-hidden="true"
             />
           </span>
@@ -98,7 +98,7 @@ export function ProductReviewsSummaryCard({
         <div className="mt-4 grid grid-cols-3 gap-2">
           <StatTile
             icon={MessageSquareText}
-            iconClassName="text-[var(--sf-accent)]"
+            iconClassName="text-[var(--color-primary)]"
             value={stats.ratingCount}
             label="نظرات"
           />

@@ -109,17 +109,41 @@ export type CategoryWithSubcategories = {
   name: string;
   slug: string;
   subcategories: LeanCategoryLite[];
+  /** والد دسته (فقط برای دسته سطح دوم)؛ برای Breadcrumb. */
+  parent: { name: string; slug: string } | null;
 };
 
-/** `null` یعنی دسته‌ای با این Slug (سطح اول و فعال) پیدا نشد → صفحه باید `notFound()` کند. */
+/**
+ * `null` یعنی دسته‌ای فعال با این Slug پیدا نشد → صفحه باید `notFound()` کند.
+ * هر دو سطح پشتیبانی می‌شود: دسته سطح دوم زیردسته ندارد و فقط محصولات
+ * خودش را نشان می‌دهد (لینک Chip دسته‌بندی صفحه محصول).
+ */
 export async function getCategoryWithSubcategories(
   slug: string,
 ): Promise<CategoryWithSubcategories | null> {
-  const category = (await Category.findOne({ slug, parentId: null, isActive: true })
-    .select("name slug")
-    .lean()) as unknown as { _id: Types.ObjectId; name: string; slug: string } | null;
+  const category = (await Category.findOne({ slug, isActive: true })
+    .select("name slug parentId")
+    .lean()) as unknown as {
+    _id: Types.ObjectId;
+    name: string;
+    slug: string;
+    parentId?: Types.ObjectId | null;
+  } | null;
 
   if (!category) return null;
+
+  if (category.parentId) {
+    const parent = (await Category.findById(category.parentId)
+      .select("name slug")
+      .lean()) as unknown as { name: string; slug: string } | null;
+    return {
+      id: String(category._id),
+      name: category.name,
+      slug: category.slug,
+      subcategories: [],
+      parent: parent ? { name: parent.name, slug: parent.slug } : null,
+    };
+  }
 
   const children = (await Category.find({ parentId: category._id, isActive: true })
     .sort({ sortOrder: 1, createdAt: 1 })
@@ -131,6 +155,7 @@ export async function getCategoryWithSubcategories(
     name: category.name,
     slug: category.slug,
     subcategories: children.map((c) => ({ id: String(c._id), name: c.name, slug: c.slug })),
+    parent: null,
   };
 }
 

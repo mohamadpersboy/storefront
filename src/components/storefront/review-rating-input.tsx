@@ -70,7 +70,7 @@ export function ReviewRatingInput({
             tabIndex={tabbable ? 0 : -1}
             disabled={disabled}
             onClick={() => onChange(n)}
-            className="rounded-md p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-accent)] disabled:opacity-50"
+            className="rounded-md p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] disabled:opacity-50"
           >
             <Star
               className={`size-7 ${filled ? "fill-amber-400 text-amber-400" : "text-gray-300"}`}

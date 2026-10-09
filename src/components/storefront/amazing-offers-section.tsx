@@ -28,7 +28,7 @@ export function AmazingOffersSection({ items }: { items: ProductCardData[] }) {
           iconBgClassName="bg-[var(--sf-cherry-soft)]"
           iconColorClassName="text-[var(--sf-cherry)]"
           titleColorClassName="text-[var(--sf-cherry)]"
-          seeAllHref="/products/amazing-offers"
+          seeAllHref="/categories/all"
           seeAllLabel="مشاهده بیشتر"
           seeAllClassName="text-[var(--sf-cherry)] text-xs"
         />
