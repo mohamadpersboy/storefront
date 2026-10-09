@@ -31,8 +31,8 @@ export function CategoryProductsSection({
         <SectionHeader
           title={title}
           icon={LayoutGrid}
-          iconBgClassName="bg-[var(--sf-accent-soft)]"
-          iconColorClassName="text-[var(--sf-accent)]"
+          iconBgClassName="bg-[var(--color-primary-soft)]"
+          iconColorClassName="text-[var(--color-primary)]"
           titleColorClassName="text-black"
           seeAllHref={seeAllHref}
           seeAllLabel="مشاهده بیشتر"

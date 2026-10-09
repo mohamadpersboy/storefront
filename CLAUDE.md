@@ -1647,6 +1647,8 @@ ESLint ✅، Vitest (۴۸۹) ✅، Build ✅.
 - صفحه اصلی: «مشاهده بیشتر» جدیدترین‌ها → `/categories/all?sort=newest`؛ پرفروش‌ترین‌ها/شگفت‌انگیزها → `/categories/all` (فیلتر اختصاصی پرفروش/شگفت‌انگیز در لیست هنوز نیست)؛ آیکون جستجو → `/categories/all` (دارای ورودی جستجو).
 - تست: Lint ✅ Typecheck ✅ Vitest (۸۱۶) ✅ Build ✅ (با Env ساختگی؛ بررسی بصری NOT VERIFIED).
 
+- رنگ آبی `--sf-accent*` در سبد خرید (`cart-page-client.tsx`) و دسته‌بندی‌ها (`category-filter-bar.tsx`، `category-products-section.tsx`) و `empty-state.tsx` مشترک با رنگ اصلی سایت `--color-primary*` جایگزین شد (رنگ‌های خنثی/وضعیت دست‌نخورده). تست: Lint ✅ Typecheck ✅ Vitest (۸۱۶) ✅ Build ✅ (بررسی بصری NOT VERIFIED).
+
 ## 3. Completed Features
 
 - ✅ Bootstrap پروژه (Next.js 16.3، TypeScript، Tailwind v4، فونت،

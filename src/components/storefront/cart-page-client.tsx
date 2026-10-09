@@ -242,13 +242,13 @@ export function CartPageClient({ initialCart, initialAddress, walletBalance }: C
         <div className="rounded-[var(--radius-lg)] border border-black/5 bg-white p-4">
           {initialAddress ? (
             <div className="flex items-start gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--sf-accent-soft)] text-[var(--sf-accent)]">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
                 <MapPin className="size-5" strokeWidth={1.75} aria-hidden="true" />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-xs font-bold text-[var(--sf-ink)]">آدرس تحویل — {initialAddress.title}</p>
-                  <Link href="/account/addresses" className="shrink-0 text-[11px] font-bold text-[var(--sf-accent)]">
+                  <Link href="/account/addresses" className="shrink-0 text-[11px] font-bold text-[var(--color-primary)]">
                     تغییر
                   </Link>
                 </div>
@@ -260,7 +260,7 @@ export function CartPageClient({ initialCart, initialAddress, walletBalance }: C
           ) : (
             <Link
               href="/account/addresses/new"
-              className="flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-dashed border-black/15 py-3 text-xs font-bold text-[var(--sf-accent)]"
+              className="flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-dashed border-black/15 py-3 text-xs font-bold text-[var(--color-primary)]"
             >
               <MapPin className="size-4" strokeWidth={1.75} aria-hidden="true" />
               افزودن آدرس تحویل
@@ -312,7 +312,7 @@ export function CartPageClient({ initialCart, initialAddress, walletBalance }: C
                 onChange={(e) => setCouponInput(e.target.value)}
                 placeholder="مثلاً WELCOME20"
                 dir="ltr"
-                className="flex-1 rounded-[var(--radius-md)] border border-black/10 bg-gray-50 px-3 py-2.5 text-left text-xs text-[var(--sf-ink)] placeholder:text-gray-400 focus:border-[var(--sf-accent)] focus:outline-none"
+                className="flex-1 rounded-[var(--radius-md)] border border-black/10 bg-gray-50 px-3 py-2.5 text-left text-xs text-[var(--sf-ink)] placeholder:text-gray-400 focus:border-[var(--color-primary)] focus:outline-none"
               />
               <button
                 type="button"
@@ -336,13 +336,13 @@ export function CartPageClient({ initialCart, initialAddress, walletBalance }: C
               onClick={() => setUseWallet(false)}
               className={cn(
                 "flex w-full items-center gap-3 rounded-[var(--radius-md)] border p-3 text-right",
-                !useWallet ? "border-[var(--sf-accent)] bg-[var(--sf-accent-soft)]/40" : "border-black/10",
+                !useWallet ? "border-[var(--color-primary)] bg-[var(--color-primary-soft)]/40" : "border-black/10",
               )}
             >
               <span
                 className={cn(
                   "flex size-5 shrink-0 items-center justify-center rounded-full border-2",
-                  !useWallet ? "border-[var(--sf-accent)] bg-[var(--sf-accent)]" : "border-gray-300",
+                  !useWallet ? "border-[var(--color-primary)] bg-[var(--color-primary)]" : "border-gray-300",
                 )}
               >
                 {!useWallet && <Check className="size-3 text-white" strokeWidth={3} aria-hidden="true" />}
@@ -360,13 +360,13 @@ export function CartPageClient({ initialCart, initialAddress, walletBalance }: C
               disabled={walletBalance <= 0}
               className={cn(
                 "flex w-full items-center gap-3 rounded-[var(--radius-md)] border p-3 text-right disabled:opacity-50",
-                useWallet ? "border-[var(--sf-accent)] bg-[var(--sf-accent-soft)]/40" : "border-black/10",
+                useWallet ? "border-[var(--color-primary)] bg-[var(--color-primary-soft)]/40" : "border-black/10",
               )}
             >
               <span
                 className={cn(
                   "flex size-5 shrink-0 items-center justify-center rounded-full border-2",
-                  useWallet ? "border-[var(--sf-accent)] bg-[var(--sf-accent)]" : "border-gray-300",
+                  useWallet ? "border-[var(--color-primary)] bg-[var(--color-primary)]" : "border-gray-300",
                 )}
               >
                 {useWallet && <Check className="size-3 text-white" strokeWidth={3} aria-hidden="true" />}
@@ -442,7 +442,7 @@ export function CartPageClient({ initialCart, initialAddress, walletBalance }: C
             "flex h-12 w-full items-center justify-between rounded-2xl px-5 text-sm font-bold text-white transition-colors",
             checkoutPending || hasUnavailableItem || !initialAddress
               ? "cursor-not-allowed bg-gray-300"
-              : "bg-[var(--sf-accent)] active:bg-[var(--sf-accent-hover)]",
+              : "bg-[var(--color-primary)] active:bg-[var(--color-primary-hover)]",
           )}
         >
           <span className="flex items-center gap-2">

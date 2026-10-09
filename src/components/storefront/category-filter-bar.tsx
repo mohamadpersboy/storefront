@@ -282,7 +282,7 @@ export function CategoryFilterBar({
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
-                className="flex-1 rounded-full bg-[var(--sf-accent)] py-2.5 text-xs font-bold text-white"
+                className="flex-1 rounded-full bg-[var(--color-primary)] py-2.5 text-xs font-bold text-white"
               >
                 نمایش نتایج
               </button>
@@ -317,7 +317,7 @@ function FilterDropdown({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-label={ariaLabel}
-        className="h-11 w-full appearance-none rounded-xl border border-black/10 bg-white ps-3 pe-9 text-xs font-bold text-[var(--sf-ink)]/80 outline-none focus:border-[var(--sf-accent)]"
+        className="h-11 w-full appearance-none rounded-xl border border-black/10 bg-white ps-3 pe-9 text-xs font-bold text-[var(--sf-ink)]/80 outline-none focus:border-[var(--color-primary)]"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -368,7 +368,7 @@ function CategoryFilterFields({
             onChange={(e) => onPriceMinChange(digitsOnly(e.target.value))}
             onBlur={onPriceBlur}
             placeholder="حداقل"
-            className="w-full rounded-lg border border-black/10 px-3 py-2 text-xs outline-none focus:border-[var(--sf-accent)]"
+            className="w-full rounded-lg border border-black/10 px-3 py-2 text-xs outline-none focus:border-[var(--color-primary)]"
           />
           <span className="text-gray-300">—</span>
           <input
@@ -378,7 +378,7 @@ function CategoryFilterFields({
             onChange={(e) => onPriceMaxChange(digitsOnly(e.target.value))}
             onBlur={onPriceBlur}
             placeholder="حداکثر"
-            className="w-full rounded-lg border border-black/10 px-3 py-2 text-xs outline-none focus:border-[var(--sf-accent)]"
+            className="w-full rounded-lg border border-black/10 px-3 py-2 text-xs outline-none focus:border-[var(--color-primary)]"
           />
         </div>
       </div>
@@ -396,7 +396,7 @@ function CategoryFilterFields({
                   type="checkbox"
                   checked={activeBrandSlugs.includes(brand.slug)}
                   onChange={() => onToggleBrand(brand.slug)}
-                  className="size-4 rounded border-gray-300 accent-[var(--sf-accent)]"
+                  className="size-4 rounded border-gray-300 accent-[var(--color-primary)]"
                 />
                 {brand.name}
               </label>
@@ -419,7 +419,7 @@ function CategoryFilterFields({
                   className={cn(
                     "rounded-full border px-3 py-1.5 text-[11px] font-bold",
                     active
-                      ? "border-[var(--sf-accent)] bg-[var(--sf-accent-soft)] text-[var(--sf-accent)]"
+                      ? "border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]"
                       : "border-black/10 text-[var(--sf-ink)]/60",
                   )}
                 >

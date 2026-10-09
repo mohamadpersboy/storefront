@@ -33,7 +33,7 @@ type EmptyStateProps = {
 export function EmptyState({ icon: Icon, title, description, actionLabel, actionHref }: EmptyStateProps) {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6 text-center">
-      <span className="flex size-20 items-center justify-center rounded-full bg-gradient-to-br from-[var(--sf-accent-soft)] to-white text-[var(--sf-accent)] ring-1 ring-black/5">
+      <span className="flex size-20 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-primary-soft)] to-white text-[var(--color-primary)] ring-1 ring-black/5">
         <Icon className="size-9" strokeWidth={1.5} aria-hidden="true" />
       </span>
       <div className="space-y-1.5">
@@ -44,7 +44,7 @@ export function EmptyState({ icon: Icon, title, description, actionLabel, action
       </div>
       <Link
         href={actionHref}
-        className="mt-1 rounded-full bg-[var(--sf-accent)] px-6 py-2.5 text-xs font-bold text-white active:bg-[var(--sf-accent-hover)]"
+        className="mt-1 rounded-full bg-[var(--color-primary)] px-6 py-2.5 text-xs font-bold text-white active:bg-[var(--color-primary-hover)]"
       >
         {actionLabel}
       </Link>
