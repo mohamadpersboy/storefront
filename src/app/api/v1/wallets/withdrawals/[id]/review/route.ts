@@ -3,8 +3,7 @@ import { requireApiUser } from "@/lib/auth/api-guard";
 import { PERMISSIONS } from "@/lib/constants/rbac";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { reviewWithdrawalRequestSchema } from "@/lib/validations/wallet";
-import { WithdrawalRequest } from "@/models/WithdrawalRequest";
-import { adjustWalletBalance } from "@/lib/wallet/wallet-service";
+import { reviewWithdrawal } from "@/lib/wallet/review-withdrawal";
 import { logActivity } from "@/lib/audit/log-activity";
 
 /**
@@ -35,45 +34,35 @@ export async function POST(
   }
 
   await connectToDatabase();
-  const withdrawal = await WithdrawalRequest.findById(id);
-  if (!withdrawal) {
+  const result = await reviewWithdrawal({
+    id,
+    action: parsed.data.action,
+    note: parsed.data.note ?? null,
+    actorId: actor._id,
+  });
+  if (result.kind === "not_found") {
     return apiError("درخواست برداشت یافت نشد", { status: 404 });
   }
-  if (withdrawal.status !== "pending") {
+  if (result.kind === "conflict") {
     return apiError("این درخواست قبلاً بررسی شده است", { status: 409 });
   }
-
-  if (parsed.data.action === "reject") {
-    await adjustWalletBalance({
-      userId: String(withdrawal.user),
-      type: "credit",
-      amount: withdrawal.amount,
-      reason: `استرداد درخواست برداشت رد‌شده${parsed.data.note ? ` — ${parsed.data.note}` : ""}`,
-      performedBy: actor.id,
-    });
-    withdrawal.status = "rejected";
-  } else {
-    withdrawal.status = "approved_paid";
+  if (result.kind === "retry_later") {
+    return apiError("استرداد کامل نشد. دوباره رد کنید؛ اثر مالی تکراری ندارد.", { status: 503 });
   }
-
-  withdrawal.reviewedBy = actor._id;
-  withdrawal.reviewNote = parsed.data.note ?? null;
-  withdrawal.reviewedAt = new Date();
-  await withdrawal.save();
 
   await logActivity({
     actor,
     action: parsed.data.action === "approve" ? "withdrawal.approved" : "withdrawal.rejected",
     targetType: "WithdrawalRequest",
-    targetId: String(withdrawal._id),
+    targetId: result.id,
     description:
       parsed.data.action === "approve"
-        ? `درخواست برداشت ${withdrawal.amount.toLocaleString("fa-IR")} تومانی تأیید و پرداخت‌شده علامت خورد`
-        : `درخواست برداشت ${withdrawal.amount.toLocaleString("fa-IR")} تومانی رد و مبلغ به کیف پول برگشت داده شد`,
+        ? `درخواست برداشت ${result.amount.toLocaleString("fa-IR")} تومانی تأیید و پرداخت‌شده علامت خورد`
+        : `درخواست برداشت ${result.amount.toLocaleString("fa-IR")} تومانی رد و مبلغ به کیف پول برگشت داده شد`,
   });
 
   return apiSuccess(
-    { id: withdrawal.id, status: withdrawal.status },
+    { id: result.id, status: result.status },
     { message: parsed.data.action === "approve" ? "درخواست تأیید شد" : "درخواست رد شد" },
   );
 }

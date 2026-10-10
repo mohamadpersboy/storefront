@@ -26,6 +26,18 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: Phase 2.1 — Idempotency رد درخواست برداشت (`wallets/withdrawals/[id]/review`).**
+
+- **علت:** Route وضعیت را می‌خواند، `adjustWalletBalance` را بدون کلید صدا می‌زد، سپس `save()`. دو رد هم‌زمان یا Retry بعد از کرش، دوبار اعتبار می‌داد (یافته F-06 Audit).
+- **سرویس:** `lib/wallet/review-withdrawal.ts` (`reviewWithdrawal`). Route فقط Auth/Validation/پاسخ/ActivityLog دارد. کدهای پاسخ حفظ شد: ۴۰۴ ناموجود/شناسه نامعتبر، ۴۰۹ قبلاً بررسی‌شده، ۵۰۳ جدید برای «استرداد کامل نشد، دوباره رد کنید».
+- **طراحی:** فیلد افزایشی `WithdrawalRequest.rejectionStartedAt` (بدون تغییر enum). رد: (۱) Claim اتمیک روی `status:"pending"`؛ (۲) اعتبار با کلید `withdrawal-refund:<id>` + نهایی‌سازی `rejected` با شرط `status:"pending"` در `runInTransaction`. ترتیب «اعتبار، بعد rejected» یعنی `rejected` هرگز بدون استرداد نیست. تأیید: `pending→approved_paid` اتمیک با شرط `rejectionStartedAt: null`، پس تأیید بعد از شروع رد ۴۰۹ می‌گیرد.
+- **بازیابی:** کرش بین اعتبار و نهایی‌سازی، وضعیت را `pending` با `rejectionStartedAt` می‌گذارد. رد دوباره همان کلید را می‌گیرد (اثر مالی تکراری ندارد؛ ردیف تراکنش جاافتاده ترمیم می‌شود) و فقط نهایی می‌کند. Job خودکار نیست؛ ادمین باید دوباره رد کند.
+- **محدودیت:** درخواستِ رد‌شروع‌شده فقط با رد دوباره بسته می‌شود (تأیید ممنوع). `balanceAfter` ردیف ترمیمی تقریبی است.
+- **تست:** ۱۵ تست جدید (مجموع ۸۷۵) با Fake Store. **NOT VERIFIED:** هم‌زمانی/Transaction/Unique Index روی Mongo واقعی.
+- **باقی‌مانده (Audit Phase 2):** تعدیل دستی ادمین و ثبت برداشت و کسر/استرداد پرداخت سفارش هنوز بدون کلید؛ نبود Job آشتی‌سازی TopUp؛ `failed` نهایی در Callback زودهنگام؛ رشد `appliedOperationKeys`.
+
+---
+
 **آخرین کار: Security Phase 2 — امنیت Callback شارژ کیف پول (`wallet/topup/callback`).**
 
 - **سرویس:** `lib/wallet/process-topup-callback.ts` (Route فقط Redirect). `Status`/`amount` کلاینت نادیده؛ همیشه Verify با درگاه روی `WalletTopup.amount`. قبلاً `Status!=OK` بدون Verify مستقیم `failed` می‌شد و خطای موقت درگاه هم دائمی بود.

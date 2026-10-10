@@ -26,6 +26,11 @@ export interface IWithdrawalRequest {
   reviewedBy: Types.ObjectId | null;
   reviewNote: string | null;
   reviewedAt: Date | null;
+  /**
+   * زمان شروع «رد» (Claim). تا وقتی پر است، تأیید ممنوع است و فقط رد
+   * می‌تواند کامل شود. وضعیت `rejected` فقط بعد از اعمال استرداد ثبت می‌شود.
+   */
+  rejectionStartedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -56,6 +61,7 @@ const WithdrawalRequestSchema = new Schema<IWithdrawalRequest>(
     reviewedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     reviewNote: { type: String, default: null },
     reviewedAt: { type: Date, default: null },
+    rejectionStartedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );
