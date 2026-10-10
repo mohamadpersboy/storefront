@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, Clock } from "lucide-react";
 import { formatToman } from "@/lib/utils/format";
 
 export const metadata = { title: "نتیجه شارژ کیف پول" };
@@ -23,6 +23,13 @@ export default async function WalletTopupResultPage({
       color: "text-danger",
       title: "شارژ کیف پول ناموفق بود",
       description: "پرداخت تکمیل نشد یا توسط شما لغو شد. می‌توانید دوباره تلاش کنید.",
+    },
+    pending: {
+      icon: Clock,
+      color: "text-amber-600",
+      title: "نتیجه شارژ هنوز مشخص نیست",
+      description:
+        "تأیید پرداخت هنوز کامل نشده است. مبلغ از حساب شما کسر شده باشد، پس از تأیید به کیف پول اضافه می‌شود. چند دقیقه بعد موجودی را بررسی کنید.",
     },
     error: {
       icon: AlertTriangle,

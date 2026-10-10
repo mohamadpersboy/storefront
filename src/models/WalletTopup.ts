@@ -1,6 +1,6 @@
 import mongoose, { Schema, type Model, type HydratedDocument, type Types } from "mongoose";
 
-export type WalletTopupStatus = "pending" | "paid" | "failed";
+export type WalletTopupStatus = "pending" | "processing" | "paid" | "failed";
 
 /**
  * یک تلاش برای شارژ کیف پول از طریق درگاه (Zarinpal) — کاملاً جدا از
@@ -20,6 +20,9 @@ export interface IWalletTopup {
   description: string;
   paidAt: Date | null;
   failureReason: string | null;
+  /** Claim پردازش Callback؛ فقط مالک Token می‌تواند نهایی کند. */
+  processingToken?: string | null;
+  processingStartedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,13 +33,15 @@ const WalletTopupSchema = new Schema<IWalletTopup>(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     amount: { type: Number, required: true, min: 0 },
-    status: { type: String, enum: ["pending", "paid", "failed"], default: "pending", required: true },
+    status: { type: String, enum: ["pending", "processing", "paid", "failed"], default: "pending", required: true },
     authority: { type: String, required: true, unique: true },
     refId: { type: Number, default: null },
     cardPan: { type: String, default: null },
     description: { type: String, required: true },
     paidAt: { type: Date, default: null },
     failureReason: { type: String, default: null },
+    processingToken: { type: String, default: null },
+    processingStartedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

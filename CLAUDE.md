@@ -26,6 +26,18 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: Security Phase 2 — امنیت Callback شارژ کیف پول (`wallet/topup/callback`).**
+
+- **سرویس:** `lib/wallet/process-topup-callback.ts` (Route فقط Redirect). `Status`/`amount` کلاینت نادیده؛ همیشه Verify با درگاه روی `WalletTopup.amount`. قبلاً `Status!=OK` بدون Verify مستقیم `failed` می‌شد و خطای موقت درگاه هم دائمی بود.
+- **Claim اتمیک:** `WalletTopup` فیلدهای `processingToken`/`processingStartedAt` + وضعیت `processing`. فقط مالک Token نهایی می‌کند. TTL ۲ دقیقه فقط Heuristic است؛ امنیت مالی به آن وابسته نیست.
+- **اعتبار Idempotent:** کلید `topup-credit:<topupId>`. در `adjustWalletBalance` کلید در «همان نوشتن اتمیک» `$inc` روی Wallet ثبت می‌شود (`Wallet.appliedOperationKeys`، فیلتر `$ne`). پس کرش بین `$inc` و ردیف تراکنش، اعتبار دوباره نمی‌دهد و Retry ردیف جاافتاده را می‌سازد. ترتیب: اعتبار، سپس `paid` (در `runInTransaction`).
+- **خطا:** retryable → `pending`؛ فقط -50/-51/-53/-54 → `failed`. خطای DB → `status=pending` بدون افشا. صفحه `/wallet/topup/result` نمای `pending` دارد.
+- **Deploy:** Unique Index جزئی `WalletTransaction.idempotencyKey` از Phase 1 هست؛ قبل از آن هیچ کلیدی نبود، پس تکراری ندارد. Index جدید اضافه نشد. فیلدهای جدید Additive.
+- **تست:** ۱۸ تست جدید (مجموع ۸۶۰) با Fake Store. **NOT VERIFIED:** هم‌زمانی/Transaction/Unique Index روی Mongo واقعی.
+- **TODO:** Job آشتی‌سازی TopUpهای `processing/pending` قدیمی؛ Phase 6 (`alreadyPaid`).
+
+---
+
 **آخرین کار: Security Phase 1 — امنیت Callback پرداخت سفارش (`payments/callback`).**
 
 - **سرویس:** `lib/payment/process-gateway-callback.ts` (Route فقط Redirect می‌سازد). `Status`/`amount` کلاینت کاملاً نادیده گرفته می‌شود؛ همیشه Verify با درگاه روی `Payment.amount` ذخیره‌شده. Authority با Regex اعتبارسنجی می‌شود و فقط `provider: "zarinpal"` پردازش می‌شود.

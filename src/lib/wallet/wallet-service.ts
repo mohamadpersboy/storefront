@@ -1,4 +1,4 @@
-import type { ClientSession } from "mongoose";
+import type { ClientSession, Types } from "mongoose";
 import { Wallet, type WalletDocument } from "@/models/Wallet";
 import { WalletTransaction } from "@/models/WalletTransaction";
 import { checkWalletAdjustment, type WalletTransactionType } from "@/lib/wallet/check-wallet-adjustment";
@@ -25,6 +25,42 @@ export async function getOrCreateWallet(userId: string): Promise<WalletDocument>
  * شوند، هرگز موجودی منفی نمی‌شود (Race Condition اینجا از نظر
  * ساختاری غیرممکن است، نه فقط بررسی‌شده).
  */
+async function createTransactionRow(
+  row: {
+    wallet: Types.ObjectId;
+    userId: string;
+    type: WalletTransactionType;
+    amount: number;
+    balanceAfter: number;
+    reason: string;
+    performedBy: string;
+    idempotencyKey?: string;
+  },
+  session: ClientSession | null,
+): Promise<void> {
+  try {
+    await WalletTransaction.create(
+      [
+        {
+          wallet: row.wallet,
+          user: row.userId,
+          type: row.type,
+          amount: row.amount,
+          balanceAfter: row.balanceAfter,
+          reason: row.reason,
+          performedBy: row.performedBy,
+          ...(row.idempotencyKey ? { idempotencyKey: row.idempotencyKey } : {}),
+        },
+      ],
+      session ? { session } : undefined,
+    );
+  } catch (error) {
+    // کلید تکراری = همین عملیات را کار هم‌زمان دیگری ثبت کرده؛ اثر مالی یکی است.
+    if (row.idempotencyKey && (error as { code?: number })?.code === 11000 && !session) return;
+    throw error;
+  }
+}
+
 export async function adjustWalletBalance(params: {
   userId: string;
   type: WalletTransactionType;
@@ -62,35 +98,46 @@ export async function adjustWalletBalance(params: {
   }
 
   const delta = type === "credit" ? amount : -amount;
-  const filter =
+  const filter: Record<string, unknown> =
     type === "debit" ? { user: userId, balance: { $gte: amount } } : { user: userId };
+  // تغییر موجودی و ثبت کلید عملیات در «یک» نوشتن اتمیک روی سند Wallet
+  // انجام می‌شود؛ پس حتی بدون Transaction، تکرار هرگز دوباره موجودی را
+  // زیاد نمی‌کند، و کرش بعد از آن با ساخت ردیف تراکنش جاافتاده ترمیم می‌شود.
+  if (idempotencyKey) filter.appliedOperationKeys = { $ne: idempotencyKey };
 
-  const updated = await Wallet.findOneAndUpdate(
-    filter,
-    { $inc: { balance: delta } },
-    { new: true, ...(session ? { session } : {}) },
-  );
+  const update: Record<string, unknown> = { $inc: { balance: delta } };
+  if (idempotencyKey) update.$push = { appliedOperationKeys: idempotencyKey };
+
+  const updated = await Wallet.findOneAndUpdate(filter, update, {
+    new: true,
+    ...(session ? { session } : {}),
+  });
 
   if (!updated) {
+    if (idempotencyKey) {
+      const applied = await Wallet.findOne({
+        user: userId,
+        appliedOperationKeys: idempotencyKey,
+      })
+        .session(session)
+        .lean();
+      if (applied) {
+        // اثر مالی قبلاً اعمال شده؛ فقط ردیف تراکنش را (اگر نیست) ترمیم کن.
+        await createTransactionRow(
+          { wallet: applied._id, userId, type, amount, balanceAfter: applied.balance, reason, performedBy, idempotencyKey },
+          session,
+        );
+        return (await getOrCreateWallet(userId)) as WalletDocument;
+      }
+    }
     // بین چک بالا و همین لحظه، یک درخواست هم‌زمان دیگر موجودی را
     // کم کرده — همان چیزی که شرط Atomic بالا برایش طراحی شده.
     throw new WalletAdjustmentError("موجودی کیف پول کافی نیست (تغییر هم‌زمان رخ داد)");
   }
 
-  await WalletTransaction.create(
-    [
-      {
-        wallet: updated._id,
-        user: userId,
-        type,
-        amount,
-        balanceAfter: updated.balance,
-        reason,
-        performedBy,
-        ...(idempotencyKey ? { idempotencyKey } : {}),
-      },
-    ],
-    session ? { session } : undefined,
+  await createTransactionRow(
+    { wallet: updated._id, userId, type, amount, balanceAfter: updated.balance, reason, performedBy, idempotencyKey },
+    session,
   );
 
   return updated;

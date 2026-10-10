@@ -3,6 +3,8 @@ import mongoose, { Schema, type Model, type HydratedDocument, type Types } from 
 export interface IWallet {
   user: Types.ObjectId; // یکتا — هر کاربر دقیقاً یک کیف پول
   balance: number; // همیشه >= ۰
+  /** کلیدهای عملیات مالی اعمال‌شده؛ در همان نوشتن اتمیک `$inc` ثبت می‌شود. */
+  appliedOperationKeys?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -13,6 +15,7 @@ const WalletSchema = new Schema<IWallet>(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true, unique: true },
     balance: { type: Number, default: 0, min: 0 },
+    appliedOperationKeys: { type: [String], default: undefined },
   },
   { timestamps: true },
 );
