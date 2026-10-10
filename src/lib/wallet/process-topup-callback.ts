@@ -20,7 +20,17 @@ export type TopupCallbackOutcome = "success" | "failed" | "pending" | "error";
 export interface TopupCallbackResult {
   outcome: TopupCallbackOutcome;
   amount?: number;
+  /** فقط در حالت `reconcile`: خطای قطعیِ تأییدنشده ثبت و برای بررسی دستی علامت خورد. */
+  manualReview?: boolean;
 }
+
+/**
+ * `callback`: رفتار قبلی (خطای قطعی → `failed`).
+ * `reconcile`: فقط برای Cron. چون معنی کدهای خطای قطعی با مستند رسمی تأیید
+ * نشده (NOT VERIFIED)، Cron هرگز خودکار `failed` نمی‌کند؛ رکورد در `pending`
+ * می‌ماند و با `reconciliationNote` برای بررسی دستی علامت می‌خورد.
+ */
+export type TopupProcessMode = "callback" | "reconcile";
 
 interface TopupRow {
   _id: Types.ObjectId;
@@ -50,7 +60,9 @@ function settled(status: WalletTopupStatus): TopupCallbackOutcome | null {
 export async function processTopupCallback(params: {
   authority: string | null;
   now?: Date;
+  mode?: TopupProcessMode;
 }): Promise<TopupCallbackResult> {
+  const mode = params.mode ?? "callback";
   const now = params.now ?? new Date();
   const { authority } = params;
   if (!authority || !AUTHORITY_PATTERN.test(authority)) return { outcome: "error" };
@@ -89,55 +101,78 @@ export async function processTopupCallback(params: {
 
   if (!claimed) return currentOutcome();
 
-  const verification = await verifyZarinpalPayment({ amount: topup.amount, authority });
-
   const owned = { _id: topup._id, status: "processing" as const, processingToken: token };
   const clear = { processingToken: null, processingStartedAt: null };
 
-  if (!verification.success) {
-    if (verification.retryable) {
-      await WalletTopup.findOneAndUpdate(owned, { $set: { status: "pending", ...clear } });
-      return { outcome: "pending", amount: topup.amount };
+  try {
+    const verification = await verifyZarinpalPayment({ amount: topup.amount, authority });
+
+    if (!verification.success) {
+      if (verification.retryable) {
+        await WalletTopup.findOneAndUpdate(owned, { $set: { status: "pending", ...clear } });
+        return { outcome: "pending", amount: topup.amount };
+      }
+      if (mode === "reconcile") {
+        await WalletTopup.findOneAndUpdate(owned, {
+          $set: {
+            status: "pending",
+            reconciliationNote: `manual_review_required: gateway_reported_failure_unconfirmed (code ${verification.code}: ${verification.message})`,
+            ...clear,
+          },
+        });
+        return { outcome: "pending", amount: topup.amount, manualReview: true };
+      }
+      const failed = await WalletTopup.findOneAndUpdate(
+        owned,
+        { $set: { status: "failed", failureReason: verification.message, ...clear } },
+        { new: true },
+      )
+        .select("_id")
+        .lean();
+      if (failed) return { outcome: "failed", amount: topup.amount };
+      return currentOutcome();
     }
-    const failed = await WalletTopup.findOneAndUpdate(
-      owned,
-      { $set: { status: "failed", failureReason: verification.message, ...clear } },
-      { new: true },
-    )
-      .select("_id")
-      .lean();
-    if (failed) return { outcome: "failed", amount: topup.amount };
-    return currentOutcome();
-  }
 
-  const finalized = await runInTransaction(async (session) => {
-    await adjustWalletBalance({
-      userId: String(topup.user),
-      type: "credit",
-      amount: topup.amount,
-      reason: `شارژ کیف پول از طریق درگاه پرداخت (کد پیگیری: ${verification.refId})`,
-      performedBy: String(topup.user),
-      idempotencyKey: topupCreditKey(topup._id),
-      session,
-    });
-    return WalletTopup.findOneAndUpdate(
-      owned,
-      {
-        $set: {
-          status: "paid",
-          refId: verification.refId,
-          cardPan: verification.cardPan,
-          paidAt: now,
-          failureReason: null,
-          ...clear,
+    const finalized = await runInTransaction(async (session) => {
+      await adjustWalletBalance({
+        userId: String(topup.user),
+        type: "credit",
+        amount: topup.amount,
+        reason: `شارژ کیف پول از طریق درگاه پرداخت (کد پیگیری: ${verification.refId})`,
+        performedBy: String(topup.user),
+        idempotencyKey: topupCreditKey(topup._id),
+        session,
+      });
+      return WalletTopup.findOneAndUpdate(
+        owned,
+        {
+          $set: {
+            status: "paid",
+            refId: verification.refId,
+            cardPan: verification.cardPan,
+            paidAt: now,
+            failureReason: null,
+            reconciliationNote: null,
+            ...clear,
+          },
         },
-      },
-      { new: true, ...(session ? { session } : {}) },
-    )
-      .select("_id")
-      .lean();
-  });
+        { new: true, ...(session ? { session } : {}) },
+      )
+        .select("_id")
+        .lean();
+    });
 
-  if (finalized) return { outcome: "success", amount: topup.amount };
-  return currentOutcome();
+    if (finalized) return { outcome: "success", amount: topup.amount };
+    return currentOutcome();
+  } catch (error) {
+    // Exception بعد از Claim: فقط مالک Token می‌تواند Claim را رها کند.
+    // اگر وضعیت قبلاً `paid` شده باشد، این به‌روزرسانی چیزی را تغییر نمی‌دهد.
+    // اعتبار اگر اعمال شده باشد با کلید یکتا در تلاش بعدی دوباره اعمال نمی‌شود.
+    try {
+      await WalletTopup.findOneAndUpdate(owned, { $set: { status: "pending", ...clear } });
+    } catch {
+      // Claim کهنه بعد از TTL قابل تصاحب است.
+    }
+    throw error;
+  }
 }

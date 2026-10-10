@@ -23,6 +23,8 @@ export interface IWalletTopup {
   /** Claim پردازش Callback؛ فقط مالک Token می‌تواند نهایی کند. */
   processingToken?: string | null;
   processingStartedAt?: Date | null;
+  /** علامت Reconciliation (مثلاً نیاز به بررسی دستی). رکوردهای علامت‌خورده از Cron حذف می‌شوند. */
+  reconciliationNote?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,9 +44,12 @@ const WalletTopupSchema = new Schema<IWalletTopup>(
     failureReason: { type: String, default: null },
     processingToken: { type: String, default: null },
     processingStartedAt: { type: Date, default: null },
+    reconciliationNote: { type: String, default: null },
   },
   { timestamps: true },
 );
+// پشتیبانی از Query آشتی‌سازی (وضعیت + سن). Index جدید هنگام Deploy ساخته می‌شود.
+WalletTopupSchema.index({ status: 1, createdAt: 1 });
 
 type WalletTopupModel = Model<IWalletTopup>;
 

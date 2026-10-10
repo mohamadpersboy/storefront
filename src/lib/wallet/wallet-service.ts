@@ -8,7 +8,14 @@ export class WalletAdjustmentError extends Error {}
 export async function getOrCreateWallet(userId: string): Promise<WalletDocument> {
   let wallet = await Wallet.findOne({ user: userId });
   if (!wallet) {
-    wallet = await Wallet.create({ user: userId, balance: 0 });
+    try {
+      wallet = await Wallet.create({ user: userId, balance: 0 });
+    } catch (error) {
+      // ساخت هم‌زمان اولین کیف پول: Unique Index روی `user` یکی را رد می‌کند.
+      if ((error as { code?: number })?.code !== 11000) throw error;
+      wallet = await Wallet.findOne({ user: userId });
+      if (!wallet) throw error;
+    }
   }
   return wallet;
 }

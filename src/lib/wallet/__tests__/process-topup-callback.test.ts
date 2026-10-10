@@ -262,12 +262,34 @@ describe("processTopupCallback", () => {
     hooks.failPaidFinalizeOnce = true;
     await expect(processTopupCallback({ authority: AUTH1, now: T0 })).rejects.toThrow();
     expect(bal("u1")).toBe(5000);
-    expect(topups.get("t1")!.status).toBe("processing");
-    const r = await processTopupCallback({ authority: AUTH1, now: later });
+    // Exception بعد از Claim: مالک Token، Claim را به pending برمی‌گرداند.
+    expect(topups.get("t1")!.status).toBe("pending");
+    expect(topups.get("t1")!.processingToken).toBeNull();
+    const r = await processTopupCallback({ authority: AUTH1, now: T0 });
     expect(r.outcome).toBe("success");
     expect(bal("u1")).toBe(5000);
     expect(txs).toHaveLength(1);
     expect(topups.get("t1")!.status).toBe("paid");
+  });
+
+  it("13b: exception after claim releases claim; a non-owner cannot release it", async () => {
+    addTopup("t1", "u1", 5000, AUTH1);
+    verify.mockRejectedValueOnce(new Error("boom"));
+    await expect(processTopupCallback({ authority: AUTH1, now: T0 })).rejects.toThrow("boom");
+    expect(topups.get("t1")!.status).toBe("pending");
+    expect(bal("u1")).toBe(0);
+  });
+
+  it("13c: reconcile mode never marks failed on a definitive code; flags for manual review", async () => {
+    addTopup("t1", "u1", 5000, AUTH1);
+    verify.mockResolvedValue({ success: false, code: -51, message: "x", retryable: false });
+    const r = await processTopupCallback({ authority: AUTH1, now: T0, mode: "reconcile" });
+    expect(r.outcome).toBe("pending");
+    expect(r.manualReview).toBe(true);
+    const t = topups.get("t1") as unknown as { status: string; reconciliationNote?: string };
+    expect(t.status).toBe("pending");
+    expect(t.reconciliationNote).toContain("manual_review_required");
+    expect(bal("u1")).toBe(0);
   });
 
   it("14: two top-ups of the same user each credit once", async () => {

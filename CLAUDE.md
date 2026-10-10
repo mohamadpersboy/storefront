@@ -26,6 +26,21 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: Phase 2.2A — آشتی‌سازی خودکار TopUpهای نیمه‌کاره.**
+
+- **Cron:** `GET /api/v1/cron/topup-reconcile` (`vercel.json`: هر ۶ ساعت، `0 */6 * * *`؛ Hobby دقت ساعتی). بدون `CRON_SECRET` ← ۵۰۳؛ هدر نادرست ← ۴۰۱ (همان الگوی Cron اعلان‌ها). منطق در `lib/wallet/reconcile-topups.ts`.
+- **انتخاب:** `pending` یا `processing` کهنه (بیش از TTL) با سن ≥ ۱۰ دقیقه، بدون `reconciliationNote`، قدیمی‌ترین اول، حداکثر ۲۰ رکورد و بودجه ۴۰ ثانیه در هر اجرا. خطای یک رکورد بقیه را متوقف نمی‌کند.
+- **بازیابی:** همان `processTopupCallback` (Claim اتمیک + کلید `topup-credit:<id>`) با `mode: "reconcile"`. Cron و Callback هم‌زمان یا دو Cron هم‌زمان فقط یک اعتبار می‌دهند (Claim + کلید).
+- **Exception بعد از Claim:** فقط مالک `processingToken` وضعیت را به `pending` برمی‌گرداند، سپس خطا دوباره پرتاب می‌شود. (قبلاً تا TTL در `processing` می‌ماند.)
+- **رکورد قدیمی (> ۴۸ ساعت):** بدون Verify فقط `reconciliationNote = manual_review_required: unverified_after_max_age` می‌گیرد؛ هرگز `failed` نمی‌شود و از Cronهای بعدی کنار می‌رود. نمایش آن در Dashboard ساخته نشده.
+- **کد خطای قطعی در Cron:** چون معنی `-50/-51/-53/-54` با مستند رسمی تأیید نشده (NOT VERIFIED)، Cron خودکار `failed` نمی‌کند؛ رکورد `pending` می‌ماند و با `reconciliationNote` علامت می‌خورد. رفتار Callback کاربر و نگاشت کدها بدون تغییر ماند.
+- **Race:** `getOrCreateWallet` حالا E11000 را می‌گیرد و دوباره می‌خواند. مسیر Initiate تغییر نکرد: رکورد تکراری فقط رکورد است و هر کدام جدا با Authority خودش یک‌بار اعتبار می‌گیرد.
+- **Deploy:** فیلد `reconciliationNote` (Additive) + Index جدید `{status, createdAt}` روی `WalletTopup`. `CRON_SECRET` باید در Vercel تنظیم باشد.
+- **تست:** ۱۹ تست جدید/تغییر‌یافته (مجموع ۸۹۴) با Fake Store. **NOT VERIFIED:** هم‌زمانی/Transaction/Unique Index روی Mongo واقعی (Replica Set نداریم)؛ رفتار گذرگاه برای Verify مجدد (`101`) و Authority تأییدنشده؛ معنی چهار کد.
+- **باقی‌مانده:** نمایش رکوردهای علامت‌خورده برای ادمین؛ آشتی‌سازی Payment سفارش (Phase 3)؛ تعدیل دستی/ثبت برداشت/پرداخت سفارش بدون کلید؛ رشد `appliedOperationKeys`.
+
+---
+
 **آخرین کار: Phase 2.1 — Idempotency رد درخواست برداشت (`wallets/withdrawals/[id]/review`).**
 
 - **علت:** Route وضعیت را می‌خواند، `adjustWalletBalance` را بدون کلید صدا می‌زد، سپس `save()`. دو رد هم‌زمان یا Retry بعد از کرش، دوبار اعتبار می‌داد (یافته F-06 Audit).
