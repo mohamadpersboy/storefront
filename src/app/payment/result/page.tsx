@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, Clock } from "lucide-react";
 import { formatToman, toPersianDigits } from "@/lib/utils/format";
 
 export const metadata = { title: "نتیجه پرداخت" };
@@ -23,6 +23,13 @@ export default async function PaymentResultPage({
       color: "text-danger",
       title: "پرداخت ناموفق بود",
       description: "پرداخت تکمیل نشد یا توسط شما لغو شد. می‌توانید دوباره تلاش کنید.",
+    },
+    pending: {
+      icon: Clock,
+      color: "text-amber-600",
+      title: "پرداخت در حال بررسی است",
+      description:
+        "نتیجه پرداخت هنوز از درگاه تأیید نشده است. چند دقیقه بعد وضعیت سفارش خود را بررسی کنید. اگر مبلغی کسر شده باشد، پس از تأیید ثبت می‌شود.",
     },
     error: {
       icon: AlertTriangle,

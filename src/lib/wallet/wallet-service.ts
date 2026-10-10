@@ -1,3 +1,4 @@
+import type { ClientSession } from "mongoose";
 import { Wallet, type WalletDocument } from "@/models/Wallet";
 import { WalletTransaction } from "@/models/WalletTransaction";
 import { checkWalletAdjustment, type WalletTransactionType } from "@/lib/wallet/check-wallet-adjustment";
@@ -30,10 +31,31 @@ export async function adjustWalletBalance(params: {
   amount: number;
   reason: string;
   performedBy: string;
+  /**
+   * هویت مالی یکتا برای تعدیلی که نباید دو بار اعمال شود. اگر ردیفی با
+   * همین کلید قبلاً ثبت شده باشد، هیچ تغییری اعمال نمی‌شود و کیف پول
+   * فعلی برگردانده می‌شود (نتیجه یکسان، بدون اثر مالی دوباره).
+   */
+  idempotencyKey?: string;
+  /**
+   * اگر داده شود، افزایش موجودی و ثبت ردیف تراکنش در همان Transaction
+   * انجام می‌شود (همه یا هیچ). بدون Session، رفتار قبلی حفظ می‌شود.
+   */
+  session?: ClientSession | null;
 }) {
-  const { userId, type, amount, reason, performedBy } = params;
+  const { userId, type, amount, reason, performedBy, idempotencyKey } = params;
+  const session = params.session ?? null;
 
   const wallet = await getOrCreateWallet(userId);
+
+  if (idempotencyKey) {
+    const existing = await WalletTransaction.findOne({ idempotencyKey })
+      .session(session)
+      .select("_id")
+      .lean();
+    if (existing) return wallet;
+  }
+
   const check = checkWalletAdjustment(wallet.balance, type, amount);
   if (!check.ok) {
     throw new WalletAdjustmentError(check.reason ?? "تعدیل نامعتبر است");
@@ -46,7 +68,7 @@ export async function adjustWalletBalance(params: {
   const updated = await Wallet.findOneAndUpdate(
     filter,
     { $inc: { balance: delta } },
-    { new: true },
+    { new: true, ...(session ? { session } : {}) },
   );
 
   if (!updated) {
@@ -55,15 +77,21 @@ export async function adjustWalletBalance(params: {
     throw new WalletAdjustmentError("موجودی کیف پول کافی نیست (تغییر هم‌زمان رخ داد)");
   }
 
-  await WalletTransaction.create({
-    wallet: updated._id,
-    user: userId,
-    type,
-    amount,
-    balanceAfter: updated.balance,
-    reason,
-    performedBy,
-  });
+  await WalletTransaction.create(
+    [
+      {
+        wallet: updated._id,
+        user: userId,
+        type,
+        amount,
+        balanceAfter: updated.balance,
+        reason,
+        performedBy,
+        ...(idempotencyKey ? { idempotencyKey } : {}),
+      },
+    ],
+    session ? { session } : undefined,
+  );
 
   return updated;
 }

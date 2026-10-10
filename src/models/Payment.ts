@@ -72,6 +72,22 @@ export interface IPayment {
   check: Types.ObjectId | null;
   paidAt: Date | null;
   failureReason: string | null;
+  /**
+   * Callback-processing claim (Security Phase 1). `payments/callback`
+   * moves a payment `pending → processing` with one atomic conditional
+   * update and stores a random owner token + claim time here. Only the
+   * claim owner may finalize it. A claim older than
+   * `PROCESSING_CLAIM_TTL_MS` is stale and can be taken over, so a
+   * crashed worker never blocks a payment forever.
+   */
+  processingToken: string | null;
+  processingStartedAt: Date | null;
+  /**
+   * Machine-readable note for admin reconciliation (e.g. a verified
+   * gateway payment that arrived for an order that was already fully
+   * paid). It never changes behaviour; it only makes anomalies visible.
+   */
+  reconciliationNote: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -102,6 +118,9 @@ const PaymentSchema = new Schema<IPayment>(
     check: { type: Schema.Types.ObjectId, ref: "Check", default: null, index: true },
     paidAt: { type: Date, default: null },
     failureReason: { type: String, default: null },
+    processingToken: { type: String, default: null },
+    processingStartedAt: { type: Date, default: null },
+    reconciliationNote: { type: String, default: null },
   },
   { timestamps: true },
 );

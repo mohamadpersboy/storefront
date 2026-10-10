@@ -34,6 +34,23 @@ interface ZarinpalVerifyFailure {
   success: false;
   code: number;
   message: string;
+  /**
+   * true = نتیجه قطعی نیست (خطای شبکه، خطای موقت درگاه، کد ناشناخته).
+   * در این حالت Payment نباید failed شود؛ باید pending بماند تا
+   * تلاش بعدی دوباره Verify کند. false = درگاه قطعاً رد کرده است.
+   */
+  retryable: boolean;
+}
+
+/**
+ * کدهای رد قطعی Verify زرین‌پال: مبلغ نامطابق (-50)، نشست ناموفق (-51)،
+ * تراکنش ناموفق/لغو شده (-53, -54). هر کد دیگر (شبکه، 0، -52، خطای
+ * داخلی، ناشناخته) «قطعی نیست» و retryable است.
+ */
+const DEFINITIVE_VERIFY_FAILURE_CODES = new Set([-50, -51, -53, -54]);
+
+export function isRetryableVerifyCode(code: number): boolean {
+  return !DEFINITIVE_VERIFY_FAILURE_CODES.has(code);
 }
 
 /**
@@ -117,12 +134,19 @@ export async function verifyZarinpalPayment(params: {
       };
     }
 
+    const failCode = code ?? response.status;
     return {
       success: false,
-      code: code ?? response.status,
+      code: failCode,
       message: body?.errors?.message ?? "تأیید پرداخت ناموفق بود",
+      retryable: isRetryableVerifyCode(failCode),
     };
   } catch {
-    return { success: false, code: 0, message: "ارتباط با درگاه پرداخت برقرار نشد" };
+    return {
+      success: false,
+      code: 0,
+      message: "ارتباط با درگاه پرداخت برقرار نشد",
+      retryable: true,
+    };
   }
 }

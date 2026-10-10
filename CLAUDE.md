@@ -26,6 +26,19 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: Security Phase 1 — امنیت Callback پرداخت سفارش (`payments/callback`).**
+
+- **سرویس:** `lib/payment/process-gateway-callback.ts` (Route فقط Redirect می‌سازد). `Status`/`amount` کلاینت کاملاً نادیده گرفته می‌شود؛ همیشه Verify با درگاه روی `Payment.amount` ذخیره‌شده. Authority با Regex اعتبارسنجی می‌شود و فقط `provider: "zarinpal"` پردازش می‌شود.
+- **Claim اتمیک:** `Payment` فیلدهای جدید `processingToken`، `processingStartedAt`، `reconciliationNote` (Additive). فقط یک درخواست با `findOneAndUpdate` شرطی `pending → processing` می‌برد؛ نهایی‌سازی فقط با Token مالک. Claim کهنه (TTL ۲ دقیقه) قابل تصاحب است.
+- **خطای موقت ≠ شکست:** `verifyZarinpalPayment` پرچم `retryable` دارد. فقط کدهای -50/-51/-53/-54 قطعی‌اند؛ شبکه/HTTP/کد ناشناخته → Payment `pending` می‌ماند (بدون Fail، بدون استرداد) و صفحه `/payment/result?status=pending` نمایش داده می‌شود. خطای DB هم → `pending` بدون افشای جزئیات.
+- **استرداد Idempotent:** `WalletTransaction.idempotencyKey` (Unique Index جزئی) + `adjustWalletBalance({idempotencyKey, session})`. کلید استرداد: `payment-refund:<paymentId>`. `lib/db/transaction.ts` (`runInTransaction`) در Atlas Transaction می‌زند، در Standalone Fallback بدون Session دارد (ترتیب: اول استرداد، بعد Finalize؛ بازیابی بعد از Crash با تصاحب Claim کهنه + کلید یکتا). **Index جدید هنگام Deploy ساخته می‌شود.**
+- **Reconciliation:** اگر پرداخت تأییدشده برای سفارشی برسد که قبلاً کامل پرداخت شده، `reconciliationNote = duplicate_payment_order_already_covered` ثبت می‌شود؛ استرداد خودکار انجام نمی‌شود (Phase 3).
+- **تصمیم باز:** `Order.paidAmount`/`recalculateOrderPaymentTotals` همچنان به Callback وصل نیست (تصمیم قبلی پروژه).
+- **تست:** ۲۶ تست جدید (مجموع ۸۴۲): هم‌زمانی/تکرار/Timeout/Crash با Fake Store اتمیک. **NOT VERIFIED:** هم‌زمانی روی Mongo واقعی و Transaction روی Atlas (`mongodb-memory-server` نداریم).
+- **TODO:** Phase 2 Race شارژ کیف پول (`wallet/topup/callback` همان الگو)، Phase 6 باگ `alreadyPaid` در `initiate-order-payment` (فقط `amount` جمع می‌شود نه `walletAmount`) و Reuse هم‌زمان Payment باز، Job آشتی‌سازی Paymentهای `pending/processing` قدیمی، تست DB واقعی.
+
+---
+
 **آخرین کار: Review Submission & User Delete (Storefront) — فرم ثبت نظر، آپلود تصویر،
 نمایش «نظر شما» و حذف نظر خود کاربر در صفحه محصول.**
 
