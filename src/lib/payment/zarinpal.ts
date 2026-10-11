@@ -49,6 +49,13 @@ interface ZarinpalVerifyFailure {
  */
 const DEFINITIVE_VERIFY_FAILURE_CODES = new Set([-50, -51, -53, -54]);
 
+/**
+ * سقف انتظار یک درخواست Verify (شامل خواندن Body). با بودجه Cron
+ * (۴۰ ثانیه + این مقدار + کارهای DB) زیر `maxDuration = 60` می‌ماند.
+ * Timeout هرگز به‌معنی موفقیت یا شکست قطعی نیست؛ نتیجه «نامشخص/موقت» است.
+ */
+export const VERIFY_TIMEOUT_MS = 8000;
+
 export function isRetryableVerifyCode(code: number): boolean {
   return !DEFINITIVE_VERIFY_FAILURE_CODES.has(code);
 }
@@ -118,6 +125,7 @@ export async function verifyZarinpalPayment(params: {
         currency: "IRT",
         authority: params.authority,
       }),
+      signal: AbortSignal.timeout(VERIFY_TIMEOUT_MS),
     });
 
     const body = await response.json();
@@ -141,11 +149,14 @@ export async function verifyZarinpalPayment(params: {
       message: body?.errors?.message ?? "تأیید پرداخت ناموفق بود",
       retryable: isRetryableVerifyCode(failCode),
     };
-  } catch {
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === "TimeoutError";
     return {
       success: false,
       code: 0,
-      message: "ارتباط با درگاه پرداخت برقرار نشد",
+      message: timedOut
+        ? "زمان انتظار پاسخ درگاه پرداخت تمام شد"
+        : "ارتباط با درگاه پرداخت برقرار نشد",
       retryable: true,
     };
   }

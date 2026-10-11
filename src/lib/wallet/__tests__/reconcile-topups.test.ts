@@ -9,6 +9,7 @@ type Topup = {
   _id: string; user: string; amount: number; authority: string; status: string;
   processingToken: string | null; processingStartedAt: Date | null;
   refId?: number | null; createdAt: Date; reconciliationNote?: string | null;
+  needsManualReview?: boolean; lastReconcileAt?: Date | null; reconcileAttempts?: number;
 };
 type WalletRow = { _id: string; user: string; balance: number; appliedOperationKeys: string[] };
 
@@ -35,23 +36,50 @@ vi.mock("@/models/WalletTopup", () => ({
       q(() => [...topups.values()].find((t) => t.authority === authority) ?? null),
     findById: (id: string) => q(() => topups.get(id) ?? null),
     find: (f: any) => {
-      const staleBefore = f.$or[1].processingStartedAt.$lt as Date;
+      const [pendingBranch, processingBranch] = f.$or;
+      const retryBefore = (pendingBranch.$or[1].lastReconcileAt.$lt) as Date;
+      const staleBefore = processingBranch.processingStartedAt.$lt as Date;
       let rows = [...topups.values()].filter(
         (t) =>
-          (t.reconciliationNote ?? null) === null &&
           t.createdAt < f.createdAt.$lt &&
-          (t.status === "pending" ||
+          t.createdAt >= f.createdAt.$gte &&
+          ((t.status === "pending" && (!t.lastReconcileAt || t.lastReconcileAt < retryBefore)) ||
             (t.status === "processing" && !!t.processingStartedAt && t.processingStartedAt < staleBefore)),
       );
       const o: any = {
-        sort: () => { rows = rows.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()); return o; },
+        // Mongo ascending: null/missing first, then createdAt.
+        sort: () => {
+          rows = rows.sort((a, b) => {
+            const la = a.lastReconcileAt ? a.lastReconcileAt.getTime() : -Infinity;
+            const lb = b.lastReconcileAt ? b.lastReconcileAt.getTime() : -Infinity;
+            if (la !== lb) return la < lb ? -1 : 1;
+            return a.createdAt.getTime() - b.createdAt.getTime();
+          });
+          return o;
+        },
         limit: (n: number) => { rows = rows.slice(0, n); return o; },
         select: () => o,
         lean: async () => rows.map((r) => ({ _id: r._id, authority: r.authority, createdAt: r.createdAt })),
       };
       return o;
     },
-    findOneAndUpdate: (f: any, u: { $set: Record<string, unknown> }) => {
+    updateMany: async (f: any, u: { $set: Record<string, unknown> }) => {
+      const staleBefore = f.$or[1].processingStartedAt.$lt as Date;
+      let modifiedCount = 0;
+      for (const t of topups.values()) {
+        if (
+          t.createdAt < f.createdAt.$lt &&
+          t.needsManualReview !== true &&
+          (t.status === "pending" ||
+            (t.status === "processing" && !!t.processingStartedAt && t.processingStartedAt < staleBefore))
+        ) {
+          Object.assign(t, u.$set);
+          modifiedCount += 1;
+        }
+      }
+      return { modifiedCount };
+    },
+    findOneAndUpdate: (f: any, u: { $set: Record<string, unknown>; $inc?: Record<string, number> }) => {
       if (u.$set.status === "paid" && hooks.failPaidFinalizeOnce) {
         hooks.failPaidFinalizeOnce = false;
         return { select: () => ({ lean: async () => { throw new Error("db down"); } }) };
@@ -67,7 +95,12 @@ vi.mock("@/models/WalletTopup", () => ({
         }
         return t.status === f.status && t.processingToken === f.processingToken;
       })();
-      if (match) Object.assign(t!, u.$set);
+      if (match) {
+        Object.assign(t!, u.$set);
+        for (const [k, v] of Object.entries(((u as any).$inc ?? {}) as Record<string, number>)) {
+          (t as any)[k] = ((t as any)[k] ?? 0) + v;
+        }
+      }
       return q(() => (match ? t : null));
     },
   },
@@ -115,23 +148,26 @@ vi.mock("@/models/WalletTransaction", () => ({
 }));
 
 import { processTopupCallback, TOPUP_CLAIM_TTL_MS } from "@/lib/wallet/process-topup-callback";
-import { reconcileTopups, MANUAL_REVIEW_NOTE_TOO_OLD, RECONCILE_MIN_AGE_MS, RECONCILE_MAX_AGE_MS } from "@/lib/wallet/reconcile-topups";
+import { reconcileTopups, MANUAL_REVIEW_NOTE_TOO_OLD, RECONCILE_MIN_AGE_MS, RECONCILE_MAX_AGE_MS, RECONCILE_RETRY_INTERVAL_MS } from "@/lib/wallet/reconcile-topups";
 
 const NOW = new Date("2026-01-10T00:00:00Z");
 const OK = { success: true, refId: 111, cardPan: "6037" };
 const auth = (n: number) => `A${String(n).padStart(35, "0")}`;
+const AFTER_RETRY = new Date(NOW.getTime() + 31 * 60 * 1000);
 const minutesAgo = (m: number) => new Date(NOW.getTime() - m * 60 * 1000);
 
 function addTopup(id: string, user: string, amount: number, n: number, createdAt: Date) {
   topups.set(id, {
     _id: id, user, amount, authority: auth(n), status: "pending",
     processingToken: null, processingStartedAt: null, createdAt, reconciliationNote: null,
+    needsManualReview: false, lastReconcileAt: null, reconcileAttempts: 0,
   });
   if (![...wallets.values()].some((w) => w.user === user)) {
     wallets.set(`w-${user}`, { _id: `w-${user}`, user, balance: 0, appliedOperationKeys: [] });
   }
 }
 const bal = (u: string) => wallets.get(`w-${u}`)!.balance;
+const flag = (id: string) => topups.get(id)!.needsManualReview === true;
 const note = (id: string) => topups.get(id)!.reconciliationNote ?? null;
 
 beforeEach(() => {
@@ -224,7 +260,7 @@ describe("reconcileTopups (Fake Store — NOT VERIFIED on real MongoDB)", () => 
     expect(s1.errors).toBe(1);
     expect(bal("u1")).toBe(5000);
     expect(topups.get("t1")!.status).toBe("pending");
-    const s2 = await reconcileTopups({ now: NOW });
+    const s2 = await reconcileTopups({ now: AFTER_RETRY });
     expect(s2.credited).toBe(1);
     expect(bal("u1")).toBe(5000);
     expect(txs).toHaveLength(1);
@@ -239,33 +275,100 @@ describe("reconcileTopups (Fake Store — NOT VERIFIED on real MongoDB)", () => 
     spy.mockRestore();
     expect(bal("u1")).toBe(5000);
     expect(txs).toHaveLength(0);
-    await reconcileTopups({ now: NOW });
+    await reconcileTopups({ now: AFTER_RETRY });
     expect(bal("u1")).toBe(5000);
     expect(txs).toHaveLength(1);
     expect(txs[0].idempotencyKey).toBe("topup-credit:t1");
   });
 
-  it("too-old record is flagged for manual review without verify and is not failed", async () => {
+  it("too-old record is flagged for manual review without verify, is not failed, and is flagged once", async () => {
     addTopup("t1", "u1", 5000, 1, new Date(NOW.getTime() - RECONCILE_MAX_AGE_MS - 1000));
     const s = await reconcileTopups({ now: NOW });
     expect(s.flaggedForReview).toBe(1);
+    expect(s.scanned).toBe(0);
     expect(verify).not.toHaveBeenCalled();
     expect(topups.get("t1")!.status).toBe("pending");
+    expect(flag("t1")).toBe(true);
     expect(note("t1")).toBe(MANUAL_REVIEW_NOTE_TOO_OLD);
     expect(bal("u1")).toBe(0);
     const s2 = await reconcileTopups({ now: NOW });
     expect(s2.scanned).toBe(0);
+    expect(s2.flaggedForReview).toBe(0);
   });
 
-  it("definitive gateway code during cron is never auto-failed; flagged instead", async () => {
+  it("too-old records do not consume the per-run limit", async () => {
+    for (let i = 1; i <= 3; i++) {
+      addTopup(`old${i}`, `o${i}`, 1000, 10 + i, new Date(NOW.getTime() - RECONCILE_MAX_AGE_MS - i * 1000));
+    }
+    addTopup("fresh", "uf", 2000, 1, minutesAgo(60));
+    verify.mockResolvedValue(OK);
+    const s = await reconcileTopups({ now: NOW, limit: 1 });
+    expect(s.credited).toBe(1);
+    expect(bal("uf")).toBe(2000);
+    expect(s.flaggedForReview).toBe(3);
+  });
+
+  it("unconfirmed gateway code during cron is never auto-failed; flagged but stays in the queue", async () => {
     addTopup("t1", "u1", 5000, 1, minutesAgo(60));
     verify.mockResolvedValue({ success: false, code: -54, message: "x", retryable: false });
     const s = await reconcileTopups({ now: NOW });
     expect(s.failed).toBe(0);
     expect(s.flaggedForReview).toBe(1);
     expect(topups.get("t1")!.status).toBe("pending");
+    expect(flag("t1")).toBe(true);
     expect(note("t1")).toContain("manual_review_required");
     expect(bal("u1")).toBe(0);
+    // Inside the retry interval it is not verified again.
+    expect((await reconcileTopups({ now: NOW })).scanned).toBe(0);
+    // After the interval it is verified again; if the gateway confirms, credit once and clear the flag.
+    verify.mockResolvedValue(OK);
+    const later = new Date(NOW.getTime() + RECONCILE_RETRY_INTERVAL_MS + 1000);
+    const s2 = await reconcileTopups({ now: later });
+    expect(s2.credited).toBe(1);
+    expect(bal("u1")).toBe(5000);
+    expect(flag("t1")).toBe(false);
+    expect(note("t1")).toBeNull();
+  });
+
+  it("flagged record leaves automatic verify after the maximum age but stays identifiable (pending + flag + note)", async () => {
+    addTopup("t1", "u1", 5000, 1, minutesAgo(60));
+    verify.mockResolvedValue({ success: false, code: -51, message: "x", retryable: false });
+    await reconcileTopups({ now: NOW });
+    const tooLate = new Date(NOW.getTime() + RECONCILE_MAX_AGE_MS);
+    const s = await reconcileTopups({ now: tooLate });
+    expect(s.scanned).toBe(0);
+    expect(topups.get("t1")!.status).toBe("pending");
+    expect(flag("t1")).toBe(true);
+    expect(note("t1")).toContain("code -51");
+  });
+
+  it("starvation: records that always fail transiently do not block newer records", async () => {
+    for (let i = 1; i <= 3; i++) addTopup(`t${i}`, `u${i}`, 1000, i, minutesAgo(300 - i));
+    verify.mockImplementation(async ({ authority }: { authority: string }) =>
+      authority === auth(3) ? OK : { success: false, code: 0, message: "net", retryable: true });
+    const s1 = await reconcileTopups({ now: NOW, limit: 2 });
+    expect(s1.scanned).toBe(2);
+    expect(bal("u3")).toBe(0);
+    // Next run inside the retry interval: t1/t2 were just checked, t3 was never checked and gets its turn.
+    const s2 = await reconcileTopups({ now: new Date(NOW.getTime() + 60_000), limit: 2 });
+    expect(s2.credited).toBe(1);
+    expect(bal("u3")).toBe(1000);
+  });
+
+  it("recently checked records are skipped; after the interval they return in least-recently-checked order", async () => {
+    addTopup("a", "ua", 1000, 1, minutesAgo(300));
+    addTopup("b", "ub", 1000, 2, minutesAgo(200));
+    verify.mockResolvedValue({ success: false, code: 0, message: "net", retryable: true });
+    await reconcileTopups({ now: NOW, limit: 1 });
+    expect(topups.get("a")!.lastReconcileAt).toEqual(NOW);
+    expect(topups.get("b")!.lastReconcileAt).toBeNull();
+    const t1 = new Date(NOW.getTime() + 60_000);
+    await reconcileTopups({ now: t1, limit: 1 });
+    expect(topups.get("b")!.lastReconcileAt).toEqual(t1);
+    const t2 = new Date(NOW.getTime() + RECONCILE_RETRY_INTERVAL_MS + 120_000);
+    const s = await reconcileTopups({ now: t2, limit: 2 });
+    expect(s.scanned).toBe(2);
+    expect(topups.get("a")!.reconcileAttempts).toBe(2);
   });
 
   it("transient gateway error keeps record pending and retryable", async () => {
@@ -274,8 +377,10 @@ describe("reconcileTopups (Fake Store — NOT VERIFIED on real MongoDB)", () => 
     const s = await reconcileTopups({ now: NOW });
     expect(s.stillPending).toBe(1);
     expect(note("t1")).toBeNull();
+    expect(flag("t1")).toBe(false);
     verify.mockResolvedValue(OK);
-    expect((await reconcileTopups({ now: NOW })).credited).toBe(1);
+    const later = new Date(NOW.getTime() + RECONCILE_RETRY_INTERVAL_MS + 1000);
+    expect((await reconcileTopups({ now: later })).credited).toBe(1);
   });
 
   it("limits records per run", async () => {

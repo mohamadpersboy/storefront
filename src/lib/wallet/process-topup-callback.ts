@@ -20,17 +20,9 @@ export type TopupCallbackOutcome = "success" | "failed" | "pending" | "error";
 export interface TopupCallbackResult {
   outcome: TopupCallbackOutcome;
   amount?: number;
-  /** فقط در حالت `reconcile`: خطای قطعیِ تأییدنشده ثبت و برای بررسی دستی علامت خورد. */
+  /** درگاه کد خطایی داد که معنی رسمی‌اش تأیید نشده؛ رکورد `pending` ماند و برای بررسی دستی علامت خورد. */
   manualReview?: boolean;
 }
-
-/**
- * `callback`: رفتار قبلی (خطای قطعی → `failed`).
- * `reconcile`: فقط برای Cron. چون معنی کدهای خطای قطعی با مستند رسمی تأیید
- * نشده (NOT VERIFIED)، Cron هرگز خودکار `failed` نمی‌کند؛ رکورد در `pending`
- * می‌ماند و با `reconciliationNote` برای بررسی دستی علامت می‌خورد.
- */
-export type TopupProcessMode = "callback" | "reconcile";
 
 interface TopupRow {
   _id: Types.ObjectId;
@@ -60,9 +52,7 @@ function settled(status: WalletTopupStatus): TopupCallbackOutcome | null {
 export async function processTopupCallback(params: {
   authority: string | null;
   now?: Date;
-  mode?: TopupProcessMode;
 }): Promise<TopupCallbackResult> {
-  const mode = params.mode ?? "callback";
   const now = params.now ?? new Date();
   const { authority } = params;
   if (!authority || !AUTHORITY_PATTERN.test(authority)) return { outcome: "error" };
@@ -85,7 +75,15 @@ export async function processTopupCallback(params: {
         { status: "processing", processingStartedAt: { $lt: staleBefore } },
       ],
     },
-    { $set: { status: "processing", processingToken: token, processingStartedAt: now } },
+    {
+      $set: {
+        status: "processing",
+        processingToken: token,
+        processingStartedAt: now,
+        lastReconcileAt: now,
+      },
+      $inc: { reconcileAttempts: 1 },
+    },
     { new: true },
   )
     .select("_id")
@@ -112,25 +110,18 @@ export async function processTopupCallback(params: {
         await WalletTopup.findOneAndUpdate(owned, { $set: { status: "pending", ...clear } });
         return { outcome: "pending", amount: topup.amount };
       }
-      if (mode === "reconcile") {
-        await WalletTopup.findOneAndUpdate(owned, {
-          $set: {
-            status: "pending",
-            reconciliationNote: `manual_review_required: gateway_reported_failure_unconfirmed (code ${verification.code}: ${verification.message})`,
-            ...clear,
-          },
-        });
-        return { outcome: "pending", amount: topup.amount, manualReview: true };
-      }
-      const failed = await WalletTopup.findOneAndUpdate(
-        owned,
-        { $set: { status: "failed", failureReason: verification.message, ...clear } },
-        { new: true },
-      )
-        .select("_id")
-        .lean();
-      if (failed) return { outcome: "failed", amount: topup.amount };
-      return currentOutcome();
+      // کدهای -50/-51/-53/-54 با مستند رسمی تأیید نشده‌اند (NOT VERIFIED)؛
+      // پس هرگز خودکار `failed` نمی‌شوند. رکورد `pending` می‌ماند، علامت
+      // بررسی دستی می‌گیرد و Cron تا سقف سن، دوباره Verify می‌کند.
+      await WalletTopup.findOneAndUpdate(owned, {
+        $set: {
+          status: "pending",
+          needsManualReview: true,
+          reconciliationNote: `manual_review_required: gateway_reported_failure_unconfirmed (code ${verification.code}: ${verification.message})`,
+          ...clear,
+        },
+      });
+      return { outcome: "pending", amount: topup.amount, manualReview: true };
     }
 
     const finalized = await runInTransaction(async (session) => {
@@ -153,6 +144,7 @@ export async function processTopupCallback(params: {
             paidAt: now,
             failureReason: null,
             reconciliationNote: null,
+            needsManualReview: false,
             ...clear,
           },
         },

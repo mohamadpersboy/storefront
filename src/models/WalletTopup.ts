@@ -23,8 +23,13 @@ export interface IWalletTopup {
   /** Claim پردازش Callback؛ فقط مالک Token می‌تواند نهایی کند. */
   processingToken?: string | null;
   processingStartedAt?: Date | null;
-  /** علامت Reconciliation (مثلاً نیاز به بررسی دستی). رکوردهای علامت‌خورده از Cron حذف می‌شوند. */
+  /** توضیح Reconciliation (مثلاً کد خطای تأییدنشده). فقط اطلاعات است؛ رکورد را از صف Cron خارج نمی‌کند. */
   reconciliationNote?: string | null;
+  /** true = نیاز به بررسی دستی (کد خطای تأییدنشده یا قدیمی‌تر از سقف بررسی خودکار). با پرداخت موفق false می‌شود. */
+  needsManualReview?: boolean;
+  /** آخرین زمان Claim/تلاش Verify. برای چرخش عادلانه صف Cron (null/نبود = هرگز بررسی نشده، اول صف). */
+  lastReconcileAt?: Date | null;
+  reconcileAttempts?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,11 +50,21 @@ const WalletTopupSchema = new Schema<IWalletTopup>(
     processingToken: { type: String, default: null },
     processingStartedAt: { type: Date, default: null },
     reconciliationNote: { type: String, default: null },
+    needsManualReview: { type: Boolean, default: false },
+    lastReconcileAt: { type: Date, default: null },
+    reconcileAttempts: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
 // پشتیبانی از Query آشتی‌سازی (وضعیت + سن). Index جدید هنگام Deploy ساخته می‌شود.
 WalletTopupSchema.index({ status: 1, createdAt: 1 });
+// چرخش صف Cron: فیلتر وضعیت، مرتب‌سازی بر اساس آخرین بررسی و سن.
+WalletTopupSchema.index({ status: 1, lastReconcileAt: 1, createdAt: 1 });
+// فهرست رکوردهای نیازمند بررسی دستی (Partial: فقط رکوردهای علامت‌خورده، هزینه ایندکس ناچیز).
+WalletTopupSchema.index(
+  { needsManualReview: 1, createdAt: -1 },
+  { partialFilterExpression: { needsManualReview: true } },
+);
 
 type WalletTopupModel = Model<IWalletTopup>;
 

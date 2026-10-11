@@ -18,6 +18,15 @@ describe("wallet topup callback route", () => {
     expect(svc).toHaveBeenCalledWith({ authority: "A123456789012" });
     expect(res.headers.get("location")).toBe("https://shop.test/wallet/topup/result?status=pending&amount=10");
   });
+  it("unconfirmed gateway code shows pending (under review), never failed, and leaks no code", async () => {
+    connectFn.mockResolvedValue(undefined);
+    svc.mockResolvedValue({ outcome: "pending", amount: 10, manualReview: true });
+    const res = await GET(req("Authority=A123456789012&Status=NOK"));
+    const loc = res.headers.get("location")!;
+    expect(loc).toBe("https://shop.test/wallet/topup/result?status=pending&amount=10");
+    expect(loc).not.toContain("failed");
+    expect(loc).not.toContain("manualReview");
+  });
   it("DB failure redirects to pending without leaking details", async () => {
     connectFn.mockReturnValueOnce(Promise.reject(new Error("mongodb://secret")));
     const res = await GET(req("Authority=A123456789012"));

@@ -9,6 +9,8 @@ type Topup = {
   _id: string; user: string; amount: number; authority: string; status: string;
   processingToken: string | null; processingStartedAt: Date | null;
   refId?: number | null;
+  needsManualReview?: boolean; reconciliationNote?: string | null;
+  lastReconcileAt?: Date | null; reconcileAttempts?: number;
 };
 type WalletRow = { _id: string; user: string; balance: number; appliedOperationKeys: string[] };
 
@@ -34,7 +36,7 @@ vi.mock("@/models/WalletTopup", () => ({
     findOne: ({ authority }: { authority: string }) =>
       q(() => [...topups.values()].find((t) => t.authority === authority) ?? null),
     findById: (id: string) => q(() => topups.get(id) ?? null),
-    findOneAndUpdate: (f: any, u: { $set: Record<string, unknown> }) => {
+    findOneAndUpdate: (f: any, u: { $set: Record<string, unknown>; $inc?: Record<string, number> }) => {
       if (u.$set.status === "paid" && hooks.failPaidFinalizeOnce) {
         hooks.failPaidFinalizeOnce = false;
         return { select: () => ({ lean: async () => { throw new Error("db down"); } }) };
@@ -49,7 +51,12 @@ vi.mock("@/models/WalletTopup", () => ({
         }
         return t.status === f.status && t.processingToken === f.processingToken;
       })();
-      if (match) Object.assign(t!, u.$set);
+      if (match) {
+        Object.assign(t!, u.$set);
+        for (const [k, v] of Object.entries(((u as any).$inc ?? {}) as Record<string, number>)) {
+          (t as any)[k] = ((t as any)[k] ?? 0) + v;
+        }
+      }
       return q(() => (match ? t : null));
     },
   },
@@ -152,12 +159,14 @@ describe("processTopupCallback", () => {
     expect(verify).toHaveBeenCalledTimes(1);
   });
 
-  it("4: amount always comes from stored record; gateway mismatch (-50) fails with no credit", async () => {
+  it("4: amount always comes from stored record; unconfirmed code (-50) is NOT failed and gives no credit", async () => {
     addTopup("t1", "u1", 5000, AUTH1);
     verify.mockResolvedValue({ success: false, code: -50, message: "x", retryable: false });
     const r = await processTopupCallback({ authority: AUTH1, now: T0 });
     expect(verify).toHaveBeenCalledWith({ amount: 5000, authority: AUTH1 });
-    expect(r.outcome).toBe("failed");
+    expect(r.outcome).toBe("pending");
+    expect(r.manualReview).toBe(true);
+    expect(topups.get("t1")!.status).toBe("pending");
     expect(bal("u1")).toBe(0);
     expect(txs).toHaveLength(0);
   });
@@ -190,14 +199,56 @@ describe("processTopupCallback", () => {
     expect(bal("u1")).toBe(5000);
   });
 
-  it("8: definitive decline marks failed, no credit, and stays failed", async () => {
+  it("8: unconfirmed decline (-53) stays pending + flagged, is re-verified later, and credits once when gateway confirms", async () => {
     addTopup("t1", "u1", 5000, AUTH1);
     verify.mockResolvedValue({ success: false, code: -53, message: "x", retryable: false });
-    expect((await processTopupCallback({ authority: AUTH1, now: T0 })).outcome).toBe("failed");
-    expect(topups.get("t1")!.status).toBe("failed");
-    expect((await processTopupCallback({ authority: AUTH1, now: later })).outcome).toBe("failed");
-    expect(verify).toHaveBeenCalledTimes(1);
+    const r1 = await processTopupCallback({ authority: AUTH1, now: T0 });
+    expect(r1.outcome).toBe("pending");
+    expect(r1.manualReview).toBe(true);
+    const t = topups.get("t1")!;
+    expect(t.status).toBe("pending");
+    expect(t.needsManualReview).toBe(true);
+    expect(t.reconciliationNote).toContain("code -53");
+    expect(t.processingToken).toBeNull();
     expect(bal("u1")).toBe(0);
+    verify.mockResolvedValue(OK);
+    expect((await processTopupCallback({ authority: AUTH1, now: later })).outcome).toBe("success");
+    expect(verify).toHaveBeenCalledTimes(2);
+    expect(bal("u1")).toBe(5000);
+    expect(txs).toHaveLength(1);
+    expect(t.needsManualReview).toBe(false);
+    expect(t.reconciliationNote).toBeNull();
+  });
+
+  it("8b: all four unconfirmed codes never produce failed", async () => {
+    for (const code of [-50, -51, -53, -54]) {
+      topups.clear(); wallets.clear(); txs.length = 0;
+      addTopup("t1", "u1", 5000, AUTH1);
+      verify.mockResolvedValue({ success: false, code, message: "x", retryable: false });
+      const r = await processTopupCallback({ authority: AUTH1, now: T0 });
+      expect(r.outcome).toBe("pending");
+      expect(topups.get("t1")!.status).toBe("pending");
+      expect(bal("u1")).toBe(0);
+    }
+  });
+
+  it("8c: gateway timeout (retryable code 0) is pending without manual-review flag and never credits or fails", async () => {
+    addTopup("t1", "u1", 5000, AUTH1);
+    verify.mockResolvedValue({ success: false, code: 0, message: "timeout", retryable: true });
+    const r = await processTopupCallback({ authority: AUTH1, now: T0 });
+    expect(r.outcome).toBe("pending");
+    expect(r.manualReview).toBeUndefined();
+    expect(topups.get("t1")!.status).toBe("pending");
+    expect(topups.get("t1")!.needsManualReview).toBeFalsy();
+    expect(bal("u1")).toBe(0);
+  });
+
+  it("8d: claim records lastReconcileAt and attempt count", async () => {
+    addTopup("t1", "u1", 5000, AUTH1);
+    verify.mockResolvedValue({ success: false, code: 0, message: "net", retryable: true });
+    await processTopupCallback({ authority: AUTH1, now: T0 });
+    expect(topups.get("t1")!.lastReconcileAt).toEqual(T0);
+    expect(topups.get("t1")!.reconcileAttempts).toBe(1);
   });
 
   it("9: stale claim is reclaimed; fresh claim is not", async () => {
@@ -277,18 +328,6 @@ describe("processTopupCallback", () => {
     verify.mockRejectedValueOnce(new Error("boom"));
     await expect(processTopupCallback({ authority: AUTH1, now: T0 })).rejects.toThrow("boom");
     expect(topups.get("t1")!.status).toBe("pending");
-    expect(bal("u1")).toBe(0);
-  });
-
-  it("13c: reconcile mode never marks failed on a definitive code; flags for manual review", async () => {
-    addTopup("t1", "u1", 5000, AUTH1);
-    verify.mockResolvedValue({ success: false, code: -51, message: "x", retryable: false });
-    const r = await processTopupCallback({ authority: AUTH1, now: T0, mode: "reconcile" });
-    expect(r.outcome).toBe("pending");
-    expect(r.manualReview).toBe(true);
-    const t = topups.get("t1") as unknown as { status: string; reconciliationNote?: string };
-    expect(t.status).toBe("pending");
-    expect(t.reconciliationNote).toContain("manual_review_required");
     expect(bal("u1")).toBe(0);
   });
 
