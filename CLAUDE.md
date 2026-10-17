@@ -26,7 +26,7 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار: متاتگ تأیید اینماد.** در `src/app/layout.tsx` فیلد `metadata.other.enamad = "70757424"` اضافه شد. Next.js آن را در `<head>` همه صفحه‌ها (از جمله صفحه اصلی saghatchi.ir) به‌شکل `<meta name="enamad" content="70757424"/>` رندر می‌کند (در HTML ساخته‌شده تأیید شد). **TODO کاربر:** بعد از Deploy روی Vercel، در پنل اینماد روی «تایید متاتگ» بزنید. نماد اعتماد در `footer.tsx` هنوز Placeholder است تا مجوز رسمی بیاید.
+**آخرین کار: متاتگ تأیید اینماد (اصلاح‌شده).** نسخه اول با `metadata.other` در `<body>` Stream می‌شد (Next.js 16 برای کلاینت‌های غیرربات متاتگ‌های `metadata` را بعد از `</head>` می‌گذارد) و «تایید متاتگ» اینماد آن را پیدا نمی‌کرد. حالا `<meta name="enamad" content="70757424"/>` دستی داخل `<head>` در `src/app/layout.tsx` است. با `next start` برای دو User-Agent تأیید شد که قبل از `</head>` می‌آید. **قانون:** متاتگ‌هایی که بررسی‌کننده بدون JavaScript می‌خواند (اینماد، Search Console و مانند آن) باید دستی در `<head>` باشند، نه در `metadata`. نماد اعتماد در `footer.tsx` هنوز Placeholder است تا مجوز رسمی بیاید.
 
 ---
 
