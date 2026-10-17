@@ -26,7 +26,7 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار: متاتگ تأیید اینماد (اصلاح‌شده).** نسخه اول با `metadata.other` در `<body>` Stream می‌شد (Next.js 16 برای کلاینت‌های غیرربات متاتگ‌های `metadata` را بعد از `</head>` می‌گذارد) و «تایید متاتگ» اینماد آن را پیدا نمی‌کرد. حالا `<meta name="enamad" content="70757424"/>` دستی داخل `<head>` در `src/app/layout.tsx` است. با `next start` برای دو User-Agent تأیید شد که قبل از `</head>` می‌آید. **قانون:** متاتگ‌هایی که بررسی‌کننده بدون JavaScript می‌خواند (اینماد، Search Console و مانند آن) باید دستی در `<head>` باشند، نه در `metadata`. نماد اعتماد در `footer.tsx` هنوز Placeholder است تا مجوز رسمی بیاید.
+**آخرین کار: تأیید اینماد با فایل.** روش متاتگ (`<meta name="enamad">`) حذف شد؛ اینماد آن را تأیید نکرد. روش جایگزین: فایل خالی `public/70757424.txt` (آدرس `saghatchi.ir/70757424.txt`). با `next start` تأیید شد: ۲۰۰، ۰ بایت، `text/plain`؛ `src/proxy.ts` فقط `/dashboard/:path*` را می‌گیرد، پس مزاحم نیست. **این فایل را حذف نکنید.** نماد اعتماد در `footer.tsx` هنوز Placeholder است تا مجوز رسمی بیاید.
 
 ---
 

@@ -42,13 +42,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fa" dir="rtl" className={iranYekanX.variable}>
-      {/* تأیید مالکیت دامنه برای اینماد (enamad.ir). عمداً دستی در <head>
-          است، نه در `metadata`: Next.js متاتگ‌های `metadata` را برای
-          کلاینت‌های غیرربات Stream می‌کند و در <body> می‌گذارد؛ بررسی‌کننده
-          اینماد JavaScript اجرا نمی‌کند و فقط <head> را می‌بیند. */}
-      <head>
-        <meta name="enamad" content="70757424" />
-      </head>
       <body className="antialiased">
         {children}
         <RegisterServiceWorker />
