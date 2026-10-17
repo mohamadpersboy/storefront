@@ -25,6 +25,11 @@ export const metadata: Metadata = {
     ],
     apple: "/icons/apple-touch-icon.png",
   },
+  // تأیید مالکیت دامنه برای اینماد (enamad.ir). در <head> همه صفحه‌ها،
+  // از جمله صفحه اصلی، به‌شکل <meta name="enamad" content="..."> می‌آید.
+  other: {
+    enamad: "70757424",
+  },
 };
 
 // `themeColor` اینجا روی کل سایت (Storefront + Dashboard) اعمال
