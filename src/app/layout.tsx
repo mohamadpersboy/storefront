@@ -5,9 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    // TEMP-ENAMAD: عبارت 70757424 فقط برای تأیید عنوان اینماد است؛
-    // بعد از تأیید حذف شود (CLAUDE.md بخش وضعیت فعلی را ببینید).
-    default: "۷۰۷۵۷۴۲۴",
+    default: "فرش سقطچی | فروشگاه تخصصی فرش",
     template: "%s | فرش سقطچی",
   },
   description:
