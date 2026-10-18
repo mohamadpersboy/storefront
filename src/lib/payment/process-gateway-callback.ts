@@ -3,6 +3,7 @@ import type { Types } from "mongoose";
 import { Payment, type PaymentStatus } from "@/models/Payment";
 import { Order } from "@/models/Order";
 import { verifyZarinpalPayment } from "@/lib/payment/zarinpal";
+import { isUnconfirmedVerifyFailureCode } from "@/lib/payment/verify-failure-codes";
 import { adjustWalletBalance } from "@/lib/wallet/wallet-service";
 import { runInTransaction } from "@/lib/db/transaction";
 import { notifyPaymentResult } from "@/lib/notifications/events";
@@ -176,9 +177,9 @@ export async function processGatewayCallback(params: {
           paidAt: now,
           failureReason: null,
           ...clear,
-          ...(covered
-            ? { reconciliationNote: "duplicate_payment_order_already_covered" }
-            : {}),
+          // Verify موفق، هر علامت بررسی دستی قبلی را حل می‌کند.
+          needsManualReview: false,
+          reconciliationNote: covered ? "duplicate_payment_order_already_covered" : null,
         },
       },
       { new: true },
@@ -201,6 +202,22 @@ export async function processGatewayCallback(params: {
   if (verification.retryable) {
     // نتیجه قطعی نیست؛ Claim را آزاد کن تا تلاش بعدی دوباره Verify کند.
     await Payment.findOneAndUpdate(owned, { $set: { status: "pending", ...clear } });
+    return toResult("pending", payment, order);
+  }
+
+  if (isUnconfirmedVerifyFailureCode(verification.code)) {
+    // کدهای -50/-51/-53/-54 با مستند رسمی تأیید نشده‌اند (NOT VERIFIED)؛
+    // پس هرگز خودکار `failed` نمی‌شوند: بدون استرداد، بدون اعلان شکست.
+    // Payment `pending` می‌ماند، علامت بررسی دستی می‌گیرد و Claim آزاد
+    // می‌شود تا Callback/Retry بعدی دوباره Verify کند.
+    await Payment.findOneAndUpdate(owned, {
+      $set: {
+        status: "pending",
+        needsManualReview: true,
+        reconciliationNote: `manual_review_required: gateway_reported_failure_unconfirmed (code ${verification.code}: ${verification.message})`,
+        ...clear,
+      },
+    });
     return toResult("pending", payment, order);
   }
 

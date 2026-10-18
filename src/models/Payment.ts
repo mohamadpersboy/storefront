@@ -88,6 +88,12 @@ export interface IPayment {
    * paid). It never changes behaviour; it only makes anomalies visible.
    */
   reconciliationNote: string | null;
+  /**
+   * true = درگاه کد خطایی داده که معنی رسمی‌اش تأیید نشده (-50/-51/-53/-54).
+   * Payment `pending` می‌ماند؛ با Verify موفق بعدی false می‌شود. افزایشی:
+   * رکوردهای قدیمی بدون این فیلد = غیرعلامت‌خورده.
+   */
+  needsManualReview?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -121,6 +127,7 @@ const PaymentSchema = new Schema<IPayment>(
     processingToken: { type: String, default: null },
     processingStartedAt: { type: Date, default: null },
     reconciliationNote: { type: String, default: null },
+    needsManualReview: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

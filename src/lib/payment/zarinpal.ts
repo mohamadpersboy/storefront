@@ -1,4 +1,5 @@
 import { env } from "@/config/env";
+import { isUnconfirmedVerifyFailureCode } from "@/lib/payment/verify-failure-codes";
 
 const BASE_URL =
   env.ZARINPAL_MODE === "production"
@@ -43,11 +44,11 @@ interface ZarinpalVerifyFailure {
 }
 
 /**
- * کدهای رد قطعی Verify زرین‌پال: مبلغ نامطابق (-50)، نشست ناموفق (-51)،
- * تراکنش ناموفق/لغو شده (-53, -54). هر کد دیگر (شبکه، 0، -52، خطای
- * داخلی، ناشناخته) «قطعی نیست» و retryable است.
+ * کدهای -50/-51/-53/-54 «رد غیرقابل‌تلاش‌مجدد» طبقه‌بندی می‌شوند
+ * (`retryable: false`) اما معنی رسمی‌شان تأیید نشده است؛ مصرف‌کننده‌ها
+ * نباید آن‌ها را شکست قطعی بدانند (`verify-failure-codes.ts`). هر کد دیگر
+ * (شبکه، 0، -52، خطای داخلی، ناشناخته) retryable است.
  */
-const DEFINITIVE_VERIFY_FAILURE_CODES = new Set([-50, -51, -53, -54]);
 
 /**
  * سقف انتظار یک درخواست Verify (شامل خواندن Body). با بودجه Cron
@@ -57,7 +58,7 @@ const DEFINITIVE_VERIFY_FAILURE_CODES = new Set([-50, -51, -53, -54]);
 export const VERIFY_TIMEOUT_MS = 8000;
 
 export function isRetryableVerifyCode(code: number): boolean {
-  return !DEFINITIVE_VERIFY_FAILURE_CODES.has(code);
+  return !isUnconfirmedVerifyFailureCode(code);
 }
 
 /**

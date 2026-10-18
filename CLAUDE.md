@@ -26,7 +26,19 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار: تأیید اینماد انجام شد.** دامنه با روش «عنوان صفحه» تأیید شد و همه چیزهای موقت (عنوان `۷۰۷۵۷۴۲۴`، فایل `public/70757424.txt`، متاتگ) حذف شدند. عنوان سایت به `فرش سقطچی | فروشگاه تخصصی فرش` برگشت. نماد اعتماد در `footer.tsx` هنوز Placeholder است تا نماد رسمی دریافت و جایگزین شود.
+**آخرین کار: Phase 2.2B — مدیریت امن کدهای تأییدنشده زرین‌پال در Payment سفارش.** این بلوک ریسک «Payment سفارش هنوز همین چهار کد را `failed` می‌کند» را در بلوک 2.2A.2 پایین‌تر می‌بندد.
+
+- **رفتار جدید:** در `process-gateway-callback.ts` کدهای `-50/-51/-53/-54` (معنی رسمی‌شان NOT VERIFIED) دیگر `failed` نمی‌سازند: Payment `pending` می‌ماند، `needsManualReview: true` و `reconciliationNote = manual_review_required: gateway_reported_failure_unconfirmed (code <کد>: <پیام درگاه>)` می‌گیرد، Claim (`processingToken`/`processingStartedAt`) آزاد می‌شود، **سهم کیف پول مسترد نمی‌شود** و **اعلان شکست ارسال نمی‌شود**. صفحه `/payment/result?status=pending` همان پیام موجود را نشان می‌دهد (UI تغییر نکرد).
+- **Retry:** Verify واقعی درگاه همچنان تنها مرجع است. Verify موفق بعدی (100/101) از مسیر موفقیت موجود، Payment را `paid` می‌کند و `needsManualReview: false` و `reconciliationNote: null` می‌گذارد (یادداشت `duplicate_payment_order_already_covered` در صورت لزوم مقدم است). اگر Retry باز هم نامشخص باشد (Timeout/شبکه یا همان کد)، Payment `pending` و علامت‌خورده می‌ماند.
+- **بدون تغییر:** خطای موقت/Timeout (`retryable: true`) مثل قبل `pending` بدون علامت؛ مسیر موفقیت؛ Claim/Token؛ پاسخ API؛ کلید استرداد `payment-refund:<paymentId>`. مسیر «رد قطعی + استرداد + اعلان شکست» برای هر کد `retryable: false` خارج از چهار کد باقی ماند.
+- **تذکر مهم:** در طبقه‌بندی فعلی `zarinpal.ts`، `retryable: false` فقط همین چهار کد است؛ پس با کد واقعی فعلی، مسیر «شکست قطعی + استرداد» عملاً در Production فعال نمی‌شود (فقط اگر کد قطعی تأییدشده‌ای اضافه شود). این عمدی و محافظه‌کارانه است و فقط با تست‌ها (کد ساختگی `-99`) پوشش داده شد. هر کد قطعی جدید فقط با مدرک رسمی اضافه شود.
+- **فایل‌ها:** `lib/payment/verify-failure-codes.ts` (جدید، بدون وابستگی به `env`؛ مرجع واحد چهار کد)، `zarinpal.ts` (استفاده از همان مرجع؛ `isRetryableVerifyCode` بدون تغییر رفتار)، `models/Payment.ts` (فیلد افزایشی `needsManualReview`، پیش‌فرض `false`؛ بدون Index جدید)، تست‌ها (`process-gateway-callback.test.ts` + `verify-failure-codes.test.ts`). در تست‌های قدیمی «شکست قطعی»، کد پیش‌فرض از `-53` به `-99` تغییر کرد چون `-53` دیگر شکست قطعی نیست.
+- **NOT VERIFIED:** معنی رسمی چهار کد؛ MongoDB/Atlas واقعی و هم‌زمانی روی DB واقعی (تست‌ها Fake Store‌اند، Integration واقعی نیستند)؛ رفتار Production.
+- **محدودیت/TODO:** برای رکوردهای `Payment` علامت‌خورده نمای Dashboard و Job آشتی‌سازی وجود ندارد (خارج از Scope)؛ شناسایی دستی: `status: "pending"` و `needsManualReview: true` (Query بدون Index، فعلاً کم‌حجم). پرداختی که کاربر لغو کرده ممکن است یکی از این کدها را بگیرد و `pending` + علامت‌خورده بماند. Job آشتی‌سازی Paymentهای `pending/processing` قدیمی هنوز ساخته نشده (Phase 3).
+
+---
+
+**قبلاً: تأیید اینماد انجام شد.** دامنه با روش «عنوان صفحه» تأیید شد و همه چیزهای موقت (عنوان `۷۰۷۵۷۴۲۴`، فایل `public/70757424.txt`، متاتگ) حذف شدند. عنوان سایت به `فرش سقطچی | فروشگاه تخصصی فرش` برگشت. نماد اعتماد در `footer.tsx` هنوز Placeholder است تا نماد رسمی دریافت و جایگزین شود.
 
 ---
 
@@ -38,7 +50,7 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 - **M-1 صف چرخشی:** فیلدهای افزایشی `WalletTopup.lastReconcileAt` (در Claim ثبت می‌شود)، `reconcileAttempts` (`$inc` در Claim)، `needsManualReview`. صف: `pending` با `lastReconcileAt` خالی یا قدیمی‌تر از `RECONCILE_RETRY_INTERVAL_MS` (۳۰ دقیقه)، یا `processing` کهنه؛ سن بین ۱۰ دقیقه و ۴۸ ساعت؛ مرتب‌سازی `lastReconcileAt` صعودی (هرگز بررسی‌نشده اول) سپس `createdAt`. رکورد تازه‌بررسی‌شده سهمیه ۲۰تایی را اشغال نمی‌کند. رکورد علامت‌خورده با کد تأییدنشده در صف می‌ماند (تا ۴۸ ساعت) و دوباره Verify می‌شود. قدیمی‌تر از ۴۸ ساعت: با یک `updateMany` (بدون مصرف سهمیه) فقط `needsManualReview: true` + `reconciliationNote = manual_review_required: unverified_after_max_age` می‌گیرد؛ هرگز `failed` نمی‌شود و با Callback دیررسیده کاربر هنوز قابل پردازش است. شناسایی دستی: `status: "pending"` و `needsManualReview: true`. رکوردهای قدیمی بدون فیلد جدید: `lastReconcileAt` نبود = `null` = اول صف؛ `needsManualReview` نبود = غیرعلامت‌خورده. ایندکس‌های جدید (هنگام Deploy ساخته می‌شوند): `{status, lastReconcileAt, createdAt}` برای صف؛ Partial `{needsManualReview, createdAt:-1}` فقط برای رکوردهای علامت‌خورده. تأخیر ناخواسته: بعد از Exception یا خطای موقت، رکورد تا ۳۰ دقیقه از Cron بعدی کنار می‌ماند.
 - **تست:** مجموع ۹۰۷ تست (Fake Store). تست‌های جدید: چهار کد تأییدنشده ≠ `failed`، Timeout ≠ موفق/ناموفق، Retry بعد از خطا، چرخش/گرسنگی، سقف ۲۰ و ۴۸ ساعت، علامت بررسی دستی، سازگاری Cron با Hobby، Timeout روی Verify. صفحه نتیجه شارژ تست رندر خودکار ندارد (`environment: node`)؛ فقط Redirect Route تست شده و متن صفحه دستی بررسی نشده (NOT VERIFIED). **همه‌ی این‌ها با Fake Store اجرا شده‌اند؛ MongoDB واقعی نبوده.**
 - **NOT VERIFIED:** پلن واقعی Vercel؛ معنی رسمی چهار کد؛ رفتار درگاه برای Verify مجدد (101) و Authority پرداخت‌نشده؛ Transaction روی Atlas؛ هم‌زمانی و Unique Index روی Mongo واقعی (از جمله `Wallet.user`)؛ ساخت ایندکس‌های جدید.
-- **ریسک باقی‌مانده:** Payment سفارش (`process-gateway-callback.ts`) هنوز همین چهار کد را `failed` می‌کند (خارج از Scope این فاز؛ باید جداگانه بررسی شود)؛ نمای ادمین برای رکوردهای `needsManualReview` نیست؛ `failed`های قدیمی TopUp بازبینی نمی‌شوند.
+- **ریسک باقی‌مانده:** ~~Payment سفارش هنوز همین چهار کد را `failed` می‌کند~~ — در Phase 2.2B بسته شد؛ نمای ادمین برای رکوردهای `needsManualReview` نیست؛ `failed`های قدیمی TopUp بازبینی نمی‌شوند.
 
 ---
 
@@ -85,7 +97,7 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 - **سرویس:** `lib/payment/process-gateway-callback.ts` (Route فقط Redirect می‌سازد). `Status`/`amount` کلاینت کاملاً نادیده گرفته می‌شود؛ همیشه Verify با درگاه روی `Payment.amount` ذخیره‌شده. Authority با Regex اعتبارسنجی می‌شود و فقط `provider: "zarinpal"` پردازش می‌شود.
 - **Claim اتمیک:** `Payment` فیلدهای جدید `processingToken`، `processingStartedAt`، `reconciliationNote` (Additive). فقط یک درخواست با `findOneAndUpdate` شرطی `pending → processing` می‌برد؛ نهایی‌سازی فقط با Token مالک. Claim کهنه (TTL ۲ دقیقه) قابل تصاحب است.
-- **خطای موقت ≠ شکست:** `verifyZarinpalPayment` پرچم `retryable` دارد. فقط کدهای -50/-51/-53/-54 قطعی‌اند؛ شبکه/HTTP/کد ناشناخته → Payment `pending` می‌ماند (بدون Fail، بدون استرداد) و صفحه `/payment/result?status=pending` نمایش داده می‌شود. خطای DB هم → `pending` بدون افشای جزئیات.
+- **خطای موقت ≠ شکست:** `verifyZarinpalPayment` پرچم `retryable` دارد. (قدیمی؛ در Phase 2.2B اصلاح شد: این چهار کد دیگر شکست قطعی نیستند و Payment را `pending` + علامت بررسی دستی می‌کنند) کدهای -50/-51/-53/-54 `retryable: false`اند؛ شبکه/HTTP/کد ناشناخته → Payment `pending` می‌ماند (بدون Fail، بدون استرداد) و صفحه `/payment/result?status=pending` نمایش داده می‌شود. خطای DB هم → `pending` بدون افشای جزئیات.
 - **استرداد Idempotent:** `WalletTransaction.idempotencyKey` (Unique Index جزئی) + `adjustWalletBalance({idempotencyKey, session})`. کلید استرداد: `payment-refund:<paymentId>`. `lib/db/transaction.ts` (`runInTransaction`) در Atlas Transaction می‌زند، در Standalone Fallback بدون Session دارد (ترتیب: اول استرداد، بعد Finalize؛ بازیابی بعد از Crash با تصاحب Claim کهنه + کلید یکتا). **Index جدید هنگام Deploy ساخته می‌شود.**
 - **Reconciliation:** اگر پرداخت تأییدشده برای سفارشی برسد که قبلاً کامل پرداخت شده، `reconciliationNote = duplicate_payment_order_already_covered` ثبت می‌شود؛ استرداد خودکار انجام نمی‌شود (Phase 3).
 - **تصمیم باز:** `Order.paidAmount`/`recalculateOrderPaymentTotals` همچنان به Callback وصل نیست (تصمیم قبلی پروژه).

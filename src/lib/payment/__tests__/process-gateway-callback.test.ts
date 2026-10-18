@@ -37,6 +37,7 @@ const chain = <T,>(get: () => T) => {
 const verify = vi.fn();
 const notify = vi.fn();
 let failFinalize = false;
+let failFlag = false;
 
 vi.mock("@/models/Payment", () => ({
   Payment: {
@@ -52,6 +53,7 @@ vi.mock("@/models/Payment", () => ({
         if (failFinalize && (u.$set.status === "failed" || u.$set.status === "paid")) {
           throw new Error("db down");
         }
+        if (failFlag && u.$set.needsManualReview === true) throw new Error("db down");
         const d = [...payments.values()].find((x) => matches(x, f));
         if (!d) return null;
         Object.assign(d, u.$set);
@@ -99,7 +101,10 @@ function seed(over: Doc = {}, orderOver: Doc = {}) {
   orders.set("o1", { _id: "o1", orderNumber: 10005, customer: "u1", prepaymentAmount: 100000, ...orderOver });
 }
 const ok = { success: true, refId: 777, cardPan: "6037****1234" };
-const fail = (retryable: boolean, code = -53) => ({ success: false, code, message: "x", retryable });
+// کد پیش‌فرض -99 عمداً خارج از چهار کد تأییدنشده است (فقط یک نماینده
+// «خطای قطعیِ غیرمرتبط» برای تست مسیر شکست/استرداد؛ معنی رسمی ندارد).
+const fail = (retryable: boolean, code = -99) => ({ success: false, code, message: "x", retryable });
+const UNCONFIRMED_CODES = [-50, -51, -53, -54] as const;
 const run = () => processGatewayCallback({ authority: AUTH });
 const pay = () => payments.get(PID)!;
 
@@ -109,6 +114,7 @@ beforeEach(() => {
   refunds.clear();
   walletCredits = 0;
   failFinalize = false;
+  failFlag = false;
   verify.mockReset();
   notify.mockReset();
   notify.mockResolvedValue(undefined);
@@ -217,6 +223,128 @@ describe("processGatewayCallback — شکست و استرداد", () => {
     seed();
     verify.mockResolvedValue(ok); // کاربر Status=NOK فرستاده؛ سرویس آن را اصلاً نمی‌گیرد
     expect((await run()).outcome).toBe("success");
+  });
+});
+
+describe("processGatewayCallback — کدهای تأییدنشده -50/-51/-53/-54", () => {
+  it.each(UNCONFIRMED_CODES)(
+    "code %i: stays pending, flagged for manual review, no refund, no failure notice",
+    async (code) => {
+      seed({ walletAmount: 40000 });
+      verify.mockResolvedValue({ success: false, code, message: "gw-msg", retryable: false });
+      const r = await run();
+      expect(r).toEqual({ outcome: "pending", orderNumber: 10005, amount: 100000 });
+      expect(pay()).toMatchObject({
+        status: "pending",
+        processingToken: null,
+        processingStartedAt: null,
+        needsManualReview: true,
+      });
+      expect(pay().status).not.toBe("failed");
+      expect(pay().reconciliationNote).toContain("manual_review_required");
+      expect(pay().reconciliationNote).toContain(`code ${code}`);
+      expect(walletCredits).toBe(0);
+      expect(refunds.size).toBe(0);
+      expect(notify).not.toHaveBeenCalled();
+    },
+  );
+
+  it("replay and concurrency never refund, notify, or fail", async () => {
+    seed({ walletAmount: 40000 });
+    verify.mockImplementation(async () => {
+      await new Promise((r) => setTimeout(r, 5));
+      return { success: false, code: -53, message: "x", retryable: false };
+    });
+    const results = await Promise.all(Array.from({ length: 6 }, run));
+    await run();
+    await run();
+    expect(results.every((r) => r.outcome === "pending")).toBe(true);
+    expect(walletCredits).toBe(0);
+    expect(notify).not.toHaveBeenCalled();
+    expect(pay()).toMatchObject({ status: "pending", needsManualReview: true, processingToken: null });
+  });
+
+  it("a later retry with a verified payment makes it paid and clears the review flag", async () => {
+    seed({ walletAmount: 40000 });
+    verify
+      .mockResolvedValueOnce({ success: false, code: -54, message: "x", retryable: false })
+      .mockResolvedValueOnce(ok);
+    expect((await run()).outcome).toBe("pending");
+    expect(pay().needsManualReview).toBe(true);
+    const r = await run();
+    expect(r.outcome).toBe("success");
+    expect(pay()).toMatchObject({
+      status: "paid",
+      refId: 777,
+      needsManualReview: false,
+      reconciliationNote: null,
+      processingToken: null,
+    });
+    expect(walletCredits).toBe(0);
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(notify).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+  });
+
+  it("a verified retry on an already covered order keeps the duplicate-payment note", async () => {
+    seed();
+    payments.set("p0", { _id: "p0", order: "o1", amount: 100000, walletAmount: 0, status: "paid", authority: "other" });
+    verify
+      .mockResolvedValueOnce({ success: false, code: -51, message: "x", retryable: false })
+      .mockResolvedValueOnce(ok);
+    await run();
+    await run();
+    expect(pay()).toMatchObject({
+      status: "paid",
+      needsManualReview: false,
+      reconciliationNote: "duplicate_payment_order_already_covered",
+    });
+  });
+
+  it("a retry that is still unknown never fails or refunds, and keeps the flag", async () => {
+    seed({ walletAmount: 40000 });
+    verify
+      .mockResolvedValueOnce({ success: false, code: -50, message: "x", retryable: false })
+      .mockResolvedValueOnce(fail(true, 0)) // timeout / network
+      .mockResolvedValueOnce({ success: false, code: -53, message: "x", retryable: false });
+    await run();
+    await run();
+    expect(pay()).toMatchObject({ status: "pending", needsManualReview: true });
+    await run();
+    expect(pay()).toMatchObject({ status: "pending", needsManualReview: true });
+    expect(walletCredits).toBe(0);
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("a timeout on a fresh payment keeps the old behaviour: pending, NOT flagged", async () => {
+    seed();
+    verify.mockResolvedValue(fail(true, 0));
+    expect((await run()).outcome).toBe("pending");
+    expect(pay().needsManualReview).toBeFalsy();
+    expect(pay().reconciliationNote).toBeNull();
+  });
+
+  it("a definitive failure with a code outside the four still fails and refunds once", async () => {
+    seed({ walletAmount: 40000 });
+    verify.mockResolvedValue(fail(false, -99));
+    const r = await run();
+    expect(r.outcome).toBe("failed");
+    expect(pay()).toMatchObject({ status: "failed", processingToken: null });
+    expect(pay().needsManualReview).toBeFalsy();
+    expect(refunds.has(`payment-refund:${PID}`)).toBe(true);
+    expect(walletCredits).toBe(1);
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(notify).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
+  });
+
+  it("DB failure while flagging surfaces as an error; claim stays and no refund happens", async () => {
+    seed({ walletAmount: 40000 });
+    verify.mockResolvedValue({ success: false, code: -53, message: "x", retryable: false });
+    failFlag = true;
+    await expect(run()).rejects.toThrow("db down");
+    failFlag = false;
+    expect(pay().status).toBe("processing");
+    expect(walletCredits).toBe(0);
+    expect(notify).not.toHaveBeenCalled();
   });
 });
 
