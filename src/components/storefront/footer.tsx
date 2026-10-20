@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ShieldQuestion } from "lucide-react";
 import {
   EitaaIcon,
   InstagramIcon,
@@ -31,6 +30,11 @@ const QUICK_LINKS = [
 
 const CURRENT_JALALI_YEAR = "۱۴۰۵";
 
+// نماد اعتماد الکترونیکی (اینماد) — کد رسمی دریافت‌شده از enamad.ir
+const ENAMAD_CODE = "ENCRHLMNHZmNNk7yHNL3kvsEgipmuBCS";
+const ENAMAD_HREF = `https://trustseal.enamad.ir/?id=441102&Code=${ENAMAD_CODE}`;
+const ENAMAD_IMG_SRC = `https://trustseal.enamad.ir/logo.aspx?id=441102&Code=${ENAMAD_CODE}`;
+
 /**
  * Footer صفحه اصلی. آیکون‌های شبکهٔ اجتماعی داده‌محورند: فقط
  * پلتفرم‌هایی که در Dashboard → تنظیمات → شبکه‌های اجتماعی هم URL
@@ -42,9 +46,8 @@ const CURRENT_JALALI_YEAR = "۱۴۰۵";
  * مقررات» موقتاً به مسیرهای آیندهٔ هنوز طراحی‌نشده اشاره می‌کنند
  * (همان الگوی «مشاهده بیشتر» در بخش‌های قبلی).
  *
- * جای نماد اعتماد الکترونیکی (اینماد) عمداً یک Placeholder صادقانه
- * است، نه یک نشان جعلی — تا وقتی مجوز رسمی از enamad.ir دریافت و
- * کد HTML واقعی آن جایگزین نشده.
+ * نماد اعتماد الکترونیکی (اینماد) با کد رسمی enamad.ir رندر می‌شود
+ * (Server Component، پس HTML نماد در پاسخ اولیه سرور هست).
  */
 export function Footer({ socialLinks }: { socialLinks: FooterSocialLink[] }) {
   return (
@@ -84,11 +87,18 @@ export function Footer({ socialLinks }: { socialLinks: FooterSocialLink[] }) {
         ))}
       </nav>
 
-      <div className="mt-6 flex items-center gap-3 rounded-xl border border-dashed border-gray-300 p-3">
-        <ShieldQuestion className="size-8 shrink-0 text-[var(--sf-ink)]/40" />
-        <p className="text-xs leading-5 text-[var(--sf-ink)]/60">
-          جایگاه نماد اعتماد الکترونیکی (اینماد) — پس از دریافت مجوز رسمی از enamad.ir جایگزین شود
-        </p>
+      <div className="mt-6 flex items-center justify-center">
+        <a referrerPolicy="origin" target="_blank" rel="noopener" href={ENAMAD_HREF}>
+          {/* نماد رسمی اینماد: باید <img> ساده با همین صفات بماند (Next Image کد تأیید را حذف می‌کند). */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            referrerPolicy="origin"
+            src={ENAMAD_IMG_SRC}
+            alt=""
+            style={{ cursor: "pointer" }}
+            {...{ code: ENAMAD_CODE }}
+          />
+        </a>
       </div>
 
       <p className="mt-6 text-center text-xs text-[var(--sf-ink)]/40">
