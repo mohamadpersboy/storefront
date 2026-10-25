@@ -26,7 +26,7 @@ export async function getNextSequence(key: string): Promise<number> {
   const counter = await Counter.findOneAndUpdate(
     { key },
     { $inc: { value: 1 } },
-    { upsert: true, new: true },
+    { upsert: true, returnDocument: "after" },
   );
   return counter.value;
 }

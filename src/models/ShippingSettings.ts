@@ -46,6 +46,6 @@ export async function getShippingSettings() {
   return ShippingSettings.findOneAndUpdate(
     { _id: SINGLETON_ID },
     { $setOnInsert: { _id: SINGLETON_ID } },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
   );
 }

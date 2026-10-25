@@ -85,7 +85,7 @@ async function softDelete(filter: Record<string, unknown>): Promise<ServiceResul
   const review = await Review.findOneAndUpdate(
     { ...filter, deletedAt: null },
     { $set: { deletedAt: new Date() } },
-    { new: true },
+    { returnDocument: "after" },
   );
   if (!review) return fail(404, "نظر پیدا نشد");
   // Best-effort و غیرمسدودکننده: شکست پاک‌سازی تصویر، حذف را خراب نمی‌کند.
@@ -130,7 +130,7 @@ export async function moderateReview(params: {
         rejectionReason: to === "rejected" ? (params.rejectionReason ?? null) : null,
       },
     },
-    { new: true },
+    { returnDocument: "after" },
   );
   if (updated) return { ok: true, data: updated };
 

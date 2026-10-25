@@ -58,7 +58,7 @@ export async function reviewWithdrawal(params: {
     const approved = await WithdrawalRequest.findOneAndUpdate(
       { _id: existing._id, status: "pending", rejectionStartedAt: null },
       { $set: { status: "approved_paid", ...reviewFields } },
-      { new: true },
+      { returnDocument: "after" },
     )
       .select("_id")
       .lean();
@@ -69,7 +69,7 @@ export async function reviewWithdrawal(params: {
   const claimed = await WithdrawalRequest.findOneAndUpdate(
     { _id: existing._id, status: "pending" },
     { $set: { rejectionStartedAt: now } },
-    { new: true },
+    { returnDocument: "after" },
   )
     .select("_id")
     .lean();
@@ -89,7 +89,7 @@ export async function reviewWithdrawal(params: {
       return WithdrawalRequest.findOneAndUpdate(
         { _id: existing._id, status: "pending" },
         { $set: { status: "rejected", ...reviewFields } },
-        { new: true, ...(session ? { session } : {}) },
+        { returnDocument: "after", ...(session ? { session } : {}) },
       )
         .select("_id")
         .lean();

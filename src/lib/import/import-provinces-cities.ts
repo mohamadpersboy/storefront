@@ -16,7 +16,7 @@ async function upsertAll(data: ValidatedImportData, session?: mongoose.ClientSes
     const doc = await Province.findOneAndUpdate(
       { code },
       { $set: { name }, $setOnInsert: { code } },
-      { upsert: true, new: true, session },
+      { upsert: true, returnDocument: "after", session },
     );
     provinceIdByCode.set(code, doc._id);
   }
@@ -27,7 +27,7 @@ async function upsertAll(data: ValidatedImportData, session?: mongoose.ClientSes
     await City.findOneAndUpdate(
       { code },
       { $set: { name, province: provinceId }, $setOnInsert: { code } },
-      { upsert: true, new: true, session },
+      { upsert: true, returnDocument: "after", session },
     );
   }
 

@@ -116,7 +116,7 @@ export async function adjustWalletBalance(params: {
   if (idempotencyKey) update.$push = { appliedOperationKeys: idempotencyKey };
 
   const updated = await Wallet.findOneAndUpdate(filter, update, {
-    new: true,
+    returnDocument: "after",
     ...(session ? { session } : {}),
   });
 

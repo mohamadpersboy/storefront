@@ -84,7 +84,7 @@ export async function processTopupCallback(params: {
       },
       $inc: { reconcileAttempts: 1 },
     },
-    { new: true },
+    { returnDocument: "after" },
   )
     .select("_id")
     .lean();
@@ -148,7 +148,7 @@ export async function processTopupCallback(params: {
             ...clear,
           },
         },
-        { new: true, ...(session ? { session } : {}) },
+        { returnDocument: "after", ...(session ? { session } : {}) },
       )
         .select("_id")
         .lean();

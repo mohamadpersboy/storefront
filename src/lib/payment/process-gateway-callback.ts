@@ -138,7 +138,7 @@ export async function processGatewayCallback(params: {
       ],
     },
     { $set: { status: "processing", processingToken: token, processingStartedAt: now } },
-    { new: true },
+    { returnDocument: "after" },
   )
     .select("_id")
     .lean();
@@ -182,7 +182,7 @@ export async function processGatewayCallback(params: {
           reconciliationNote: covered ? "duplicate_payment_order_already_covered" : null,
         },
       },
-      { new: true },
+      { returnDocument: "after" },
     )
       .select("_id")
       .lean();
@@ -239,7 +239,7 @@ export async function processGatewayCallback(params: {
     return Payment.findOneAndUpdate(
       owned,
       { $set: { status: "failed", failureReason: verification.message, ...clear } },
-      { new: true, ...(session ? { session } : {}) },
+      { returnDocument: "after", ...(session ? { session } : {}) },
     )
       .select("_id")
       .lean();

@@ -64,7 +64,7 @@ export async function getSocialLinks() {
   const doc = await SocialLinks.findOneAndUpdate(
     { _id: SINGLETON_ID },
     { $setOnInsert: { _id: SINGLETON_ID, links: defaultLinks() } },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
   );
 
   // اگر بعداً یک پلتفرم جدید به SOCIAL_PLATFORMS اضافه شود، سندهای قدیمی

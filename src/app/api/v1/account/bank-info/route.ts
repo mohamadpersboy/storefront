@@ -54,7 +54,7 @@ export async function PUT(request: Request) {
         iban: parsed.data.iban || null,
       },
     },
-    { upsert: true, new: true },
+    { upsert: true, returnDocument: "after" },
   );
 
   return apiSuccess(
