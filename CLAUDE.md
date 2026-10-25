@@ -26,6 +26,16 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: رفع Race ساخت سبد (`getOrCreateCart`) + هشدار Deprecation مانگوس.**
+
+- **علت:** `findOne` سپس `Cart.create` اتمیک نبود؛ دو درخواست هم‌زمان (مثلاً صفحه سبد و API) هر دو «سبد نیست» می‌دیدند و دومی E11000 روی Index یکتای `user_1` می‌گرفت. فرض: علت هم‌زمانی است؛ بازتولید روی Mongo واقعی NOT VERIFIED.
+- **اصلاح:** خواندن اول (بدون نوشتن)، سپس `findOneAndUpdate` با `$setOnInsert` + `upsert` + `timestamps: false` (تا `updatedAt` سبد موجود عوض نشود)، و فقط E11000 با `keyPattern.user` گرفته و سبد برنده دوباره خوانده می‌شود. Index یکتا دست‌نخورده. `userId` نامعتبر رد می‌شود.
+- **Mongoose 9.9.3:** همه ۲۳ مورد `new: true` (۱۶ فایل، همگی `findOneAndUpdate`) → `returnDocument: "after"`.
+- **تست:** `get-or-create-cart.test.ts` (Mock) + `get-or-create-cart.integration.test.ts` (فقط با `CART_INTEGRATION_MONGODB_URI` به DB `carpet_integration_test`؛ وگرنه Skip). هم‌زمانی روی Mongo واقعی NOT VERIFIED.
+- **Git:** Commit/Push انجام نشد (دستور صریح کاربر).
+
+---
+
 **آخرین کار: Phase 2.2B — مدیریت امن کدهای تأییدنشده زرین‌پال در Payment سفارش.** این بلوک ریسک «Payment سفارش هنوز همین چهار کد را `failed` می‌کند» را در بلوک 2.2A.2 پایین‌تر می‌بندد.
 
 - **رفتار جدید:** در `process-gateway-callback.ts` کدهای `-50/-51/-53/-54` (معنی رسمی‌شان NOT VERIFIED) دیگر `failed` نمی‌سازند: Payment `pending` می‌ماند، `needsManualReview: true` و `reconciliationNote = manual_review_required: gateway_reported_failure_unconfirmed (code <کد>: <پیام درگاه>)` می‌گیرد، Claim (`processingToken`/`processingStartedAt`) آزاد می‌شود، **سهم کیف پول مسترد نمی‌شود** و **اعلان شکست ارسال نمی‌شود**. صفحه `/payment/result?status=pending` همان پیام موجود را نشان می‌دهد (UI تغییر نکرد).

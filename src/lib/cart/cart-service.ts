@@ -1,4 +1,4 @@
-import type { Types } from "mongoose";
+import { isObjectIdOrHexString, type Types } from "mongoose";
 import { Cart, type CartDocument } from "@/models/Cart";
 import { Product } from "@/models/Product";
 import { Coupon } from "@/models/Coupon";
@@ -26,13 +26,65 @@ interface ProductForCart {
   }>;
 }
 
-/** یک سبد را برای کاربر پیدا می‌کند، یا اگر نداشت خالی می‌سازد. */
+function isCartUserDuplicateKeyError(err: unknown): boolean {
+  const e = err as {
+    code?: number;
+    keyPattern?: Record<string, unknown>;
+    keyValue?: Record<string, unknown>;
+    message?: string;
+  } | null;
+  if (!e || e.code !== 11000) return false;
+  // مسیر اصلی: Mongo ≥ 4.4 همیشه `keyPattern` می‌فرستد.
+  if (e.keyPattern) return "user" in e.keyPattern;
+  if (e.keyValue) return "user" in e.keyValue;
+  // Fallback فقط برای خطای بدون ساختار: نام Index یکتای پیش‌فرض `user_1`.
+  return typeof e.message === "string" && /\bindex:\s*user_1\b/.test(e.message);
+}
+
+/**
+ * یک سبد را برای کاربر پیدا می‌کند، یا اگر نداشت خالی می‌سازد.
+ *
+ * مسیر سریع: فقط خواندن (هیچ نوشتنی روی سبد موجود نیست، پس
+ * `updatedAt` تغییر نمی‌کند). اگر سبدی نبود، Upsert اتمیک با
+ * `$setOnInsert` انجام می‌شود تا درخواست‌های هم‌زمان (مثلاً صفحه سبد و
+ * API هم‌زمان) هرگز دو سند نسازند. Index یکتای `user` دست‌نخورده
+ * می‌ماند؛ اگر Mongo با وجود Upsert هم E11000 روی `user` برگرداند
+ * (Race روی Index یکتا)، فقط همان خطا گرفته و سبد برنده دوباره
+ * خوانده می‌شود. هر خطای دیگر بدون تغییر پرتاب می‌شود.
+ */
 export async function getOrCreateCart(userId: string): Promise<CartDocument> {
-  let cart = await Cart.findOne({ user: userId });
-  if (!cart) {
-    cart = await Cart.create({ user: userId, items: [], cartTotal: 0, appliedCoupon: null });
+  // `Types.ObjectId.isValid` هر رشته ۱۲ نویسه‌ای را هم می‌پذیرد؛ این‌جا فقط Hex ۲۴ نویسه معتبر است.
+  if (!isObjectIdOrHexString(userId)) {
+    throw new Error("شناسه کاربر نامعتبر است");
   }
-  return cart;
+
+  const existing = await Cart.findOne({ user: userId });
+  if (existing) return existing;
+
+  const now = new Date();
+  try {
+    return await Cart.findOneAndUpdate(
+      { user: userId },
+      {
+        // `user` از فیلتر Upsert پر می‌شود. زمان‌ها صریح‌اند و
+        // `timestamps: false` یعنی `updatedAt` روی سبد موجود هرگز
+        // دست نمی‌خورد.
+        $setOnInsert: {
+          items: [],
+          cartTotal: 0,
+          appliedCoupon: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+      },
+      { upsert: true, returnDocument: "after", setDefaultsOnInsert: true, timestamps: false },
+    ).orFail();
+  } catch (err) {
+    if (!isCartUserDuplicateKeyError(err)) throw err;
+    const winner = await Cart.findOne({ user: userId });
+    if (!winner) throw err;
+    return winner;
+  }
 }
 
 /**
