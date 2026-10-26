@@ -31,7 +31,7 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 - **علت:** `findOne` سپس `Cart.create` اتمیک نبود؛ دو درخواست هم‌زمان (مثلاً صفحه سبد و API) هر دو «سبد نیست» می‌دیدند و دومی E11000 روی Index یکتای `user_1` می‌گرفت. فرض: علت هم‌زمانی است؛ بازتولید روی Mongo واقعی NOT VERIFIED.
 - **اصلاح:** خواندن اول (بدون نوشتن)، سپس `findOneAndUpdate` با `$setOnInsert` + `upsert` + `timestamps: false` (تا `updatedAt` سبد موجود عوض نشود)، و فقط E11000 با `keyPattern.user` گرفته و سبد برنده دوباره خوانده می‌شود. Index یکتا دست‌نخورده. `userId` نامعتبر رد می‌شود.
 - **Mongoose 9.9.3:** همه ۲۳ مورد `new: true` (۱۶ فایل، همگی `findOneAndUpdate`) → `returnDocument: "after"`.
-- **تست:** `get-or-create-cart.test.ts` (Mock) + `get-or-create-cart.integration.test.ts` (فقط با `CART_INTEGRATION_MONGODB_URI` به DB `carpet_integration_test`؛ وگرنه Skip). هم‌زمانی روی Mongo واقعی NOT VERIFIED.
+- **تست:** `get-or-create-cart.test.ts` (Mock) + `get-or-create-cart.integration.test.ts` (فقط با `CART_INTEGRATION_MONGODB_URI` به DB `carpet_integration_test`؛ وگرنه Skip). هم‌زمانی روی Mongo واقعی **VERIFIED** (اجرای واقعی کاربر، Mongo محلی): ۳ از ۳ تست `get-or-create-cart.integration.test.ts` موفق؛ ۵۰ فراخوانی هم‌زمان ← یک سبد؛ `updatedAt` سبد موجود تغییر نکرد. Atlas NOT VERIFIED.
 - **Git:** Commit/Push انجام نشد (دستور صریح کاربر).
 
 ---
