@@ -36,7 +36,7 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ---
 
-**زیرساخت تست یکپارچه (Mongo واقعی) اضافه شد:** `vitest.integration.config.mts` + `src/test/integration/` (`guard.ts`، `wallet.itest.ts`). اجرا: `npm run test:integration`. فایل‌ها `*.itest.ts` هستند، پس `npm test` آن‌ها را اجرا نمی‌کند. محافظ: فقط `mongodb://` محلی، دیتابیس دقیقاً `carpet_integration_test`، `replicaSet=rs0`، `ZARINPAL_MODE=sandbox`؛ URI از `.env.test.local` (Commit نمی‌شود). پوشش اولیه: Replica Set، Transaction واقعی، Indexهای یکتا، هم‌زمانی کسر/اعتبار کیف پول. کد اصلی تغییر نکرد. **NOT VERIFIED:** هنوز روی Mongo واقعی اجرا نشده (منتظر نتیجه کاربر).
+**زیرساخت تست یکپارچه (Mongo واقعی) اضافه شد:** `vitest.integration.config.mts` + `src/test/integration/` (`guard.ts`، `wallet.itest.ts`). اجرا: `npm run test:integration`. فایل‌ها `*.itest.ts` هستند، پس `npm test` آن‌ها را اجرا نمی‌کند. محافظ: فقط `mongodb://` محلی، دیتابیس دقیقاً `carpet_integration_test`، `replicaSet=rs0`، `ZARINPAL_MODE=sandbox`؛ URI از `.env.test.local` (Commit نمی‌شود). پوشش اولیه: Replica Set، Transaction واقعی، Indexهای یکتا، هم‌زمانی کسر/اعتبار کیف پول. کد اصلی تغییر نکرد. **VERIFIED (اجرای واقعی کاربر، ۱۴۰۵/۰۸/۰۴، Mongo محلی با Replica Set):** ۸ از ۸ تست `wallet.itest.ts` موفق شد: Replica Set، Transaction، Indexهای یکتا، ۱۰ ساخت هم‌زمان کیف پول ← ۱، ۱۰ کسر هم‌زمان ← دقیقاً ۳ موفق، ۱۰ اعتبار با یک کلید ← یک‌بار، تکرار با Session. **NOT VERIFIED:** Atlas، مسیرهای Callback/Reconcile/برداشت روی DB واقعی.
 
 ---
 
