@@ -36,6 +36,10 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ---
 
+**زیرساخت تست یکپارچه (Mongo واقعی) اضافه شد:** `vitest.integration.config.mts` + `src/test/integration/` (`guard.ts`، `wallet.itest.ts`). اجرا: `npm run test:integration`. فایل‌ها `*.itest.ts` هستند، پس `npm test` آن‌ها را اجرا نمی‌کند. محافظ: فقط `mongodb://` محلی، دیتابیس دقیقاً `carpet_integration_test`، `replicaSet=rs0`، `ZARINPAL_MODE=sandbox`؛ URI از `.env.test.local` (Commit نمی‌شود). پوشش اولیه: Replica Set، Transaction واقعی، Indexهای یکتا، هم‌زمانی کسر/اعتبار کیف پول. کد اصلی تغییر نکرد. **NOT VERIFIED:** هنوز روی Mongo واقعی اجرا نشده (منتظر نتیجه کاربر).
+
+---
+
 **آخرین کار: Phase 2.2B — مدیریت امن کدهای تأییدنشده زرین‌پال در Payment سفارش.** این بلوک ریسک «Payment سفارش هنوز همین چهار کد را `failed` می‌کند» را در بلوک 2.2A.2 پایین‌تر می‌بندد.
 
 - **رفتار جدید:** در `process-gateway-callback.ts` کدهای `-50/-51/-53/-54` (معنی رسمی‌شان NOT VERIFIED) دیگر `failed` نمی‌سازند: Payment `pending` می‌ماند، `needsManualReview: true` و `reconciliationNote = manual_review_required: gateway_reported_failure_unconfirmed (code <کد>: <پیام درگاه>)` می‌گیرد، Claim (`processingToken`/`processingStartedAt`) آزاد می‌شود، **سهم کیف پول مسترد نمی‌شود** و **اعلان شکست ارسال نمی‌شود**. صفحه `/payment/result?status=pending` همان پیام موجود را نشان می‌دهد (UI تغییر نکرد).
