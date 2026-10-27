@@ -44,8 +44,8 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 - **`wallet.itest.ts`: ۸ از ۸ موفق — VERIFIED.**
 - **`topup-callback.itest.ts`: ۷ از ۷ موفق — VERIFIED.** ۱۰ Callback شارژ هم‌زمان ← یک اعتبار؛ Callback تکراری ← بدون اعتبار دوباره؛ Verify موقتاً ناموفق ← بدون اعتبار و بدون `failed`؛ Authority نامعتبر ← `error`؛ ۱۰ رد برداشت هم‌زمان ← یک استرداد؛ رد دوباره ← `conflict`؛ تأیید و رد هم‌زمان ← فقط یکی برنده.
-- **`order-race.itest.ts`: ۲ از ۲ شکست (اجرای واقعی کاربر) — ریسک CONFIRMED.** (۱) ۱۰ سفارش هم‌زمان برای موجودی ۳ ← موجودی **-۷**؛ (۲) ۸ سفارش هم‌زمان با `perUserLimit=1` ← هر ۸ موفق.
-- **اصلاح انجام شد (کد نوشته شد؛ اجرای واقعی Mongo هنوز NOT VERIFIED — کاربر باید `order-race.itest.ts` را دوباره اجرا کند):**
+- **`order-race.itest.ts`: قبل از اصلاح ۲ از ۲ شکست (ریسک CONFIRMED)؛ بعد از اصلاح `fa2c078` ۲ از ۲ موفق — VERIFIED (اجرای واقعی کاربر، ۱۴۰۵/۰۸/۰۷، Windows، MongoDB 8.2.4 Replica Set).** مجموع `npm run test:integration`: ۳ فایل، ۱۷ از ۱۷ موفق (`order-race` ۲، `topup-callback` ۷، `wallet` ۸). شرح خطای اولیه: (۱) ۱۰ سفارش هم‌زمان برای موجودی ۳ ← موجودی **-۷**؛ (۲) ۸ سفارش هم‌زمان با `perUserLimit=1` ← هر ۸ موفق.
+- **اصلاح انجام شد (Commit `fa2c078`) و روی Mongo واقعی VERIFIED شد (Oversell و دور زدن `perUserLimit` بسته شد). NOT VERIFIED: Atlas و ساخت Unique Index جدید در Deploy:**
   - `lib/orders/reserve-stock.ts` (جدید): `updateOne` با `variants: {$elemMatch: {_id, isActive: true, stock: {$gte: quantity}}}` و `modifiedCount === 1`؛ خط ناموفق ← خطوط قبلی همان سفارش برگردانده می‌شوند ← `OrderCreationError` ۴۰۹. `releaseStock` برای جبران.
   - `models/CouponUserUsage.ts` (جدید، Unique Index `{coupon, user}`) + `reserveCouponUserUsage`/`releaseCouponUserUsage` در `redeem-coupon.ts`: شمارنده‌ی اتمیک `count < perUserLimit`؛ ساخت اولیه با `usedBefore` (Redemptionهای قبلی) و E11000 ← تلاش دوباره. شکست ← ۴۰۹.
   - `create-order.ts`: ترتیب رزرو: سقف کلی کد ← سقف هر کاربر ← موجودی؛ شکست هر مرحله یا `Order.create` همه‌ی رزروهای قبلی را برعکس جبران می‌کند (قبلاً موجودی در شکست `Order.create` برنمی‌گشت).
