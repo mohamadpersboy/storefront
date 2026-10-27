@@ -7,6 +7,7 @@ import { User } from "@/models/User";
 import { Order } from "@/models/Order";
 import { Coupon } from "@/models/Coupon";
 import { CouponRedemption } from "@/models/CouponRedemption";
+import { CouponUserUsage } from "@/models/CouponUserUsage";
 
 const newId = () => new mongoose.Types.ObjectId();
 const tag = `itest${Date.now()}`;
@@ -45,12 +46,14 @@ async function makeProduct(stock: number) {
 beforeAll(async () => {
   await connectToDatabase();
   await CouponRedemption.syncIndexes();
+  await CouponUserUsage.syncIndexes();
 });
 
 afterAll(async () => {
   if (mongoose.connection.readyState === 1) {
     await Order.deleteMany({ customer: { $in: userIds } });
     await CouponRedemption.deleteMany({ user: { $in: userIds } });
+    await CouponUserUsage.deleteMany({ coupon: { $in: couponIds } });
     await Coupon.deleteMany({ _id: { $in: couponIds } });
     await Product.deleteMany({ _id: { $in: productIds } });
     await User.deleteMany({ _id: { $in: userIds } });

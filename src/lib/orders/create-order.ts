@@ -13,9 +13,12 @@ import { notifyOrderCreated } from "@/lib/notifications/events";
 import {
   reserveCouponUsage,
   releaseCouponReservation,
+  reserveCouponUserUsage,
+  releaseCouponUserUsage,
   recordCouponRedemption,
   CouponRedemptionError,
 } from "@/lib/discounts/redeem-coupon";
+import { reserveStock, releaseStock, StockReservationError } from "@/lib/orders/reserve-stock";
 
 const ORDER_NUMBER_OFFSET = 10_000;
 
@@ -120,6 +123,7 @@ export async function createOrder(params: CreateOrderParams) {
   // Discount resolution (§41/§42): a Coupon, if provided and valid,
   // takes precedence over the automatic Payment Reward — never both.
   let couponDoc: CouponDocument | null = null;
+  let couponUsedByUserCount = 0;
   if (couponCode) {
     couponDoc = await Coupon.findOne({ code: couponCode.trim().toUpperCase() });
     if (!couponDoc) {
@@ -129,6 +133,7 @@ export async function createOrder(params: CreateOrderParams) {
       coupon: couponDoc._id,
       user: customer._id,
     });
+    couponUsedByUserCount = usedByUserCount;
     const eligibility = validateCouponEligibility({
       coupon: {
         code: couponDoc.code,
@@ -175,13 +180,46 @@ export async function createOrder(params: CreateOrderParams) {
 
   const orderNumber = ORDER_NUMBER_OFFSET + (await getNextSequence("orderNumber"));
 
-  // Reserve the coupon's usage slot (atomic — see §28) before any
-  // mutation happens, so a lost race never leaves stock decremented
-  // for an order that's about to be rejected.
+  // Reserve (all atomic, in this order) before the order exists, and
+  // compensate in reverse on any failure so a rejected/failed order never
+  // burns a coupon slot or leaves stock decremented:
+  //   1) global coupon slot (usageLimit)  2) per-user coupon slot
+  //   (perUserLimit)  3) stock.
+  let couponReserved = false;
+  let userUsageReserved = false;
+  const releaseReservations = async (stockReserved: boolean) => {
+    if (stockReserved) await releaseStock(stockLines);
+    if (couponDoc && userUsageReserved) {
+      await releaseCouponUserUsage({
+        couponId: String(couponDoc._id),
+        userId: String(customer._id),
+        perUserLimit: couponDoc.perUserLimit,
+      }).catch(() => undefined);
+    }
+    if (couponDoc && couponReserved) {
+      await releaseCouponReservation(String(couponDoc._id)).catch(() => undefined);
+    }
+  };
+  const stockLines = orderItems.map((i) => ({
+    product: i.product,
+    variantId: i.variantId,
+    title: i.title,
+    quantity: i.quantity,
+  }));
+
   if (couponDoc) {
     try {
       await reserveCouponUsage(String(couponDoc._id));
+      couponReserved = true;
+      await reserveCouponUserUsage({
+        couponId: String(couponDoc._id),
+        userId: String(customer._id),
+        perUserLimit: couponDoc.perUserLimit,
+        usedBefore: couponUsedByUserCount,
+      });
+      userUsageReserved = couponDoc.perUserLimit !== null;
     } catch (error) {
+      await releaseReservations(false);
       if (error instanceof CouponRedemptionError) {
         throw new OrderCreationError(error.message, 409);
       }
@@ -189,12 +227,16 @@ export async function createOrder(params: CreateOrderParams) {
     }
   }
 
-  // Decrement stock for each variant sold.
-  for (const item of items) {
-    await Product.updateOne(
-      { _id: item.productId, "variants._id": item.variantId },
-      { $inc: { "variants.$.stock": -item.quantity } },
-    );
+  // Atomic conditional stock decrement (`stock >= quantity` inside the
+  // same update) — never oversells under concurrent orders.
+  try {
+    await reserveStock(stockLines);
+  } catch (error) {
+    await releaseReservations(false);
+    if (error instanceof StockReservationError) {
+      throw new OrderCreationError(error.message, 409);
+    }
+    throw error;
   }
 
   let order;
@@ -233,11 +275,9 @@ export async function createOrder(params: CreateOrderParams) {
       ],
     });
   } catch (error) {
-    // Compensate the coupon reservation — a failed order must never
-    // permanently burn a limited-use coupon slot.
-    if (couponDoc) {
-      await releaseCouponReservation(String(couponDoc._id)).catch(() => undefined);
-    }
+    // Compensate everything reserved above — a failed order must never
+    // permanently burn a coupon slot or leave stock decremented.
+    await releaseReservations(true);
     throw error;
   }
 
