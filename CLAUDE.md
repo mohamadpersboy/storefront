@@ -40,7 +40,18 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ---
 
-**تست یکپارچه گروه ۳ نوشته شد (Mongo واقعی) — هنوز NOT VERIFIED (اجرای واقعی کاربر لازم است).** فایل‌ها در `src/test/integration/`: `topup-callback.itest.ts` (۱۰ Callback شارژ هم‌زمان ← یک اعتبار؛ Callback تکراری؛ Verify موقتاً ناموفق ← بدون اعتبار و بدون `failed`؛ ۱۰ رد برداشت هم‌زمان ← یک استرداد؛ رد دوباره ← `conflict`؛ تأیید و رد هم‌زمان ← حالت میانی ممنوع) و `order-race.itest.ts` (۱۰ سفارش هم‌زمان برای ۳ موجودی؛ ۸ سفارش هم‌زمان یک کاربر با `perUserLimit=1`). فقط `verifyZarinpalPayment` Mock است. **انتظار:** دو تست `order-race` احتمالاً شکست می‌خورند، چون کسر موجودی در `createOrder` شرط `stock >= quantity` ندارد و شمارش `perUserLimit` قبل از رزرو و غیر اتمیک است. این دو ریسک واقعی‌اند. اصلاح فقط بعد از دیدن خروجی واقعی انجام می‌شود. Lint ✅ Typecheck ✅ `npm test` ✅ (۹۲۹). Build دوباره اجرا نشد (فقط فایل تست اضافه شد؛ Build محلی بدون Env/Mongo واقعی کامل نمی‌شود).
+**تست یکپارچه گروه ۳ روی Mongo واقعی اجرا شد (۱۴۰۵/۰۸/۰۵ — اجرای واقعی کاربر، Windows، MongoDB 8.2.4، Replica Set محلی `rs0`، DB `carpet_integration_test`، HEAD `3bd8ae8`).**
+
+- **`wallet.itest.ts`: ۸ از ۸ موفق — VERIFIED.**
+- **`topup-callback.itest.ts`: ۷ از ۷ موفق — VERIFIED.** ۱۰ Callback شارژ هم‌زمان ← یک اعتبار؛ Callback تکراری ← بدون اعتبار دوباره؛ Verify موقتاً ناموفق ← بدون اعتبار و بدون `failed`؛ Authority نامعتبر ← `error`؛ ۱۰ رد برداشت هم‌زمان ← یک استرداد؛ رد دوباره ← `conflict`؛ تأیید و رد هم‌زمان ← فقط یکی برنده.
+- **`order-race.itest.ts`: ۲ از ۲ شکست — ریسک واقعی CONFIRMED، هنوز NOT FIXED.**
+  1. ۱۰ سفارش هم‌زمان برای موجودی ۳ ← موجودی نهایی **-۷** (Oversell). علت مورد انتظار: کسر موجودی در `lib/orders/create-order.ts` شرط `stock >= quantity` ندارد و فقط پیش‌بررسی غیر اتمیک دارد.
+  2. ۸ سفارش هم‌زمان یک کاربر با `perUserLimit=1` ← هر ۸ سفارش موفق شد. شمارش سقف قبل از رزرو و غیر اتمیک است.
+- **اصلاح هر دو:** هنوز انجام نشده؛ فقط با تأیید صریح کاربر (Phase 5 و Phase 9 Master Prompt). اجرای این دو تست بعد از اصلاح، معیار پذیرش است.
+- **اجرای تست روی Windows:** در PowerShell از `npx.cmd` استفاده شود (`npx.ps1` با Execution Policy مسدود می‌شود). Replica Set: `mongod --replSet rs0 --bind_ip 127.0.0.1 --dbpath C:\mongo-rs0\data` سپس `rs.initiate` در `mongosh`.
+- **Discovery (Phase 2.2A.3، ۱۴۰۵/۰۸/۰۵، فقط‌خواندنی):** عبارت «2.2A.3» گزارش رسمی یا Commit ندارد؛ کد آشتی‌سازی TopUp در 2.2A و 2.2A.2 است. روی `3bd8ae8` Lint ✅ Typecheck ✅ `npm test` ✅ (۹۲۹ موفق، ۳ Skip) Build ✅ (با Env ساختگی). `npm audit` روی ماشین کاربر ۱۱ آسیب‌پذیری گزارش داد (۱ Critical، ۷ High، ۳ Moderate) ← برای Phase 10. **NOT VERIFIED:** Atlas؛ مقایسه مبلغ پاسخ درگاه (`zarinpal.ts` فقط مبلغ را می‌فرستد)؛ شرط اتمیک موجودی در Query خط ۱۹۶ `create-order.ts`.
+- **باز (تأییدنشده برای پیاده‌سازی):** نمای ادمین `needsManualReview`؛ کلید Idempotency برای تعدیل دستی (`wallets/[userId]/adjust`)، ثبت برداشت (`wallet/withdrawals`) و کسر/استرداد در `initiate-order-payment.ts` (خط ۸۲ و ۱۳۱)؛ رشد `appliedOperationKeys`؛ `alreadyPaid` فقط `amount` را جمع می‌کند؛ Reuse هم‌زمان Payment باز؛ Job آشتی‌سازی Payment سفارش (Phase 3).
+- **Git:** این بلوک فقط ثبت مستندات است؛ کد تغییر نکرده است.
 
 ---
 
