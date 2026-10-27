@@ -40,6 +40,10 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ---
 
+**تست یکپارچه گروه ۳ نوشته شد (Mongo واقعی) — هنوز NOT VERIFIED (اجرای واقعی کاربر لازم است).** فایل‌ها در `src/test/integration/`: `topup-callback.itest.ts` (۱۰ Callback شارژ هم‌زمان ← یک اعتبار؛ Callback تکراری؛ Verify موقتاً ناموفق ← بدون اعتبار و بدون `failed`؛ ۱۰ رد برداشت هم‌زمان ← یک استرداد؛ رد دوباره ← `conflict`؛ تأیید و رد هم‌زمان ← حالت میانی ممنوع) و `order-race.itest.ts` (۱۰ سفارش هم‌زمان برای ۳ موجودی؛ ۸ سفارش هم‌زمان یک کاربر با `perUserLimit=1`). فقط `verifyZarinpalPayment` Mock است. **انتظار:** دو تست `order-race` احتمالاً شکست می‌خورند، چون کسر موجودی در `createOrder` شرط `stock >= quantity` ندارد و شمارش `perUserLimit` قبل از رزرو و غیر اتمیک است. این دو ریسک واقعی‌اند. اصلاح فقط بعد از دیدن خروجی واقعی انجام می‌شود. Lint ✅ Typecheck ✅ `npm test` ✅ (۹۲۹). Build دوباره اجرا نشد (فقط فایل تست اضافه شد؛ Build محلی بدون Env/Mongo واقعی کامل نمی‌شود).
+
+---
+
 **آخرین کار: Phase 2.2B — مدیریت امن کدهای تأییدنشده زرین‌پال در Payment سفارش.** این بلوک ریسک «Payment سفارش هنوز همین چهار کد را `failed` می‌کند» را در بلوک 2.2A.2 پایین‌تر می‌بندد.
 
 - **رفتار جدید:** در `process-gateway-callback.ts` کدهای `-50/-51/-53/-54` (معنی رسمی‌شان NOT VERIFIED) دیگر `failed` نمی‌سازند: Payment `pending` می‌ماند، `needsManualReview: true` و `reconciliationNote = manual_review_required: gateway_reported_failure_unconfirmed (code <کد>: <پیام درگاه>)` می‌گیرد، Claim (`processingToken`/`processingStartedAt`) آزاد می‌شود، **سهم کیف پول مسترد نمی‌شود** و **اعلان شکست ارسال نمی‌شود**. صفحه `/payment/result?status=pending` همان پیام موجود را نشان می‌دهد (UI تغییر نکرد).
