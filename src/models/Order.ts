@@ -80,6 +80,15 @@ export interface IOrder {
   // دست‌نخورده می‌ماند، دقیقاً طبق تصمیم مستندشده که موفقیت پرداخت
   // آنلاین بدون دخالت این فیلد جدید ثبت می‌شود.
   paidAmount: number;
+  /**
+   * Claim اتمیک «شروع پرداخت» (فقط یک شروع پرداخت هم‌زمان برای هر سفارش).
+   * فقط مالک Token آن را آزاد می‌کند؛ Claim کهنه (TTL) قابل تصاحب است.
+   * افزایشی: نبود فیلد = null = بدون Claim.
+   */
+  paymentInitiationToken?: string | null;
+  paymentInitiationStartedAt?: Date | null;
+  /** شناسه Payment در حال ساخت؛ برای بازیابی کسر یتیم کیف پول بعد از کرش. */
+  paymentInitiationPaymentId?: Types.ObjectId | null;
   status: OrderStatus;
   statusHistory: IOrderStatusHistoryEntry[];
   notes: string;
@@ -173,6 +182,9 @@ const OrderSchema = new Schema<IOrder>(
     prepaymentAmount: { type: Number, required: true, min: 0 },
     remainingAmount: { type: Number, required: true, min: 0 },
     paidAmount: { type: Number, default: 0, min: 0 },
+    paymentInitiationToken: { type: String, default: null },
+    paymentInitiationStartedAt: { type: Date, default: null },
+    paymentInitiationPaymentId: { type: Schema.Types.ObjectId, default: null },
     status: {
       type: String,
       enum: ORDER_STATUSES,

@@ -26,6 +26,19 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: Idempotency و قفل شروع پرداخت سفارش (`initiate-order-payment.ts`) — کد نوشته شد؛ تست Mongo واقعی NOT VERIFIED (اجرای کاربر لازم است).**
+
+- **علت:** کسر/استرداد کیف پول در شروع پرداخت بدون کلید بود؛ دو شروع هم‌زمان برای یک سفارش دو بار کیف پول را کسر و دو Authority می‌ساختند (Reuse Payment باز غیر اتمیک)؛ `alreadyPaid` فقط `amount` را جمع می‌کرد، پس سفارش ترکیبی کاملاً پرداخت‌شده دوباره قابل پرداخت بود.
+- **قفل:** Claim اتمیک روی `Order` (`paymentInitiationToken`، `paymentInitiationStartedAt`، `paymentInitiationPaymentId`؛ فیلدهای افزایشی، بدون Index). TTL ۲ دقیقه (فقط Heuristic). درخواست هم‌زمان دیگر ← ۴۰۹. Claim فقط توسط مالک Token آزاد می‌شود (`finally`).
+- **کلیدها (`lib/payment/payment-keys.ts`):** کسر `payment-wallet-debit:<paymentId>`؛ استرداد `payment-refund:<paymentId>` (همان کلید Callback درگاه؛ یک Payment فقط یک استرداد). `paymentId` قبل از کار مالی ساخته و روی Claim ثبت می‌شود و با همان `_id` در `Payment.create` استفاده می‌شود.
+- **بازیابی کرش:** Claim کهنه‌ای که تصاحب می‌شود، اگر Payment آن `paymentId` وجود ندارد ولی کسر اعمال شده، با کلید استرداد برمی‌گرداند (`isWalletOperationApplied` در `wallet-service.ts`).
+- **اصلاح `alreadyPaid`:** جمع `amount + walletAmount` Paymentهای `paid`.
+- **شکست‌ها:** رد درگاه، Exception درگاه یا شکست `Payment.create` ← استرداد سهم کیف پول با کلید یکتا. تغییر هم‌زمان موجودی کیف پول ← ۴۰۹ (قبلاً خطای خام). `authority` پرداخت کامل از کیف پول: `wallet-<paymentId>`.
+- **تست:** ۱۰ تست واحد جدید (Fake Store) در `initiate-order-payment.test.ts`؛ `src/test/integration/initiate-payment.itest.ts` (۵ تست Mongo واقعی: ۱۰ شروع هم‌زمان ← یک Payment/یک درخواست درگاه/یک کسر؛ رد درگاه ← یک استرداد؛ `alreadyPaid` ترکیبی؛ Reuse؛ پرداخت کامل از کیف پول) نوشته شد و **هنوز اجرا نشده**. Lint ✅ Typecheck ✅ `npm test` ✅ (۹۵۳).
+- **محدودیت/باز:** Claim کهنه بیش از TTL (کندی درگاه > ۲ دقیقه) می‌تواند دو شروع هم‌زمان ایجاد کند؛ `requestZarinpalPayment` Timeout ندارد (فقط `verify` دارد). Authority ساخته‌شده توسط درگاه که `Payment.create` بعدش شکست بخورد یتیم می‌ماند (پول کیف پول برمی‌گردد). کسر/استرداد در `wallets/[userId]/adjust` و `wallet/withdrawals` هنوز بدون کلید است (خارج از Scope).
+
+---
+
 **آخرین کار: رفع Race ساخت سبد (`getOrCreateCart`) + هشدار Deprecation مانگوس.**
 
 - **علت:** `findOne` سپس `Cart.create` اتمیک نبود؛ دو درخواست هم‌زمان (مثلاً صفحه سبد و API) هر دو «سبد نیست» می‌دیدند و دومی E11000 روی Index یکتای `user_1` می‌گرفت. فرض: علت هم‌زمانی است؛ بازتولید روی Mongo واقعی NOT VERIFIED.

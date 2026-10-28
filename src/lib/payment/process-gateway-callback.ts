@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { paymentRefundKey } from "@/lib/payment/payment-keys";
 import type { Types } from "mongoose";
 import { Payment, type PaymentStatus } from "@/models/Payment";
 import { Order } from "@/models/Order";
@@ -232,7 +233,7 @@ export async function processGatewayCallback(params: {
         amount: walletAmount,
         reason: `استرداد بخش کیف پول — پرداخت سفارش #${order?.orderNumber} توسط درگاه تأیید نشد`,
         performedBy: customerId,
-        idempotencyKey: `payment-refund:${String(payment._id)}`,
+        idempotencyKey: paymentRefundKey(payment._id),
         session,
       });
     }

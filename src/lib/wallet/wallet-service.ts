@@ -20,6 +20,12 @@ export async function getOrCreateWallet(userId: string): Promise<WalletDocument>
   return wallet;
 }
 
+/** آیا عملیاتی با این کلید Idempotency قبلاً روی کیف پول این کاربر اعمال شده است؟ */
+export async function isWalletOperationApplied(userId: string, idempotencyKey: string): Promise<boolean> {
+  const hit = await Wallet.exists({ user: userId, appliedOperationKeys: idempotencyKey });
+  return hit !== null;
+}
+
 /**
  * تعدیل موجودی — دو مسیر واقعی به این تابع می‌رسند: (۱) تعدیل دستی
  * ادمین از داشبورد (بدون درگاه، طبق تصمیم اولیه کارفرما) و (۲) شارژ
