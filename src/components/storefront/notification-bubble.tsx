@@ -50,7 +50,7 @@ export function NotificationBubble({
 
   return (
     <article
-      className="max-w-[94%] self-end overflow-hidden rounded-2xl rounded-se-md bg-white shadow-[0_1px_2px_rgba(3,23,37,0.18)]"
+      className="w-[min(288px,100%)] self-end overflow-hidden rounded-2xl rounded-se-md bg-white shadow-[0_1px_2px_rgba(3,23,37,0.18)]"
       aria-label={item.title}
     >
       {/* نوع پیام (سیستم/سفارش/...) بالای حباب، پررنگ و به رنگ تم سایت */}

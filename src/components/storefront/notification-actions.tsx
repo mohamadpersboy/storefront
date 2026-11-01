@@ -2,12 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Check, Copy } from "lucide-react";
+import { Check, ChevronLeft, Copy } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 const COPIED_FEEDBACK_MS = 1800;
 
-/** دکمهٔ Outline خاکستری برای رفتن به یک صفحه (جزئیات سفارش، لینک اعلان و ...). */
+/**
+ * سبک مشترک همهٔ دکمه‌های حباب: Outline لاجوردی (رنگ تم) با پس‌زمینهٔ
+ * ملایم و حاشیهٔ ۲px، هم‌شکل دکمهٔ «پرداخت» در سبد خرید.
+ */
+const OUTLINE_BUTTON =
+  "flex min-h-12 w-full items-center justify-center gap-1.5 rounded-xl border-2 border-[var(--color-primary)] bg-[var(--color-primary-soft)] px-4 text-sm font-bold text-[var(--color-primary)] transition-colors active:bg-[var(--color-primary)]/10";
+
+/** دکمهٔ Outline برای رفتن به یک صفحه (جزئیات سفارش، لینک اعلان و ...). */
 export function NotificationLinkButton({
   href,
   children,
@@ -18,14 +25,9 @@ export function NotificationLinkButton({
   className?: string;
 }) {
   return (
-    <Link
-      href={href}
-      className={cn(
-        "flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-gray-300 bg-transparent px-4 text-sm font-medium text-gray-600 transition-colors active:bg-gray-100",
-        className,
-      )}
-    >
+    <Link href={href} className={cn(OUTLINE_BUTTON, className)}>
       {children}
+      <ChevronLeft className="size-4" strokeWidth={2.5} aria-hidden="true" />
     </Link>
   );
 }
@@ -55,11 +57,7 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
-/**
- * دکمهٔ Outline با حاشیهٔ گرادینت برای کپی کد تخفیف. حاشیه با یک
- * Wrapper گرادینتی و لایهٔ سفید داخلی ساخته شده (Border مستقیم
- * گرادینت نمی‌گیرد، ولی `border-radius` را درست دنبال می‌کند).
- */
+/** دکمهٔ Outline کپی کد تخفیف (هم‌سبک بقیهٔ دکمه‌ها؛ منقضی ← خاکستری و غیرفعال). */
 export function CopyCodeButton({ code, disabled }: { code: string; disabled?: boolean }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,37 +78,31 @@ export function CopyCodeButton({ code, disabled }: { code: string; disabled?: bo
   }
 
   return (
-    <div
+    <button
+      type="button"
+      onClick={handleCopy}
+      disabled={disabled}
+      aria-live="polite"
       className={cn(
-        "rounded-xl p-[1.5px]",
-        disabled
-          ? "bg-gray-200"
-          : "bg-gradient-to-l from-[#499bed] via-[#8b5cf6] to-[#ec4899]",
+        OUTLINE_BUTTON,
+        disabled &&
+          "cursor-not-allowed border-gray-300 bg-gray-100 text-gray-400 active:bg-gray-100",
+        copied && "border-emerald-500 bg-emerald-50 text-emerald-600 active:bg-emerald-50",
       )}
     >
-      <button
-        type="button"
-        onClick={handleCopy}
-        disabled={disabled}
-        aria-live="polite"
-        className="flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-[10.5px] bg-white px-4 text-sm font-bold disabled:cursor-not-allowed active:bg-gray-50"
-      >
-        {disabled ? (
-          <span className="text-gray-400">کد منقضی شده است</span>
-        ) : copied ? (
-          <>
-            <Check className="size-4 text-emerald-500" strokeWidth={2.25} aria-hidden="true" />
-            <span className="text-emerald-600">کد کپی شد</span>
-          </>
-        ) : (
-          <>
-            <Copy className="size-4 text-[#8b5cf6]" strokeWidth={2} aria-hidden="true" />
-            <span className="bg-gradient-to-l from-[#499bed] via-[#8b5cf6] to-[#ec4899] bg-clip-text text-transparent">
-              کپی کد تخفیف
-            </span>
-          </>
-        )}
-      </button>
-    </div>
+      {disabled ? (
+        "کد منقضی شده است"
+      ) : copied ? (
+        <>
+          <Check className="size-4" strokeWidth={2.5} aria-hidden="true" />
+          کد کپی شد
+        </>
+      ) : (
+        <>
+          <Copy className="size-4" strokeWidth={2.25} aria-hidden="true" />
+          کپی کد تخفیف
+        </>
+      )}
+    </button>
   );
 }
