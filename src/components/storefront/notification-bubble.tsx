@@ -11,22 +11,21 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
 import { formatChatClock, notificationLinkLabel } from "@/lib/notifications/chat-format";
 import { stripCouponLines } from "@/lib/notifications/templates";
 import type { NotificationDetailDTO, NotificationType } from "@/lib/notifications/constants";
 import { CopyCodeButton, NotificationLinkButton } from "@/components/storefront/notification-actions";
 import { CouponDetailsCard, OrderSummaryCard } from "@/components/storefront/notification-cards";
 
-const TYPE_LABEL: Record<NotificationType, { label: string; icon: LucideIcon; color: string }> = {
-  announcement: { label: "اطلاعیه", icon: Megaphone, color: "text-sky-600" },
-  promotion: { label: "تخفیف و کمپین", icon: Percent, color: "text-amber-600" },
-  coupon: { label: "کد تخفیف", icon: Gift, color: "text-emerald-600" },
-  special_offer: { label: "پیشنهاد ویژه", icon: Percent, color: "text-rose-600" },
-  order: { label: "سفارش", icon: Package, color: "text-indigo-600" },
-  referral: { label: "دعوت دوستان", icon: Users, color: "text-violet-600" },
-  coupon_expiry: { label: "یادآوری کد تخفیف", icon: Timer, color: "text-orange-600" },
-  system: { label: "سیستم", icon: Bell, color: "text-gray-600" },
+const TYPE_LABEL: Record<NotificationType, { label: string; icon: LucideIcon }> = {
+  announcement: { label: "اطلاعیه", icon: Megaphone },
+  promotion: { label: "تخفیف و کمپین", icon: Percent },
+  coupon: { label: "کد تخفیف", icon: Gift },
+  special_offer: { label: "پیشنهاد ویژه", icon: Percent },
+  order: { label: "سفارش", icon: Package },
+  referral: { label: "دعوت دوستان", icon: Users },
+  coupon_expiry: { label: "یادآوری کد تخفیف", icon: Timer },
+  system: { label: "سیستم", icon: Bell },
 };
 
 /**
@@ -51,28 +50,32 @@ export function NotificationBubble({
 
   return (
     <article
-      className="max-w-[94%] self-start overflow-hidden rounded-2xl rounded-ss-md bg-white shadow-[0_1px_2px_rgba(3,23,37,0.18)]"
+      className="max-w-[94%] self-end overflow-hidden rounded-2xl rounded-se-md bg-white shadow-[0_1px_2px_rgba(3,23,37,0.18)]"
       aria-label={item.title}
     >
-      {item.imageUrl ? (
-        <Image
-          src={item.imageUrl}
-          alt=""
-          width={800}
-          height={450}
-          sizes="(max-width: 1024px) 94vw, 420px"
-          className="h-auto w-full"
-        />
-      ) : null}
-
-      <div className="space-y-2.5 px-3.5 pb-2 pt-2.5">
-        <p className={cn("flex items-center gap-1 text-[11px] font-bold", type.color)}>
+      {/* عنوان‌ها همیشه بالای همهٔ محتوا (حتی تصویر) و به رنگ تم سایت */}
+      <div className="space-y-1 px-3.5 pt-2.5">
+        <p className="flex items-center gap-1 text-[11px] font-bold text-[var(--color-primary)]/80">
           <TypeIcon className="size-3.5" strokeWidth={2} aria-hidden="true" />
           {type.label}
         </p>
+        <h2 className="text-sm font-bold leading-6 text-[var(--color-primary)]">{item.title}</h2>
+      </div>
 
-        <h2 className="text-sm font-bold leading-6 text-[var(--sf-ink)]">{item.title}</h2>
+      {item.imageUrl ? (
+        <div className="px-1 pt-1.5">
+          <Image
+            src={item.imageUrl}
+            alt=""
+            width={800}
+            height={450}
+            sizes="(max-width: 1024px) 94vw, 420px"
+            className="h-auto w-full rounded-[6px]"
+          />
+        </div>
+      ) : null}
 
+      <div className="space-y-2.5 px-3.5 pb-2 pt-2">
         {item.contentFormat === "html" && text ? (
           <div
             className="notification-content text-[13px] leading-6 text-[var(--sf-ink)]"
@@ -95,8 +98,8 @@ export function NotificationBubble({
           </NotificationLinkButton>
         ) : null}
 
-        <p className="flex items-center justify-end gap-1 text-[11px] text-gray-400">
-          <span>{formatChatClock(item.publishAt)}</span>
+        {/* راست پیام: اول تیک دیده‌شدن، بعد ساعت */}
+        <p className="flex items-center justify-start gap-1 text-[11px] text-gray-400">
           {showReadState ? (
             item.isRead ? (
               <>
@@ -110,6 +113,7 @@ export function NotificationBubble({
               </>
             )
           ) : null}
+          <span>{formatChatClock(item.publishAt)}</span>
         </p>
       </div>
     </article>

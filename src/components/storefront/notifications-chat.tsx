@@ -134,11 +134,13 @@ export function NotificationsChat({
       {/* پس‌زمینهٔ چت؛ روی دسکتاپ `fixed` نسبت به قاب موبایل است. */}
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-[#e9dfa8]">
         <Image
-          src="/images/notifications-chat-bg.webp"
+          src="/images/notifications-chat-bg.jpg"
           alt=""
           fill
           priority
-          sizes="(max-width: 1024px) 100vw, 448px"
+          // فایل اصلی (۱۵۵۱×۲۳۸۰) بدون Resize/فشرده‌سازی مجدد، برای وضوح کامل.
+          unoptimized
+          sizes="100vw"
           className="object-cover"
         />
       </div>
