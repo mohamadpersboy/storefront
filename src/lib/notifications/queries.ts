@@ -48,6 +48,40 @@ export async function listVisibleNotifications(params: {
   limit: number;
   now?: Date;
 }): Promise<NotificationListResult> {
+  return listVisibleNotificationsInternal(params, toNotificationDTO);
+}
+
+export interface NotificationDetailListResult {
+  items: NotificationDetailDTO[];
+  pagination: NotificationListResult["pagination"];
+  /** لحظهٔ ساخت پاسخ (ms)؛ مبنای یکسان سرور/Client برای «امروز» و زمان باقی‌مانده. */
+  generatedAt: number;
+}
+
+/**
+ * مثل `listVisibleNotifications` ولی با متن کامل و `meta` (برای صفحهٔ
+ * چت‌مانند `/notifications`). متن HTML هنگام خروجی دوباره Sanitize می‌شود.
+ */
+export async function listVisibleNotificationsDetailed(params: {
+  viewer: NotificationViewer | null;
+  page: number;
+  limit: number;
+  now?: Date;
+}): Promise<NotificationDetailListResult> {
+  const now = params.now ?? new Date();
+  const result = await listVisibleNotificationsInternal({ ...params, now }, toNotificationDetailDTO);
+  return { ...result, generatedAt: now.getTime() };
+}
+
+async function listVisibleNotificationsInternal<T>(
+  params: {
+    viewer: NotificationViewer | null;
+    page: number;
+    limit: number;
+    now?: Date;
+  },
+  serialize: (doc: LeanNotification, isRead: boolean) => T,
+): Promise<{ items: T[]; pagination: NotificationListResult["pagination"] }> {
   const now = params.now ?? new Date();
   const { viewer } = params;
 
@@ -77,7 +111,7 @@ export async function listVisibleNotifications(params: {
 
   return {
     items: docs.map((doc) =>
-      toNotificationDTO(
+      serialize(
         doc,
         viewer && seenAt
           ? isNotificationRead(doc.publishAt, seenAt, readIds.has(String(doc._id)))

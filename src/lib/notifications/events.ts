@@ -4,6 +4,7 @@ import { dedupeKeys } from "./dedupe";
 import { NOTIFICATION_LINKS } from "./links-map";
 import { safeCreateNotification, safeCreateNotifications, type NewNotification } from "./service";
 import {
+  couponMeta,
   couponExpiryReminderText,
   orderCreatedText,
   orderStatusText,
@@ -38,6 +39,7 @@ export async function notifyOrderCreated(p: {
     ...orderCreatedText(p.orderNumber),
     link: NOTIFICATION_LINKS.order(orderId),
     ref: { kind: "order", id: orderId },
+    meta: { kind: "order", orderNumber: p.orderNumber, status: "pending" },
     dedupeKey: dedupeKeys.orderCreated(orderId),
   });
 }
@@ -58,6 +60,7 @@ export async function notifyOrderStatusChanged(p: {
     ...text,
     link: NOTIFICATION_LINKS.order(orderId),
     ref: { kind: "order", id: orderId },
+    meta: { kind: "order", orderNumber: p.orderNumber, status: p.status },
     // وضعیت‌های سفارش فقط رو به جلو می‌روند؛ (سفارش، وضعیت) یکتاست.
     dedupeKey: dedupeKeys.orderStatus(orderId, p.status),
   });
@@ -79,6 +82,11 @@ export async function notifyPaymentResult(p: {
     ...(p.success ? paymentSuccessText(p.orderNumber) : paymentFailedText(p.orderNumber)),
     link: NOTIFICATION_LINKS.order(orderId),
     ref: { kind: "order", id: orderId },
+    meta: {
+      kind: "order",
+      orderNumber: p.orderNumber,
+      payment: p.success ? "success" : "failed",
+    },
     dedupeKey: p.success
       ? dedupeKeys.paymentSuccess(paymentId)
       : dedupeKeys.paymentFailed(paymentId),
@@ -109,6 +117,7 @@ export async function notifyCouponCreated(coupon: CouponForNotification, now = n
       ...publicCouponText(coupon),
       link: NOTIFICATION_LINKS.coupons,
       ref: { kind: "coupon", id: couponId },
+      meta: couponMeta(coupon),
       publishAt,
       expiresAt: coupon.expiresAt,
       dedupeKey: dedupeKeys.couponPublic(couponId),
@@ -125,6 +134,7 @@ export async function notifyCouponCreated(coupon: CouponForNotification, now = n
         ...personalCouponText(coupon),
         link: NOTIFICATION_LINKS.coupons,
         ref: { kind: "coupon", id: couponId },
+        meta: couponMeta(coupon),
         publishAt,
         expiresAt: coupon.expiresAt,
         dedupeKey: dedupeKeys.couponPersonal(couponId, String(userId)),
@@ -146,6 +156,7 @@ export function buildCouponExpiryReminder(p: {
     ...couponExpiryReminderText(p.coupon, p.now),
     link: NOTIFICATION_LINKS.coupons,
     ref: { kind: "coupon", id: couponId },
+    meta: couponMeta(p.coupon),
     expiresAt: p.coupon.expiresAt,
     dedupeKey: dedupeKeys.couponExpiry(couponId, String(p.userId)),
   };
@@ -193,6 +204,7 @@ export async function notifyReferralReward(p: {
     ...referralRewardText(p.coupon),
     link: NOTIFICATION_LINKS.coupons,
     ref: { kind: "referral", id: referralId },
+    meta: couponMeta(p.coupon),
     expiresAt: p.coupon.expiresAt,
     dedupeKey: dedupeKeys.referralReward(referralId),
   });

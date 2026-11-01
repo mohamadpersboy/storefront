@@ -8,6 +8,7 @@ import {
   NOTIFICATION_TYPES,
   type NotificationAudience,
   type NotificationContentFormat,
+  type NotificationMeta,
   type NotificationRefKind,
   type NotificationStatus,
   type NotificationType,
@@ -37,6 +38,8 @@ export interface INotification {
   imageUrl: string | null;
   link: string | null;
   ref: { kind: NotificationRefKind; id: Types.ObjectId } | null;
+  /** Snapshot برای کارت‌های چت (سفارش/کد تخفیف)؛ فیلد افزایشی، قدیمی‌ها `null`. */
+  meta: NotificationMeta | null;
   status: NotificationStatus;
   /** زمان شروع نمایش؛ زمان‌بندی = `publishAt` در آینده + `status: published`. */
   publishAt: Date;
@@ -71,6 +74,7 @@ const NotificationSchema = new Schema<INotification>(
       ),
       default: null,
     },
+    meta: { type: Schema.Types.Mixed, default: null },
     status: { type: String, enum: NOTIFICATION_STATUSES, default: "published" },
     publishAt: { type: Date, required: true, default: () => new Date() },
     expiresAt: { type: Date, default: null },

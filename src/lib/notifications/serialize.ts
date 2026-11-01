@@ -30,6 +30,7 @@ export function toNotificationDetailDTO(
     content:
       doc.contentFormat === "html" ? sanitizeNotificationHtml(doc.content) : doc.content,
     contentFormat: doc.contentFormat,
+    meta: doc.meta ?? null,
   };
 }
 

@@ -5,6 +5,7 @@ import { isSafeNotificationImageUrl, isSafeNotificationLink } from "./links";
 import type {
   NotificationAudience,
   NotificationContentFormat,
+  NotificationMeta,
   NotificationRefKind,
   NotificationStatus,
   NotificationType,
@@ -27,6 +28,8 @@ export interface NewNotification {
   imageUrl?: string | null;
   link?: string | null;
   ref?: { kind: NotificationRefKind; id: string | Types.ObjectId } | null;
+  /** Snapshot برای کارت سفارش/کد تخفیف در چت اعلان‌ها (اختیاری). */
+  meta?: NotificationMeta | null;
   status?: NotificationStatus;
   publishAt?: Date;
   expiresAt?: Date | null;
@@ -61,6 +64,7 @@ export function buildNotificationDoc(input: NewNotification, now = new Date()) {
       input.imageUrl && isSafeNotificationImageUrl(input.imageUrl) ? input.imageUrl : null,
     link: input.link && isSafeNotificationLink(input.link) ? input.link : null,
     ref: input.ref ?? null,
+    meta: input.meta ?? null,
     status: input.status ?? "published",
     publishAt: input.publishAt ?? now,
     expiresAt: input.expiresAt ?? null,

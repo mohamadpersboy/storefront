@@ -50,6 +50,14 @@ describe("coupon notifications", () => {
     });
     expect(n.content).toContain("SUMMER20");
     expect(n.publishAt).toEqual(now);
+    expect(n.meta).toEqual({
+      kind: "coupon",
+      code: "SUMMER20",
+      discountPercentage: 20,
+      maxDiscountAmount: null,
+      minOrderAmount: 0,
+      expiresAt: "2026-10-30T00:00:00.000Z",
+    });
   });
 
   it("a coupon that starts later is published at its start time", async () => {
@@ -84,12 +92,18 @@ describe("order notifications", () => {
       type: "order",
       link: "/orders/o1",
       dedupeKey: "order-created:o1",
+      meta: { kind: "order", orderNumber: 1001, status: "pending" },
     });
   });
 
   it("status change is keyed by (order, status) so it cannot duplicate", async () => {
     await notifyOrderStatusChanged({ orderId: "o1", orderNumber: 1001, customerId: "u1", status: "shipped" });
     expect(safeCreate.mock.calls[0][0].dedupeKey).toBe("order-status:o1:shipped");
+    expect(safeCreate.mock.calls[0][0].meta).toEqual({
+      kind: "order",
+      orderNumber: 1001,
+      status: "shipped",
+    });
   });
 
   it("does not create a notification for the pending status", async () => {
@@ -101,6 +115,7 @@ describe("order notifications", () => {
     await notifyPaymentResult({ paymentId: "p1", orderId: "o1", orderNumber: 1, customerId: "u1", success: true });
     await notifyPaymentResult({ paymentId: "p1", orderId: "o1", orderNumber: 1, customerId: "u1", success: false });
     expect(safeCreate.mock.calls.map((c) => c[0].dedupeKey)).toEqual(["payment-success:p1", "payment-failed:p1"]);
+    expect(safeCreate.mock.calls.map((c) => c[0].meta.payment)).toEqual(["success", "failed"]);
   });
 });
 

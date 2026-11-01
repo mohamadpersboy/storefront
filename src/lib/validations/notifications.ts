@@ -11,6 +11,8 @@ import { isSafeNotificationImageUrl, isSafeNotificationLink } from "@/lib/notifi
 export const notificationsListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(10),
+  /** `chat` → متن کامل + `meta` (صفحهٔ چت‌مانند)؛ بدون آن خلاصهٔ پاپ‌آپ. */
+  view: z.enum(["chat"]).optional(),
 });
 
 const linkSchema = z

@@ -26,6 +26,18 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: بازطراحی صفحه `/notifications` به سبک چت پیام‌رسان (Storefront).**
+
+- **UI:** `notifications-chat.tsx` (Client) + `notification-bubble.tsx` + `notification-cards.tsx` + `notification-actions.tsx`. قدیمی‌ترین بالا، جدیدترین پایین؛ جداکنندهٔ روز («امروز/دیروز/۷ آبان»)، ساعت هر پیام (Asia/Tehran)، تیک تکی = دیده‌نشده و تیک دوتایی آبی = دیده‌شده (فقط کاربر واردشده؛ Guest تیک ندارد). پس‌زمینه `public/images/notifications-chat-bg.webp` (از فایل کاربر، ۹۰۰px، ~۶۰KB) با `next/image` و لایهٔ `fixed` (روی دسکتاپ نسبت به قاب موبایل).
+- **رفتار:** با ورود، اسکرول به اولین پیام خوانده‌نشده (با جداکنندهٔ «N پیام خوانده‌نشده») وگرنه انتهای چت؛ ۱.۵ ثانیه بعد `PATCH /notifications/read-all` و تیک‌ها دوتایی می‌شوند (جداکننده تا پایان بازدید می‌ماند). «پیام‌های قدیمی‌تر» با `GET /notifications?view=chat&page=` و حفظ موقعیت اسکرول. `?page=` قدیمی صفحه حذف شد. Pagination سمت سرور فقط صفحه ۱ را می‌خواند.
+- **کارت‌ها:** سفارش ← کارت خلاصه (شماره + Badge وضعیت یا «پرداخت موفق/ناموفق») + دکمهٔ Outline خاکستری «مشاهده جزئیات سفارش». کد تخفیف ← کارت (کد، عمومی/اختصاصی از `audience`، درصد، سقف، حداقل سفارش، اعتبار تا، زمان باقی‌مانده) + دکمهٔ Outline با حاشیهٔ گرادینت «کپی کد تخفیف» (منقضی ← غیرفعال). سایر اعلان‌ها با `link` ← دکمهٔ Outline خاکستری با برچسب بر اساس نوع (`notificationLinkLabel`).
+- **Backend (افزایشی):** فیلد `Notification.meta` (`Mixed`، پیش‌فرض `null`؛ نوع `NotificationMeta` در `constants.ts`: `order{orderNumber,status?,payment?}` / `coupon{code,discountPercentage,maxDiscountAmount,minOrderAmount,expiresAt(ISO)}`) توسط `events.ts` پر می‌شود. `listVisibleNotificationsDetailed` (متن کامل + `meta` + `generatedAt`) و پارامتر `?view=chat` روی `GET /api/v1/notifications` (پیش‌فرض بدون تغییر؛ پاپ‌آپ Bell دست‌نخورده). `stripCouponLines` خطوط تکراری کد را از متن حذف می‌کند.
+- **اعلان‌های قدیمی:** `meta = null` ← حباب متنی عادی + دکمهٔ لینک (کارت ساخته نمی‌شود؛ بدون Backfill).
+- **تست:** `chat-format.test.ts` (جدید) + تست‌های `events/templates/service/api` گسترش یافت. Lint ✅ Typecheck ✅ `npm test` ✅ Build ✅ (Env ساختگی). بررسی بصری با Chrome Headless روی صفحهٔ پیش‌نمایش موقت (حذف شد) در ۳۶۰/۳۹۰/۷۶۸/۱۲۸۰px: بدون Overflow افقی. **NOT VERIFIED:** با Mongo/ورود واقعی (تیک‌ها، جداکنندهٔ خوانده‌نشده، `read-all`، «قدیمی‌تر») و تصویر شاخص Cloudinary؛ تست UI خودکار نداریم.
+- **TODO:** صفحهٔ `/notifications/[id]` و `NotificationItem` (پاپ‌آپ Bell) بدون تغییر ماندند.
+
+---
+
 **آخرین کار: Idempotency و قفل شروع پرداخت سفارش (`initiate-order-payment.ts`) — کد نوشته شد؛ تست Mongo واقعی NOT VERIFIED (اجرای کاربر لازم است).**
 
 - **علت:** کسر/استرداد کیف پول در شروع پرداخت بدون کلید بود؛ دو شروع هم‌زمان برای یک سفارش دو بار کیف پول را کسر و دو Authority می‌ساختند (Reuse Payment باز غیر اتمیک)؛ `alreadyPaid` فقط `amount` را جمع می‌کرد، پس سفارش ترکیبی کاملاً پرداخت‌شده دوباره قابل پرداخت بود.

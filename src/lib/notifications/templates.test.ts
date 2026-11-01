@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import { dedupeKeys } from "./dedupe";
 import {
   couponExpiryReminderText,
+  couponMeta,
   dailySpecialOfferText,
   orderStatusText,
   personalCouponText,
   publicCouponText,
+  referralRewardText,
+  stripCouponLines,
 } from "./templates";
 
 const coupon = {
@@ -55,6 +58,26 @@ describe("notification templates", () => {
     const soon = couponExpiryReminderText(coupon, new Date(coupon.expiresAt.getTime() - 20 * 60_000)).title;
     expect(soon).toContain("کمتر از یک ساعت");
     expect(soon).not.toContain("فقط");
+  });
+
+  it("couponMeta is a JSON-safe snapshot (ISO expiry, no Date objects)", () => {
+    expect(couponMeta(coupon)).toEqual({
+      kind: "coupon",
+      code: "SUMMER20",
+      discountPercentage: 20,
+      maxDiscountAmount: 500000,
+      minOrderAmount: 1000000,
+      expiresAt: "2026-10-15T00:00:00.000Z",
+    });
+  });
+
+  it("stripCouponLines removes the structured lines but keeps other sentences", () => {
+    expect(stripCouponLines(publicCouponText(coupon).content)).toBe("");
+    const reward = referralRewardText(coupon).content;
+    const stripped = stripCouponLines(reward);
+    expect(stripped).toContain("به‌خاطر فعالیت زیرمجموعه شما");
+    expect(stripped).not.toContain("SUMMER20");
+    expect(stripped).not.toContain("اعتبار تا");
   });
 
   it("daily special offer uses Persian digits", () => {

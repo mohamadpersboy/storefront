@@ -2,6 +2,7 @@ import type { OrderStatus } from "@/lib/constants/order-status";
 import { formatJalali } from "@/lib/utils/jalali";
 import { formatToman, toPersianDigits } from "@/lib/utils/format";
 import { formatRemainingTime } from "./remaining-time";
+import type { NotificationMeta } from "./constants";
 
 /**
  * تمام متن‌های اعلان یک‌جا (هم‌الگو با قالب‌های پیامک) تا تغییر متن
@@ -18,6 +19,33 @@ export interface CouponSnapshot {
   maxDiscountAmount: number | null;
   minOrderAmount: number;
   expiresAt: Date;
+}
+
+/** Snapshot ساخت‌یافتهٔ کد تخفیف برای کارت چت اعلان‌ها. */
+export function couponMeta(c: CouponSnapshot): NotificationMeta {
+  return {
+    kind: "coupon",
+    code: c.code,
+    discountPercentage: c.discountPercentage,
+    maxDiscountAmount: c.maxDiscountAmount,
+    minOrderAmount: c.minOrderAmount,
+    expiresAt: c.expiresAt.toISOString(),
+  };
+}
+
+const COUPON_LINE_PREFIXES = ["کد تخفیف:", "میزان تخفیف:", "حداقل مبلغ سفارش:", "اعتبار تا:"];
+
+/**
+ * وقتی کارت کد تخفیف نمایش داده می‌شود، خطوط تکراری `couponLines` از
+ * متن حذف می‌شوند تا همان اطلاعات دو بار دیده نشود. هر خط دیگری
+ * (مثل جملهٔ پاداش دعوت دوستان) می‌ماند.
+ */
+export function stripCouponLines(content: string): string {
+  return content
+    .split("\n")
+    .filter((line) => !COUPON_LINE_PREFIXES.some((p) => line.startsWith(p)))
+    .join("\n")
+    .trim();
 }
 
 function num(value: number): string {

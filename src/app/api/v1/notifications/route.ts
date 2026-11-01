@@ -2,7 +2,11 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { connectToDatabase } from "@/lib/db/connect";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
-import { listVisibleNotifications, viewerFromUser } from "@/lib/notifications/queries";
+import {
+  listVisibleNotifications,
+  listVisibleNotificationsDetailed,
+  viewerFromUser,
+} from "@/lib/notifications/queries";
 import { notificationsListQuerySchema } from "@/lib/validations/notifications";
 
 /**
@@ -23,11 +27,15 @@ export async function GET(request: NextRequest) {
 
   await connectToDatabase();
   const user = await getCurrentUser();
-  const { items, pagination } = await listVisibleNotifications({
+  const listParams = {
     viewer: user ? viewerFromUser(user) : null,
     page: parsed.data.page,
     limit: parsed.data.limit,
-  });
+  };
+  const { items, pagination } =
+    parsed.data.view === "chat"
+      ? await listVisibleNotificationsDetailed(listParams)
+      : await listVisibleNotifications(listParams);
 
   const response = apiSuccess(items, { pagination });
   response.headers.set("Cache-Control", "private, no-store");

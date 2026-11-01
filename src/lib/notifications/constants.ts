@@ -48,6 +48,27 @@ export type NotificationDisplayState =
   | "expired"
   | "archived";
 
+/**
+ * داده ساخت‌یافتهٔ Snapshot برای کارت‌های داخل چت اعلان‌ها (سفارش/کد
+ * تخفیف). فقط لحظهٔ ساخت اعلان را نشان می‌دهد، نه وضعیت زندهٔ Entity.
+ * تاریخ‌ها ISO String هستند (در `Mixed` ذخیره می‌شوند، نه `Date`).
+ */
+export type NotificationMeta =
+  | {
+      kind: "order";
+      orderNumber: number;
+      status?: import("@/lib/constants/order-status").OrderStatus;
+      payment?: "success" | "failed";
+    }
+  | {
+      kind: "coupon";
+      code: string;
+      discountPercentage: number;
+      maxDiscountAmount: number | null;
+      minOrderAmount: number;
+      expiresAt: string;
+    };
+
 /** شکل اعلان در پاسخ API/UI (همیشه Snapshot، نه وابسته به Entity اصلی). */
 export interface NotificationDTO {
   id: string;
@@ -68,4 +89,6 @@ export interface NotificationDetailDTO extends NotificationDTO {
   /** متن کامل؛ اگر `contentFormat === "html"` قبلاً Sanitize شده است. */
   content: string;
   contentFormat: NotificationContentFormat;
+  /** Snapshot ساخت‌یافته برای کارت سفارش/کد تخفیف؛ اعلان‌های قدیمی `null`. */
+  meta: NotificationMeta | null;
 }

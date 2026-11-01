@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getCurrentUser = vi.fn();
 const listVisible = vi.fn();
+const listVisibleDetailed = vi.fn();
 const countUnread = vi.fn();
 const getVisible = vi.fn();
 const markRead = vi.fn();
@@ -16,6 +17,7 @@ vi.mock("@/lib/audit/log-activity", () => ({ logActivity: vi.fn() }));
 vi.mock("@/lib/notifications/queries", () => ({
   viewerFromUser: (u: { id: string; createdAt: Date }) => ({ id: u.id, createdAt: u.createdAt }),
   listVisibleNotifications: (...a: unknown[]) => listVisible(...a),
+  listVisibleNotificationsDetailed: (...a: unknown[]) => listVisibleDetailed(...a),
   countUnreadNotifications: (...a: unknown[]) => countUnread(...a),
   getVisibleNotification: (...a: unknown[]) => getVisible(...a),
   markNotificationRead: (...a: unknown[]) => markRead(...a),
@@ -60,9 +62,10 @@ const json = (body: unknown) =>
 const emptyList = { items: [], pagination: { totalDocs: 0, totalPages: 0, page: 1, limit: 10, hasNextPage: false, hasPrevPage: false } };
 
 beforeEach(() => {
-  for (const f of [getCurrentUser, listVisible, countUnread, getVisible, markRead, markAll, createNotification, paginate, findOne]) f.mockReset();
+  for (const f of [getCurrentUser, listVisible, listVisibleDetailed, countUnread, getVisible, markRead, markAll, createNotification, paginate, findOne]) f.mockReset();
   getCurrentUser.mockResolvedValue(null);
   listVisible.mockResolvedValue(emptyList);
+  listVisibleDetailed.mockResolvedValue(emptyList);
 });
 
 describe("public/user API — Guest", () => {
@@ -71,6 +74,22 @@ describe("public/user API — Guest", () => {
     expect(res.status).toBe(200);
     expect(listVisible).toHaveBeenCalledWith(expect.objectContaining({ viewer: null, page: 1, limit: 5 }));
     expect(res.headers.get("cache-control")).toBe("private, no-store");
+  });
+
+  it("view=chat uses the detailed list (full text + meta), default uses the summary list", async () => {
+    const res = await listGET(req("/api/v1/notifications?view=chat&page=2&limit=10"));
+    expect(res.status).toBe(200);
+    expect(listVisibleDetailed).toHaveBeenCalledWith(
+      expect.objectContaining({ viewer: null, page: 2, limit: 10 }),
+    );
+    expect(listVisible).not.toHaveBeenCalled();
+
+    await listGET(req("/api/v1/notifications?page=1&limit=5"));
+    expect(listVisible).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects an unknown view value with 422", async () => {
+    expect((await listGET(req("/api/v1/notifications?view=raw"))).status).toBe(422);
   });
 
   it("rejects invalid pagination params with 422", async () => {

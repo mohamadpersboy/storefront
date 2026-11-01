@@ -44,6 +44,14 @@ describe("buildNotificationDoc", () => {
     expect(doc.user).toBeNull();
   });
 
+  it("keeps the structured meta snapshot and defaults to null", () => {
+    const meta = { kind: "order" as const, orderNumber: 7, status: "shipped" as const };
+    expect(
+      buildNotificationDoc({ audience: "user", userId: "u1", type: "order", title: "t", meta }).meta,
+    ).toEqual(meta);
+    expect(buildNotificationDoc({ audience: "public", type: "system", title: "t" }).meta).toBeNull();
+  });
+
   it("drops unsafe link and image URLs", () => {
     const doc = buildNotificationDoc({
       audience: "public",
