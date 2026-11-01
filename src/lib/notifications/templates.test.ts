@@ -3,6 +3,10 @@ import { dedupeKeys } from "./dedupe";
 import {
   couponExpiryReminderText,
   couponMeta,
+  inferLegacyOrderMeta,
+  orderCreatedText,
+  paymentFailedText,
+  paymentSuccessText,
   dailySpecialOfferText,
   orderStatusText,
   personalCouponText,
@@ -78,6 +82,29 @@ describe("notification templates", () => {
     expect(stripped).toContain("به‌خاطر فعالیت زیرمجموعه شما");
     expect(stripped).not.toContain("SUMMER20");
     expect(stripped).not.toContain("اعتبار تا");
+  });
+
+  it("rebuilds order meta for legacy notifications from the snapshot texts", () => {
+    const created = orderCreatedText(10004);
+    expect(inferLegacyOrderMeta(created.title, created.content)).toEqual({
+      kind: "order",
+      orderNumber: 10004,
+      status: "pending",
+    });
+    const shipped = orderStatusText("shipped", 1001)!;
+    expect(inferLegacyOrderMeta(shipped.title, shipped.content)).toMatchObject({
+      orderNumber: 1001,
+      status: "shipped",
+    });
+    const paid = paymentSuccessText(7);
+    expect(inferLegacyOrderMeta(paid.title, paid.content)).toMatchObject({ payment: "success" });
+    const failed = paymentFailedText(7);
+    expect(inferLegacyOrderMeta(failed.title, failed.content)).toMatchObject({ payment: "failed" });
+  });
+
+  it("does not guess when the title or order number is unknown", () => {
+    expect(inferLegacyOrderMeta("عنوان دلخواه", "سفارش شماره ۱۰۰۴")).toBeNull();
+    expect(inferLegacyOrderMeta("سفارش شما ثبت شد", "بدون شماره")).toBeNull();
   });
 
   it("daily special offer uses Persian digits", () => {

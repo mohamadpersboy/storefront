@@ -1,6 +1,7 @@
 import type { Types } from "mongoose";
 import type { INotification } from "@/models/Notification";
 import { makeExcerpt, sanitizeNotificationHtml } from "./sanitize";
+import { inferLegacyOrderMeta } from "./templates";
 import type { NotificationDetailDTO, NotificationDTO, NotificationDisplayState } from "./constants";
 
 export type LeanNotification = INotification & { _id: Types.ObjectId };
@@ -30,7 +31,8 @@ export function toNotificationDetailDTO(
     content:
       doc.contentFormat === "html" ? sanitizeNotificationHtml(doc.content) : doc.content,
     contentFormat: doc.contentFormat,
-    meta: doc.meta ?? null,
+    meta:
+      doc.meta ?? (doc.type === "order" ? inferLegacyOrderMeta(doc.title, doc.content) : null),
   };
 }
 

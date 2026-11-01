@@ -158,3 +158,37 @@ export function dailySpecialOfferText(productCount: number): NotificationText {
     content: "فرصت را از دست ندهید!",
   };
 }
+
+const PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
+
+function parseOrderNumber(content: string): number | null {
+  const match = content.match(/شماره\s+([۰-۹0-9]+)/);
+  if (!match) return null;
+  const ascii = match[1].replace(/[۰-۹]/g, (d) => String(PERSIAN_DIGITS.indexOf(d)));
+  const value = Number(ascii);
+  return Number.isSafeInteger(value) ? value : null;
+}
+
+/**
+ * اعلان‌های سفارش قدیمی (قبل از فیلد `meta`) داده ساخت‌یافته ندارند.
+ * شماره و وضعیت از همان متن‌های Snapshot (قالب‌های بالا) بازسازی می‌شود
+ * تا کارت وضعیت سفارش برای آن‌ها هم نمایش داده شود؛ اگر عنوان با هیچ
+ * قالبی نخواند `null` برمی‌گردد (بدون حدس). فقط هنگام خروجی؛ دادهٔ
+ * ذخیره‌شده تغییر نمی‌کند.
+ */
+export function inferLegacyOrderMeta(title: string, content: string): NotificationMeta | null {
+  const orderNumber = parseOrderNumber(content);
+  if (orderNumber === null) return null;
+  const t = title.trim();
+
+  if (t === orderCreatedText(0).title) return { kind: "order", orderNumber, status: "pending" };
+  if (t === paymentSuccessText(0).title) return { kind: "order", orderNumber, payment: "success" };
+  if (t === paymentFailedText(0).title) return { kind: "order", orderNumber, payment: "failed" };
+
+  for (const [status, statusTitle] of Object.entries(ORDER_STATUS_TITLES)) {
+    if (statusTitle === t) {
+      return { kind: "order", orderNumber, status: status as OrderStatus };
+    }
+  }
+  return null;
+}

@@ -14,7 +14,12 @@ import {
 import { formatChatClock, notificationLinkLabel } from "@/lib/notifications/chat-format";
 import { stripCouponLines } from "@/lib/notifications/templates";
 import type { NotificationDetailDTO, NotificationType } from "@/lib/notifications/constants";
-import { CopyCodeButton, NotificationLinkButton } from "@/components/storefront/notification-actions";
+import {
+  CopyCodeButton,
+  NotificationLinkButton,
+  OrderLinkButton,
+  orderToneFor,
+} from "@/components/storefront/notification-actions";
 import { CouponDetailsCard, OrderSummaryCard } from "@/components/storefront/notification-cards";
 
 const TYPE_LABEL: Record<NotificationType, { label: string; icon: LucideIcon }> = {
@@ -92,6 +97,10 @@ export function NotificationBubble({
 
         {meta?.kind === "coupon" ? (
           <CopyCodeButton code={meta.code} disabled={couponExpired} />
+        ) : item.link && meta?.kind === "order" ? (
+          <OrderLinkButton href={item.link} tone={orderToneFor(meta)}>
+            {notificationLinkLabel(item.type)}
+          </OrderLinkButton>
         ) : item.link ? (
           <NotificationLinkButton href={item.link}>
             {notificationLinkLabel(item.type)}

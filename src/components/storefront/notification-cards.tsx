@@ -21,16 +21,25 @@ export function OrderSummaryCard({ meta }: { meta: OrderMeta }) {
           #{toPersianDigits(meta.orderNumber)}
         </p>
       </div>
-      {meta.status ? (
-        <StorefrontOrderStatusBadge status={meta.status} />
-      ) : meta.payment ? (
-        <span
-          className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-            meta.payment === "success" ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-          }`}
-        >
-          {meta.payment === "success" ? "پرداخت موفق" : "پرداخت ناموفق"}
-        </span>
+      {meta.status || meta.payment ? (
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <span className="text-[10px] text-[var(--sf-ink)]/50">
+            {meta.status ? "وضعیت سفارش" : "وضعیت پرداخت"}
+          </span>
+          {meta.status ? (
+            <StorefrontOrderStatusBadge status={meta.status} />
+          ) : (
+            <span
+              className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                meta.payment === "success"
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "bg-rose-50 text-rose-600"
+              }`}
+            >
+              {meta.payment === "success" ? "پرداخت موفق" : "پرداخت ناموفق"}
+            </span>
+          )}
+        </div>
       ) : null}
     </div>
   );
