@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BellOff, Loader2 } from "lucide-react";
+import { ArrowLeft, BellOff, Loader2 } from "lucide-react";
 import { getActiveScroller } from "@/lib/storefront/scroll-container";
 import { chatDayKey, formatChatDayLabel } from "@/lib/notifications/chat-format";
 import { PAGE_SIZE, type NotificationDetailDTO } from "@/lib/notifications/constants";
@@ -148,14 +148,6 @@ export function NotificationsChat({
       <div className="relative z-10">
         <header className="sticky top-0 z-40 border-b border-black/5 bg-white/80 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+12px)] backdrop-blur-xl">
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              aria-label="بازگشت"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 active:bg-gray-200"
-            >
-              <ArrowRight className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
-            </button>
             <Image
               src="/icons/icon-192.png"
               alt=""
@@ -167,6 +159,15 @@ export function NotificationsChat({
               <h1 className="truncate text-base font-bold text-[var(--sf-ink)]">فرش سقطچی</h1>
               <p className="truncate text-xs text-[var(--sf-ink)]/50">اعلان‌های فروشگاه</p>
             </div>
+            {/* دکمهٔ بازگشت سمت چپ هدر (آخرین عنصر در RTL) */}
+            <button
+              type="button"
+              onClick={() => router.back()}
+              aria-label="بازگشت"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 active:bg-gray-200"
+            >
+              <ArrowLeft className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+            </button>
           </div>
         </header>
 

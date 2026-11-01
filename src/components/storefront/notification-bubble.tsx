@@ -53,14 +53,11 @@ export function NotificationBubble({
       className="max-w-[94%] self-end overflow-hidden rounded-2xl rounded-se-md bg-white shadow-[0_1px_2px_rgba(3,23,37,0.18)]"
       aria-label={item.title}
     >
-      {/* عنوان‌ها همیشه بالای همهٔ محتوا (حتی تصویر) و به رنگ تم سایت */}
-      <div className="space-y-1 px-3.5 pt-2.5">
-        <p className="flex items-center gap-1 text-[11px] font-bold text-[var(--color-primary)]/80">
-          <TypeIcon className="size-3.5" strokeWidth={2} aria-hidden="true" />
-          {type.label}
-        </p>
-        <h2 className="text-sm font-bold leading-6 text-[var(--color-primary)]">{item.title}</h2>
-      </div>
+      {/* نوع پیام (سیستم/سفارش/...) بالای حباب، پررنگ و به رنگ تم سایت */}
+      <p className="flex items-center gap-1 px-3.5 pt-2.5 text-[11px] font-bold text-[var(--color-primary)]">
+        <TypeIcon className="size-3.5" strokeWidth={2.25} aria-hidden="true" />
+        {type.label}
+      </p>
 
       {item.imageUrl ? (
         <div className="px-1 pt-1.5">
@@ -76,6 +73,9 @@ export function NotificationBubble({
       ) : null}
 
       <div className="space-y-2.5 px-3.5 pb-2 pt-2">
+        {/* عنوان اعلان: بدون تصویر بالای متن، با تصویر زیر آن */}
+        <h2 className="text-sm font-bold leading-6 text-[var(--color-primary)]">{item.title}</h2>
+
         {item.contentFormat === "html" && text ? (
           <div
             className="notification-content text-[13px] leading-6 text-[var(--sf-ink)]"
