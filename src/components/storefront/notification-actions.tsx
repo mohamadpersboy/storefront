@@ -34,13 +34,25 @@ export function NotificationLinkButton({
 
 export type OrderTone = "amber" | "blue" | "cyan" | "emerald" | "rose";
 
-const ORDER_TONE_STYLE: Record<OrderTone, { border: string; text: string; icon: string }> = {
-  amber: { border: "from-amber-400 to-orange-500", text: "from-amber-500 to-orange-600", icon: "text-orange-500" },
-  blue: { border: "from-sky-400 to-indigo-500", text: "from-sky-500 to-indigo-600", icon: "text-indigo-500" },
-  cyan: { border: "from-cyan-400 to-teal-500", text: "from-cyan-500 to-teal-600", icon: "text-teal-500" },
-  emerald: { border: "from-emerald-400 to-teal-500", text: "from-emerald-500 to-teal-600", icon: "text-emerald-500" },
-  rose: { border: "from-rose-400 to-red-500", text: "from-rose-500 to-red-600", icon: "text-rose-500" },
+/** حاشیه با دو رنگ هگز (برای Gradient واقعی روی `border-box`)؛ متن با کلاس Tailwind. */
+const ORDER_TONE_STYLE: Record<OrderTone, { from: string; to: string; text: string; icon: string }> = {
+  amber: { from: "#fbbf24", to: "#f97316", text: "from-amber-500 to-orange-600", icon: "text-orange-500" },
+  blue: { from: "#38bdf8", to: "#6366f1", text: "from-sky-500 to-indigo-600", icon: "text-indigo-500" },
+  cyan: { from: "#22d3ee", to: "#14b8a6", text: "from-cyan-500 to-teal-600", icon: "text-teal-500" },
+  emerald: { from: "#34d399", to: "#14b8a6", text: "from-emerald-500 to-teal-600", icon: "text-emerald-500" },
+  rose: { from: "#fb7185", to: "#ef4444", text: "from-rose-500 to-red-600", icon: "text-rose-500" },
 };
+
+/**
+ * حاشیهٔ گرادینتی واقعی: زمینهٔ سفید روی `padding-box` و گرادینت روی
+ * `border-box` با حاشیهٔ شفاف. یک المان واحد است (بدون Wrapper)، پس
+ * حاشیه هرگز زیر زمینهٔ سفید دیگری نمی‌رود و گوشه‌ها درست گرد می‌مانند.
+ */
+function gradientBorderStyle(from: string, to: string, fill = "#ffffff"): React.CSSProperties {
+  return {
+    background: `linear-gradient(${fill}, ${fill}) padding-box, linear-gradient(to left, ${from}, ${to}) border-box`,
+  };
+}
 
 /** رنگ دکمهٔ سفارش بر اساس وضعیت سفارش (یا نتیجهٔ پرداخت). */
 export function orderToneFor(meta: {
@@ -78,17 +90,16 @@ export function OrderLinkButton({
 }) {
   const style = ORDER_TONE_STYLE[tone];
   return (
-    <div className={cn("rounded-lg bg-gradient-to-l p-[1.5px]", style.border)}>
-      <Link
-        href={href}
-        className="flex min-h-8 w-full items-center justify-center gap-1 rounded-[6.5px] bg-white px-3 text-xs font-bold active:bg-gray-50"
-      >
-        <span className={cn("bg-gradient-to-l bg-clip-text text-transparent", style.text)}>
-          {children}
-        </span>
-        <ChevronLeft className={cn("size-3.5", style.icon)} strokeWidth={2.5} aria-hidden="true" />
-      </Link>
-    </div>
+    <Link
+      href={href}
+      style={gradientBorderStyle(style.from, style.to)}
+      className="flex min-h-9 w-full items-center justify-center gap-1 rounded-lg border-2 border-transparent px-3 text-xs font-bold active:opacity-80"
+    >
+      <span className={cn("bg-gradient-to-l bg-clip-text text-transparent", style.text)}>
+        {children}
+      </span>
+      <ChevronLeft className={cn("size-3.5", style.icon)} strokeWidth={2.5} aria-hidden="true" />
+    </Link>
   );
 }
 
@@ -141,38 +152,37 @@ export function CopyCodeButton({ code, disabled }: { code: string; disabled?: bo
     timer.current = setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
   }
 
+  // حاشیه و متن هر دو با وضعیت عوض می‌شوند: عادی = گرادینت، کپی‌شده = سبز، منقضی = خاکستری.
+  const border = disabled
+    ? gradientBorderStyle("#e5e7eb", "#e5e7eb")
+    : copied
+      ? gradientBorderStyle("#34d399", "#10b981", "#ecfdf5")
+      : gradientBorderStyle("#499bed", "#ec4899");
+
   return (
-    <div
-      className={cn(
-        "rounded-xl p-[1.5px]",
-        disabled
-          ? "bg-gray-200"
-          : "bg-gradient-to-l from-[#499bed] via-[#8b5cf6] to-[#ec4899]",
-      )}
+    <button
+      type="button"
+      onClick={handleCopy}
+      disabled={disabled}
+      aria-live="polite"
+      style={border}
+      className="flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-xl border-2 border-transparent px-4 text-sm font-bold disabled:cursor-not-allowed active:opacity-80"
     >
-      <button
-        type="button"
-        onClick={handleCopy}
-        disabled={disabled}
-        aria-live="polite"
-        className="flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-[10.5px] bg-white px-4 text-sm font-bold disabled:cursor-not-allowed active:bg-gray-50"
-      >
-        {disabled ? (
-          <span className="text-gray-400">کد منقضی شده است</span>
-        ) : copied ? (
-          <>
-            <Check className="size-4 text-emerald-500" strokeWidth={2.25} aria-hidden="true" />
-            <span className="text-emerald-600">کد کپی شد</span>
-          </>
-        ) : (
-          <>
-            <Copy className="size-4 text-[#8b5cf6]" strokeWidth={2} aria-hidden="true" />
-            <span className="bg-gradient-to-l from-[#499bed] via-[#8b5cf6] to-[#ec4899] bg-clip-text text-transparent">
-              کپی کد تخفیف
-            </span>
-          </>
-        )}
-      </button>
-    </div>
+      {disabled ? (
+        <span className="text-gray-400">کد منقضی شده است</span>
+      ) : copied ? (
+        <>
+          <Check className="size-4 text-emerald-500" strokeWidth={2.25} aria-hidden="true" />
+          <span className="text-emerald-600">کد کپی شد</span>
+        </>
+      ) : (
+        <>
+          <Copy className="size-4 text-[#8b5cf6]" strokeWidth={2} aria-hidden="true" />
+          <span className="bg-gradient-to-l from-[#499bed] via-[#8b5cf6] to-[#ec4899] bg-clip-text text-transparent">
+            کپی کد تخفیف
+          </span>
+        </>
+      )}
+    </button>
   );
 }
