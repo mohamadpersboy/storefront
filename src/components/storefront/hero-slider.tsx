@@ -25,6 +25,9 @@ const AUTOPLAY_INTERVAL_MS = 5000;
 const SWIPE_OFFSET_PX = 40;
 const SWIPE_VELOCITY = 300;
 
+/** حداکثر جابه‌جایی افقی اسلاید خروجی (پیکسل) — بیشتر از این مجاز نیست. */
+const EXIT_TRANSLATE_X_PX = 100;
+
 const MotionLink = motion.create(Link);
 
 /**
@@ -45,9 +48,11 @@ type SlideState = "active" | "upcoming" | "exiting" | "hidden";
  * نقش هر اسلاید نسبت به اسلاید فعال (همهٔ انیمیشن‌ها با Variants):
  * - `active`: واضح و کامل.
  * - `upcoming`: کمی پایین‌تر، کوچک‌تر و Blur، پشت اسلاید فعال.
- * - `exiting`: ورق‌خوردن (چرخش + کمی حرکت رو به پایین) **بدون هیچ
- *   جابه‌جایی افقی**؛ `custom` = جهت فقط برای سمت چرخش (`1` = رفتن
- *   به جلو ← پادساعت‌گرد؛ `-1` برعکس).
+ * - `exiting`: ورق‌خوردن (چرخش + کمی حرکت رو به پایین) با
+ *   جابه‌جایی افقی **حداکثر ۱۰۰px** (`EXIT_TRANSLATE_X_PX`)؛
+ *   `custom` = جهت (`1` = رفتن به جلو ← خروج از چپ، پادساعت‌گرد؛
+ *   `-1` برعکس). چرخش حول مرکز است تا جابه‌جایی افقی بیشتری ایجاد
+ *   نکند.
  */
 const slideVariants: Variants = {
   active: {
@@ -67,7 +72,7 @@ const slideVariants: Variants = {
     filter: "blur(8px)",
   },
   exiting: (direction: 1 | -1) => ({
-    x: 0,
+    x: -direction * EXIT_TRANSLATE_X_PX,
     y: 28,
     scale: 0.96,
     rotate: direction * -8,
