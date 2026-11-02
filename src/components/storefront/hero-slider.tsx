@@ -27,12 +27,17 @@ const SWIPE_VELOCITY = 300;
 
 const MotionLink = motion.create(Link);
 
+/** چرخش اسلاید خروجی: ۴۵ درجه پادساعت‌گرد (منفی)، حول «راست ۱۰۰px». */
+const EXIT_ROTATE_DEG = -45;
+const EXIT_TRANSFORM_ORIGIN = "right 100px";
+
 type SlideState = "active" | "upcoming" | "exiting" | "hidden";
 
 /**
  * - `active`: روی همه، کامل و واضح.
- * - `exiting`: اسلاید قبلی؛ **هیچ حرکتی ندارد** (همان ظاهر `active`)،
- *   فقط `opacity` آن به ۰ می‌رود.
+ * - `exiting`: اسلاید قبلی؛ ۴۵ درجه پادساعت‌گرد حول
+ *   `transform-origin: right 100px` می‌چرخد و هم‌زمان `opacity` آن
+ *   به ۰ می‌رود (بدون جابه‌جایی X/Y).
  * - `upcoming`: زیر اسلاید فعال، کمی پایین‌تر، کوچک‌تر و Blur.
  * - `hidden`: نامرئی (هم‌ظاهر `upcoming` با `opacity: 0`).
  * وقتی `active` عوض می‌شود، اسلاید `upcoming` به `active` می‌رسد
@@ -40,13 +45,15 @@ type SlideState = "active" | "upcoming" | "exiting" | "hidden";
  * فقط محو می‌شود.
  */
 const slideVariants: Variants = {
-  active: { y: 0, scale: 1, opacity: 1, filter: "blur(0px)" },
-  exiting: { y: 0, scale: 1, opacity: 0, filter: "blur(0px)" },
-  upcoming: { y: "8%", scale: 0.9, opacity: 0.85, filter: "blur(8px)" },
-  hidden: { y: "8%", scale: 0.9, opacity: 0, filter: "blur(8px)" },
+  active: { y: 0, scale: 1, rotate: 0, opacity: 1, filter: "blur(0px)" },
+  exiting: { y: 0, scale: 1, rotate: EXIT_ROTATE_DEG, opacity: 0, filter: "blur(0px)" },
+  upcoming: { y: "8%", scale: 0.9, rotate: 0, opacity: 0.85, filter: "blur(8px)" },
+  hidden: { y: "8%", scale: 0.9, rotate: 0, opacity: 0, filter: "blur(8px)" },
 };
 
 const RISE_TRANSITION: Transition = {
+  // بازگشت چرخش به ۰ فوری است (اسلاید در آن لحظه نامرئی/زیر اسلاید فعال است).
+  rotate: { duration: 0 },
   default: { duration: 0.6, ease: [0.22, 0.61, 0.36, 1] },
   opacity: { duration: 0.4, ease: "easeOut" },
   filter: { duration: 0.5, ease: "easeOut" },
@@ -77,8 +84,8 @@ const captionItemVariants: Variants = {
 /**
  * Hero Slider صفحه اصلی — همهٔ انیمیشن‌ها با framer-motion.
  *
- * اسلایدها `absolute` روی هم‌اند. هنگام تعویض، اسلاید بالایی بدون
- * هیچ حرکتی فقط محو می‌شود و اسلاید زیرین به جای آن بالا می‌آید.
+ * اسلایدها `absolute` روی هم‌اند. هنگام تعویض، اسلاید بالایی ۴۵ درجه
+ * پادساعت‌گرد حول `right 100px` می‌چرخد و محو می‌شود و اسلاید زیرین به جای آن بالا می‌آید.
  * وضعیت هر اسلاید (`active`/`exiting`/`upcoming`/`hidden`) از
  * `index` و `exitingIndex` محاسبه و به `animate` داده می‌شود.
  *
@@ -183,6 +190,7 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
                 transition={transition}
                 style={{
                   zIndex: zIndexOf[state],
+                  transformOrigin: EXIT_TRANSFORM_ORIGIN,
                   pointerEvents: isActive ? "auto" : "none",
                 }}
                 onAnimationComplete={(definition) => {
