@@ -26,12 +26,13 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار: بازنویسی `HeroSlider` با framer-motion (به درخواست صریح کاربر).**
+**آخرین کار: `HeroSlider` با framer-motion — افکت «محو بالا، آمدن پایین» (نسخهٔ سوم؛ نسخهٔ ورق‌خوردن/چرخش به درخواست کاربر کامل حذف شد).**
 
-- **وابستگی جدید:** `framer-motion` (`^14.9.0`؛ Peer: React 18/19). همهٔ انیمیشن‌های `hero-slider.tsx` فقط با کامپوننت‌های `motion.*` است؛ هیچ `transition`/`transform` دستی CSS و هیچ Touch Handler دستی نمانده.
-- **طراحی:** اسلایدها `absolute` و وضعیت هرکدام (`active`/`upcoming`/`exiting`/`hidden`) از `index` محاسبه و با `variants` + `animate` اجرا می‌شود؛ `custom={direction}` جهت خروج و چرخش را می‌دهد (به جلو ← خروج از چپ، پادساعت‌گرد). `opacity` با تأخیر ۱۸۰ms (اول حرکت، بعد محو). عنوان/زیرعنوان/دکمهٔ هر اسلاید با `staggerChildren` بالا می‌آیند. Swipe با `onPanStart/onPan/onPanEnd` (فقط تشخیص ژست؛ `touch-pan-y`)؛ Swipe خودش اسلایدر را جابه‌جا نمی‌کند؛ فقط اسلاید **خروجی** در ورق‌خوردن حداکثر ۱۰۰px در X حرکت می‌کند (`EXIT_TRANSLATE_X_PX`؛ بازخورد کاربر: صفر نشود، از ۱۰۰ بیشتر نشود)، با چرخش حول مرکز (`transformOrigin: 50% 50%`) و کمی حرکت رو به پایین؛ کلیک بعد از Swipe لغو می‌شود تا لینک باز نشود؛ Autoplay در حین ژست متوقف می‌شود. نقطه‌ها: عرض با `spring` و رنگ با `opacity` انیمیت می‌شود. `initial={false}` ← Render سرور بدون پرش. `useReducedMotion` رعایت می‌شود.
-- **بدون تغییر:** Props/نوع `HeroBannerSlide`، `page.tsx`، مدل/API بنر، ابعاد و ظاهر ایستا.
-- **تست:** Lint ✅ Typecheck ✅ `npm test` ✅ Build ✅ (Env ساختگی). بررسی بصری با Chrome Headless روی صفحهٔ پیش‌نمایش موقت (حذف شد): کلیک روی نقطه، Stagger متن، Drag به چپ ← اسلاید بعدی بدون Navigation، بدون خطای Console. **NOT VERIFIED:** حس حرکت روی گوشی واقعی، Swipe لمسی، اثر روی LCP/اندازهٔ Bundle.
+- **وابستگی:** `framer-motion` (`^14.9.0`). همهٔ انیمیشن‌های `hero-slider.tsx` فقط با `motion.*` است؛ بدون CSS transition دستی و بدون Touch Handler دستی.
+- **افکت:** اسلایدها `absolute` روی هم. هنگام تعویض، اسلاید بالایی **هیچ حرکتی ندارد و فقط محو می‌شود** (`opacity → 0`، ۰.۵ثانیه)؛ اسلاید زیرین (کمی پایین‌تر، کوچک‌تر، Blur) بالا می‌آید و بزرگ/واضح می‌شود. حالت‌ها با `variants`: `active`/`exiting`/`upcoming`/`hidden` از `index` و `exitingIndex` (بعد از پایان محو، `onAnimationComplete` آن را پاک می‌کند). عنوان/زیرعنوان/دکمه با `staggerChildren` وارد می‌شوند.
+- **ژست:** Swipe با `onPanStart/onPan/onPanEnd` (فقط تشخیص؛ هیچ جابه‌جایی؛ `touch-pan-y`)؛ کلیک بعد از Swipe لغو می‌شود؛ Autoplay (۵ثانیه) در حین ژست متوقف و با هر تغییر ریست می‌شود. نقطه‌ها: عرض با `spring`، رنگ با `opacity`. `initial={false}` برای Render سرور؛ `useReducedMotion` رعایت می‌شود.
+- **بدون تغییر:** Props/نوع `HeroBannerSlide`، `page.tsx`، مدل/API بنر، ابعاد.
+- **تست:** Lint ✅ Typecheck ✅ `npm test` ✅ Build ✅ (Env ساختگی). بررسی با Chrome Headless روی صفحهٔ پیش‌نمایش موقت (حذف شد): موقعیت اسلاید بالا حین محو ثابت، اسلاید زیرین بالا می‌آید، Swipe بدون Navigation، بدون خطای Console. **NOT VERIFIED:** حس حرکت روی گوشی واقعی، اثر روی LCP/Bundle.
 
 ---
 

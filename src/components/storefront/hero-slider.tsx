@@ -25,71 +25,41 @@ const AUTOPLAY_INTERVAL_MS = 5000;
 const SWIPE_OFFSET_PX = 40;
 const SWIPE_VELOCITY = 300;
 
-/** حداکثر جابه‌جایی افقی اسلاید خروجی (پیکسل) — بیشتر از این مجاز نیست. */
-const EXIT_TRANSLATE_X_PX = 100;
-
 const MotionLink = motion.create(Link);
-
-/**
- * Transition هر ویژگی جدا: `opacity` با ۱۸۰ms تأخیر شروع می‌شود تا
- * اسلاید خروجی اول چند پیکسل واقعی حرکت/بچرخد و بعد محو شود.
- */
-const SLIDE_TRANSITION: Transition = {
-  default: { duration: 0.6, ease: [0.22, 0.61, 0.36, 1] },
-  opacity: { duration: 0.26, delay: 0.18, ease: "easeOut" },
-  filter: { duration: 0.45, ease: "easeOut" },
-};
-
-const REDUCED_TRANSITION: Transition = { duration: 0.01 };
 
 type SlideState = "active" | "upcoming" | "exiting" | "hidden";
 
 /**
- * نقش هر اسلاید نسبت به اسلاید فعال (همهٔ انیمیشن‌ها با Variants):
- * - `active`: واضح و کامل.
- * - `upcoming`: کمی پایین‌تر، کوچک‌تر و Blur، پشت اسلاید فعال.
- * - `exiting`: ورق‌خوردن (چرخش + کمی حرکت رو به پایین) با
- *   جابه‌جایی افقی **حداکثر ۱۰۰px** (`EXIT_TRANSLATE_X_PX`)؛
- *   `custom` = جهت (`1` = رفتن به جلو ← خروج از چپ، پادساعت‌گرد؛
- *   `-1` برعکس). چرخش حول مرکز است تا جابه‌جایی افقی بیشتری ایجاد
- *   نکند.
+ * - `active`: روی همه، کامل و واضح.
+ * - `exiting`: اسلاید قبلی؛ **هیچ حرکتی ندارد** (همان ظاهر `active`)،
+ *   فقط `opacity` آن به ۰ می‌رود.
+ * - `upcoming`: زیر اسلاید فعال، کمی پایین‌تر، کوچک‌تر و Blur.
+ * - `hidden`: نامرئی (هم‌ظاهر `upcoming` با `opacity: 0`).
+ * وقتی `active` عوض می‌شود، اسلاید `upcoming` به `active` می‌رسد
+ * (بالا می‌آید، بزرگ و واضح می‌شود) در حالی که اسلاید قبلی روی آن
+ * فقط محو می‌شود.
  */
 const slideVariants: Variants = {
-  active: {
-    x: 0,
-    y: 0,
-    scale: 1,
-    rotate: 0,
-    opacity: 1,
-    filter: "blur(0px)",
-  },
-  upcoming: {
-    x: 0,
-    y: "8%",
-    scale: 0.9,
-    rotate: 0,
-    opacity: 0.85,
-    filter: "blur(8px)",
-  },
-  exiting: (direction: 1 | -1) => ({
-    x: -direction * EXIT_TRANSLATE_X_PX,
-    y: 28,
-    scale: 0.96,
-    rotate: direction * -8,
-    opacity: 0,
-    filter: "blur(0px)",
-  }),
-  hidden: {
-    x: 0,
-    y: "8%",
-    scale: 0.9,
-    rotate: 0,
-    opacity: 0,
-    filter: "blur(8px)",
-  },
+  active: { y: 0, scale: 1, opacity: 1, filter: "blur(0px)" },
+  exiting: { y: 0, scale: 1, opacity: 0, filter: "blur(0px)" },
+  upcoming: { y: "8%", scale: 0.9, opacity: 0.85, filter: "blur(8px)" },
+  hidden: { y: "8%", scale: 0.9, opacity: 0, filter: "blur(8px)" },
 };
 
-/** متن روی اسلاید: عنوان، زیرعنوان و دکمه یکی‌یکی (Stagger) بالا می‌آیند. */
+const RISE_TRANSITION: Transition = {
+  default: { duration: 0.6, ease: [0.22, 0.61, 0.36, 1] },
+  opacity: { duration: 0.4, ease: "easeOut" },
+  filter: { duration: 0.5, ease: "easeOut" },
+};
+
+const FADE_OUT_TRANSITION: Transition = {
+  duration: 0.5,
+  ease: "easeOut",
+};
+
+const REDUCED_TRANSITION: Transition = { duration: 0.01 };
+
+/** متن روی اسلاید: عنوان، زیرعنوان و دکمه یکی‌یکی بالا می‌آیند. */
 const captionVariants: Variants = {
   active: { transition: { staggerChildren: 0.08, delayChildren: 0.25 } },
   upcoming: {},
@@ -100,85 +70,85 @@ const captionVariants: Variants = {
 const captionItemVariants: Variants = {
   active: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
   upcoming: { opacity: 0, y: 14 },
-  exiting: { opacity: 0, y: 14, transition: { duration: 0.2 } },
+  exiting: { opacity: 1, y: 0 },
   hidden: { opacity: 0, y: 14 },
 };
 
 /**
- * Hero Slider صفحه اصلی — تمام انیمیشن‌ها با framer-motion.
+ * Hero Slider صفحه اصلی — همهٔ انیمیشن‌ها با framer-motion.
  *
- * - اسلایدها `absolute` روی هم‌اند؛ وضعیت هرکدام (`active` /
- *   `upcoming` / `exiting` / `hidden`) از `index` محاسبه و به
- *   `animate` داده می‌شود (Variants بالا).
- * - Swipe با `onPan*` روی یک Wrapper؛ فقط ژست را تشخیص می‌دهد و
- *   هیچ‌چیز را در راستای X جابه‌جا نمی‌کند (`touch-pan-y`: اسکرول
- *   عمودی صفحه آزاد است). کلیک بعد از Swipe لغو می‌شود تا لینک
- *   اسلاید اشتباهی باز نشود.
- * - Dot Indicator: عرض و رنگ نقطهٔ فعال با `animate` تغییر می‌کند.
- * - `initial={false}`: Render سرور همان حالت نهایی است (بدون
- *   فلش/پرش در Hydration).
- * - `prefers-reduced-motion` رعایت می‌شود (`useReducedMotion`).
+ * اسلایدها `absolute` روی هم‌اند. هنگام تعویض، اسلاید بالایی بدون
+ * هیچ حرکتی فقط محو می‌شود و اسلاید زیرین به جای آن بالا می‌آید.
+ * وضعیت هر اسلاید (`active`/`exiting`/`upcoming`/`hidden`) از
+ * `index` و `exitingIndex` محاسبه و به `animate` داده می‌شود.
  *
- * داده از `banners` (Props) می‌آید (مدل `Banner`)؛ بدون بنر فعال:
- * `return null`. Mesh Blur با `placeholder="blur"` خود Next Image.
- * Autoplay هر ۵ ثانیه؛ با هر تغییر اسلاید و در حین Drag متوقف/ریست
- * می‌شود.
+ * Swipe با `onPan*` فقط ژست را تشخیص می‌دهد (چیزی جابه‌جا نمی‌شود؛
+ * `touch-pan-y` اسکرول عمودی صفحه را آزاد می‌گذارد)؛ کلیک بعد از
+ * Swipe لغو می‌شود. Autoplay هر ۵ ثانیه، با هر تغییر ریست و در حین
+ * ژست متوقف می‌شود. `initial={false}`: Render سرور همان حالت نهایی
+ * است. `prefers-reduced-motion` رعایت می‌شود.
+ *
+ * داده از `banners` (Props، مدل `Banner`)؛ بدون بنر فعال `null`.
+ * Mesh Blur با `placeholder="blur"` خود Next Image.
  */
 export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
   const [index, setIndex] = useState(0);
-  const [direction, setDirection] = useState<1 | -1>(1);
-  const [isDragging, setIsDragging] = useState(false);
-  const didDragRef = useRef(false);
+  const [exitingIndex, setExitingIndex] = useState<number | null>(null);
+  const [isPanning, setIsPanning] = useState(false);
+  const didPanRef = useRef(false);
   const reduceMotion = useReducedMotion();
 
   const length = banners.length;
 
   useEffect(() => {
-    if (length < 2 || isDragging) return;
+    if (length < 2 || isPanning) return;
     const timer = setInterval(() => {
-      setDirection(1);
-      setIndex((current) => (current + 1) % length);
+      setExitingIndex(index);
+      setIndex((index + 1) % length);
     }, AUTOPLAY_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [length, index, isDragging]);
+  }, [length, index, isPanning]);
 
   if (length === 0) return null;
 
   function goTo(rawIndex: number) {
     const nextIndex = ((rawIndex % length) + length) % length;
     if (nextIndex === index) return;
-    const isForward = (nextIndex - index + length) % length === 1;
-    setDirection(isForward ? 1 : -1);
+    setExitingIndex(index);
     setIndex(nextIndex);
   }
 
   function handlePanStart() {
-    didDragRef.current = false;
-    setIsDragging(true);
+    didPanRef.current = false;
+    setIsPanning(true);
   }
 
   function handlePan(_: unknown, info: PanInfo) {
-    if (Math.abs(info.offset.x) > 6) didDragRef.current = true;
+    if (Math.abs(info.offset.x) > 6) didPanRef.current = true;
   }
 
   function handlePanEnd(_: unknown, info: PanInfo) {
-    setIsDragging(false);
-    const swipedFar = Math.abs(info.offset.x) > SWIPE_OFFSET_PX;
-    const swipedFast = Math.abs(info.velocity.x) > SWIPE_VELOCITY;
-    if (!swipedFar && !swipedFast) return;
-    // کشیدن به راست = اسلاید قبلی؛ کشیدن به چپ = بعدی.
+    setIsPanning(false);
+    const far = Math.abs(info.offset.x) > SWIPE_OFFSET_PX;
+    const fast = Math.abs(info.velocity.x) > SWIPE_VELOCITY;
+    if (!far && !fast) return;
+    // کشیدن به راست = قبلی؛ کشیدن به چپ = بعدی.
     goTo(info.offset.x > 0 ? index - 1 : index + 1);
   }
 
   function stateOf(slideIndex: number): SlideState {
-    const rel = (slideIndex - index + length) % length;
-    if (rel === 0) return "active";
-    if (length > 1 && rel === 1) return "upcoming";
-    if (length > 1 && rel === length - 1) return "exiting";
+    if (slideIndex === index) return "active";
+    if (slideIndex === exitingIndex) return "exiting";
+    if (length > 1 && slideIndex === (index + 1) % length) return "upcoming";
     return "hidden";
   }
 
-  const transition = reduceMotion ? REDUCED_TRANSITION : SLIDE_TRANSITION;
+  const zIndexOf: Record<SlideState, number> = {
+    exiting: 3,
+    active: 2,
+    upcoming: 1,
+    hidden: 0,
+  };
 
   return (
     <section className="relative px-4 pt-4 tab:px-6 tab:pt-6">
@@ -192,8 +162,11 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
           {banners.map((slide, slideIndex) => {
             const state = stateOf(slideIndex);
             const isActive = state === "active";
-            const zIndex =
-              state === "exiting" ? 3 : state === "active" ? 2 : state === "upcoming" ? 1 : 0;
+            const transition = reduceMotion
+              ? REDUCED_TRANSITION
+              : state === "exiting"
+                ? FADE_OUT_TRANSITION
+                : RISE_TRANSITION;
 
             return (
               <MotionLink
@@ -205,20 +178,25 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
                 tabIndex={isActive ? 0 : -1}
                 className="absolute inset-0 overflow-hidden rounded-2xl"
                 variants={slideVariants}
-                custom={direction}
                 initial={false}
                 animate={state}
                 transition={transition}
                 style={{
-                  zIndex,
+                  zIndex: zIndexOf[state],
                   pointerEvents: isActive ? "auto" : "none",
-                  // چرخش حول مرکز: مرکز اسلاید در راستای X هرگز جابه‌جا نمی‌شود.
-                  transformOrigin: "50% 50%",
+                }}
+                onAnimationComplete={(definition) => {
+                  // بعد از محو کامل، اسلاید قبلی به صف «بعدی» برمی‌گردد.
+                  if (definition === "exiting") {
+                    setExitingIndex((current) =>
+                      current === slideIndex ? null : current,
+                    );
+                  }
                 }}
                 onClickCapture={(event) => {
-                  if (didDragRef.current) {
+                  if (didPanRef.current) {
                     event.preventDefault();
-                    didDragRef.current = false;
+                    didPanRef.current = false;
                   }
                 }}
               >
