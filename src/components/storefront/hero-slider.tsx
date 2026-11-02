@@ -27,17 +27,22 @@ const SWIPE_VELOCITY = 300;
 
 const MotionLink = motion.create(Link);
 
-/** چرخش اسلاید خروجی: ۴۵ درجه پادساعت‌گرد (منفی)، حول «راست ۱۰۰px». */
-const EXIT_ROTATE_DEG = -45;
-const EXIT_TRANSFORM_ORIGIN = "right 100px";
+/**
+ * اسلاید خروجی: به جلو (`direction = 1`) ۳۰ درجه پادساعت‌گرد (-۳۰) و
+ * ۳۰px به چپ؛ به عقب (`direction = -1`) دقیقاً برعکس (+۳۰ درجه، ۳۰px
+ * به راست). مبدأ چرخش: لبهٔ راست و ۱۰۰px **پایین‌تر از خود تصویر**.
+ */
+const EXIT_ROTATE_DEG = 30;
+const EXIT_TRANSLATE_X_PX = 30;
+const EXIT_TRANSFORM_ORIGIN = "right calc(100% + 100px)";
 
 type SlideState = "active" | "upcoming" | "exiting" | "hidden";
 
 /**
  * - `active`: روی همه، کامل و واضح.
- * - `exiting`: اسلاید قبلی؛ ۴۵ درجه پادساعت‌گرد حول
- *   `transform-origin: right 100px` می‌چرخد و هم‌زمان `opacity` آن
- *   به ۰ می‌رود (بدون جابه‌جایی X/Y).
+ * - `exiting`: اسلاید قبلی؛ ۳۰ درجه می‌چرخد و ۳۰px در X حرکت می‌کند
+ *   (به جلو: پادساعت‌گرد و به چپ؛ به عقب: برعکس) حول لبهٔ راست و
+ *   ۱۰۰px پایین‌تر از تصویر، و هم‌زمان `opacity` آن به ۰ می‌رود.
  * - `upcoming`: زیر اسلاید فعال، کمی پایین‌تر، کوچک‌تر و Blur.
  * - `hidden`: نامرئی (هم‌ظاهر `upcoming` با `opacity: 0`).
  * وقتی `active` عوض می‌شود، اسلاید `upcoming` به `active` می‌رسد
@@ -45,15 +50,24 @@ type SlideState = "active" | "upcoming" | "exiting" | "hidden";
  * فقط محو می‌شود.
  */
 const slideVariants: Variants = {
-  active: { y: 0, scale: 1, rotate: 0, opacity: 1, filter: "blur(0px)" },
-  exiting: { y: 0, scale: 1, rotate: EXIT_ROTATE_DEG, opacity: 0, filter: "blur(0px)" },
-  upcoming: { y: "8%", scale: 0.9, rotate: 0, opacity: 0.85, filter: "blur(8px)" },
-  hidden: { y: "8%", scale: 0.9, rotate: 0, opacity: 0, filter: "blur(8px)" },
+  active: { x: 0, y: 0, scale: 1, rotate: 0, opacity: 1, filter: "blur(0px)" },
+  exiting: (direction: 1 | -1) => ({
+    x: -direction * EXIT_TRANSLATE_X_PX,
+    y: 0,
+    scale: 1,
+    rotate: -direction * EXIT_ROTATE_DEG,
+    opacity: 0,
+    filter: "blur(0px)",
+  }),
+  upcoming: { x: 0, y: "8%", scale: 0.9, rotate: 0, opacity: 0.85, filter: "blur(8px)" },
+  hidden: { x: 0, y: "8%", scale: 0.9, rotate: 0, opacity: 0, filter: "blur(8px)" },
 };
 
 const RISE_TRANSITION: Transition = {
-  // بازگشت چرخش به ۰ فوری است (اسلاید در آن لحظه نامرئی/زیر اسلاید فعال است).
+  // بازگشت چرخش/جابه‌جایی به ۰ فوری است (اسلاید در آن لحظه
+  // نامرئی/زیر اسلاید فعال است).
   rotate: { duration: 0 },
+  x: { duration: 0 },
   default: { duration: 0.6, ease: [0.22, 0.61, 0.36, 1] },
   opacity: { duration: 0.4, ease: "easeOut" },
   filter: { duration: 0.5, ease: "easeOut" },
@@ -84,8 +98,8 @@ const captionItemVariants: Variants = {
 /**
  * Hero Slider صفحه اصلی — همهٔ انیمیشن‌ها با framer-motion.
  *
- * اسلایدها `absolute` روی هم‌اند. هنگام تعویض، اسلاید بالایی ۴۵ درجه
- * پادساعت‌گرد حول `right 100px` می‌چرخد و محو می‌شود و اسلاید زیرین به جای آن بالا می‌آید.
+ * اسلایدها `absolute` روی هم‌اند. هنگام تعویض، اسلاید بالایی با چرخش ۳۰ درجه و
+ * حرکت ۳۰px (جهت‌دار) محو می‌شود و اسلاید زیرین به جای آن بالا می‌آید.
  * وضعیت هر اسلاید (`active`/`exiting`/`upcoming`/`hidden`) از
  * `index` و `exitingIndex` محاسبه و به `animate` داده می‌شود.
  *
@@ -101,6 +115,7 @@ const captionItemVariants: Variants = {
 export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
   const [index, setIndex] = useState(0);
   const [exitingIndex, setExitingIndex] = useState<number | null>(null);
+  const [direction, setDirection] = useState<1 | -1>(1);
   const [isPanning, setIsPanning] = useState(false);
   const didPanRef = useRef(false);
   const reduceMotion = useReducedMotion();
@@ -110,6 +125,7 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
   useEffect(() => {
     if (length < 2 || isPanning) return;
     const timer = setInterval(() => {
+      setDirection(1);
       setExitingIndex(index);
       setIndex((index + 1) % length);
     }, AUTOPLAY_INTERVAL_MS);
@@ -121,6 +137,7 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
   function goTo(rawIndex: number) {
     const nextIndex = ((rawIndex % length) + length) % length;
     if (nextIndex === index) return;
+    setDirection((nextIndex - index + length) % length === 1 ? 1 : -1);
     setExitingIndex(index);
     setIndex(nextIndex);
   }
@@ -185,6 +202,7 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
                 tabIndex={isActive ? 0 : -1}
                 className="absolute inset-0 overflow-hidden rounded-2xl"
                 variants={slideVariants}
+                custom={direction}
                 initial={false}
                 animate={state}
                 transition={transition}
