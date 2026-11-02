@@ -45,8 +45,9 @@ type SlideState = "active" | "upcoming" | "exiting" | "hidden";
  * نقش هر اسلاید نسبت به اسلاید فعال (همهٔ انیمیشن‌ها با Variants):
  * - `active`: واضح و کامل.
  * - `upcoming`: کمی پایین‌تر، کوچک‌تر و Blur، پشت اسلاید فعال.
- * - `exiting`: خروج هم‌جهت با Swipe؛ `custom` = جهت (`1` = رفتن به
- *   جلو ← خروج از چپ، چرخش پادساعت‌گرد؛ `-1` برعکس).
+ * - `exiting`: ورق‌خوردن (چرخش + کمی حرکت رو به پایین) **بدون هیچ
+ *   جابه‌جایی افقی**؛ `custom` = جهت فقط برای سمت چرخش (`1` = رفتن
+ *   به جلو ← پادساعت‌گرد؛ `-1` برعکس).
  */
 const slideVariants: Variants = {
   active: {
@@ -66,7 +67,7 @@ const slideVariants: Variants = {
     filter: "blur(8px)",
   },
   exiting: (direction: 1 | -1) => ({
-    x: -direction * 120,
+    x: 0,
     y: 28,
     scale: 0.96,
     rotate: direction * -8,
@@ -104,9 +105,10 @@ const captionItemVariants: Variants = {
  * - اسلایدها `absolute` روی هم‌اند؛ وضعیت هرکدام (`active` /
  *   `upcoming` / `exiting` / `hidden`) از `index` محاسبه و به
  *   `animate` داده می‌شود (Variants بالا).
- * - Swipe/Drag افقی با `drag="x"` روی یک Wrapper (بازگشت نرم به جای
- *   خود با `dragSnapToOrigin`)؛ اسکرول عمودی صفحه آزاد می‌ماند.
- *   کلیک بعد از Drag لغو می‌شود تا لینک اسلاید اشتباهی باز نشود.
+ * - Swipe با `onPan*` روی یک Wrapper؛ فقط ژست را تشخیص می‌دهد و
+ *   هیچ‌چیز را در راستای X جابه‌جا نمی‌کند (`touch-pan-y`: اسکرول
+ *   عمودی صفحه آزاد است). کلیک بعد از Swipe لغو می‌شود تا لینک
+ *   اسلاید اشتباهی باز نشود.
  * - Dot Indicator: عرض و رنگ نقطهٔ فعال با `animate` تغییر می‌کند.
  * - `initial={false}`: Render سرور همان حالت نهایی است (بدون
  *   فلش/پرش در Hydration).
@@ -145,16 +147,16 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
     setIndex(nextIndex);
   }
 
-  function handleDragStart() {
+  function handlePanStart() {
     didDragRef.current = false;
     setIsDragging(true);
   }
 
-  function handleDrag(_: unknown, info: PanInfo) {
+  function handlePan(_: unknown, info: PanInfo) {
     if (Math.abs(info.offset.x) > 6) didDragRef.current = true;
   }
 
-  function handleDragEnd(_: unknown, info: PanInfo) {
+  function handlePanEnd(_: unknown, info: PanInfo) {
     setIsDragging(false);
     const swipedFar = Math.abs(info.offset.x) > SWIPE_OFFSET_PX;
     const swipedFast = Math.abs(info.velocity.x) > SWIPE_VELOCITY;
@@ -177,14 +179,10 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
     <section className="relative px-4 pt-4 tab:px-6 tab:pt-6">
       <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl tab:aspect-[21/9]">
         <motion.div
-          className="absolute inset-0"
-          drag={length > 1 ? "x" : false}
-          dragSnapToOrigin
-          dragElastic={0.15}
-          dragMomentum={false}
-          onDragStart={handleDragStart}
-          onDrag={handleDrag}
-          onDragEnd={handleDragEnd}
+          className="absolute inset-0 touch-pan-y"
+          onPanStart={length > 1 ? handlePanStart : undefined}
+          onPan={length > 1 ? handlePan : undefined}
+          onPanEnd={length > 1 ? handlePanEnd : undefined}
         >
           {banners.map((slide, slideIndex) => {
             const state = stateOf(slideIndex);
@@ -209,7 +207,8 @@ export function HeroSlider({ banners }: { banners: HeroBannerSlide[] }) {
                 style={{
                   zIndex,
                   pointerEvents: isActive ? "auto" : "none",
-                  transformOrigin: direction === 1 ? "85% 15%" : "15% 15%",
+                  // چرخش حول مرکز: مرکز اسلاید در راستای X هرگز جابه‌جا نمی‌شود.
+                  transformOrigin: "50% 50%",
                 }}
                 onClickCapture={(event) => {
                   if (didDragRef.current) {
