@@ -26,6 +26,15 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: بازنویسی `HeroSlider` با framer-motion (به درخواست صریح کاربر).**
+
+- **وابستگی جدید:** `framer-motion` (`^14.9.0`؛ Peer: React 18/19). همهٔ انیمیشن‌های `hero-slider.tsx` فقط با کامپوننت‌های `motion.*` است؛ هیچ `transition`/`transform` دستی CSS و هیچ Touch Handler دستی نمانده.
+- **طراحی:** اسلایدها `absolute` و وضعیت هرکدام (`active`/`upcoming`/`exiting`/`hidden`) از `index` محاسبه و با `variants` + `animate` اجرا می‌شود؛ `custom={direction}` جهت خروج/چرخش را می‌دهد (همان رفتار قبلی: Swipe به جلو ← خروج از چپ، پادساعت‌گرد). `opacity` با تأخیر ۱۸۰ms (اول حرکت، بعد محو). عنوان/زیرعنوان/دکمهٔ هر اسلاید با `staggerChildren` بالا می‌آیند. Swipe با `drag="x"` + `dragSnapToOrigin` (`touch-action` عمودی آزاد)؛ کلیک بعد از Drag لغو می‌شود تا لینک باز نشود؛ Autoplay در حین Drag متوقف می‌شود. نقطه‌ها: عرض با `spring` و رنگ با `opacity` انیمیت می‌شود. `initial={false}` ← Render سرور بدون پرش. `useReducedMotion` رعایت می‌شود.
+- **بدون تغییر:** Props/نوع `HeroBannerSlide`، `page.tsx`، مدل/API بنر، ابعاد و ظاهر ایستا.
+- **تست:** Lint ✅ Typecheck ✅ `npm test` ✅ Build ✅ (Env ساختگی). بررسی بصری با Chrome Headless روی صفحهٔ پیش‌نمایش موقت (حذف شد): کلیک روی نقطه، Stagger متن، Drag به چپ ← اسلاید بعدی بدون Navigation، بدون خطای Console. **NOT VERIFIED:** حس حرکت روی گوشی واقعی، Swipe لمسی، اثر روی LCP/اندازهٔ Bundle.
+
+---
+
 **آخرین کار: بازطراحی صفحه `/notifications` به سبک چت پیام‌رسان (Storefront).**
 
 - **UI:** `notifications-chat.tsx` (Client) + `notification-bubble.tsx` + `notification-cards.tsx` + `notification-actions.tsx`. قدیمی‌ترین بالا، جدیدترین پایین؛ جداکنندهٔ روز («امروز/دیروز/۷ آبان»)، ساعت هر پیام (Asia/Tehran)، تیک تکی = دیده‌نشده و تیک دوتایی آبی = دیده‌شده (فقط کاربر واردشده؛ Guest تیک ندارد). **چیدمان (بازخورد کاربر):** حباب‌ها سمت چپ (`self-end` در RTL)؛ برچسب نوع (سیستم/سفارش/...) پررنگ و به رنگ تم (`--color-primary`) بالای حباب؛ تصویر بعد از آن؛ **عنوان اعلان زیر تصویر** (بدون تصویر بالای متن) و آن هم به رنگ تم؛ دکمهٔ بازگشت هدر سمت چپ (`ArrowLeft`)؛ ردیف پایین حباب سمت راست با ترتیب «تیک، ساعت»؛ تصویر با فاصلهٔ ۴px از لبهٔ حباب و `rounded-[6px]`. پس‌زمینه `public/images/notifications-chat-bg.jpg` = **فایل اصلی کاربر بدون Resize** (۱۵۵۱×۲۳۸۰) با `next/image` + `unoptimized` (نسخهٔ ۹۰۰px اولیه روی موبایل زوم و تار بود) و لایهٔ `fixed` (روی دسکتاپ نسبت به قاب موبایل).
