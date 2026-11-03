@@ -26,10 +26,10 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار: بازطراحی بصری `ProductAmazingOfferBanner` (برچسب «پیشنهاد شگفت‌انگیز» + تایمر صفحه محصول) با گرادینت.**
+**آخرین کار: بازطراحی بصری `ProductAmazingOfferBanner` (برچسب «پیشنهاد شگفت‌انگیز» + تایمر صفحه محصول) — Outline گرادینتی.**
 
-- زمینه: گرادینت مورب `#be123c → #e11d48 → #f43f5e → #fb923c` (رز تا نارنجی گرم، هم‌خانواده با رنگ برند Cherry)، سایهٔ رنگی، `ring` سفید محو، دو هالهٔ نور محو، و درخشش عبوری آرام (`.sf-offer-shimmer`). متن‌ها سفید؛ آیکون در دایرهٔ شیشه‌ای با تپش ملایم (`.sf-offer-pulse`)؛ تایمر در Pill شیشه‌ای تیره (`bg-black/20`، `backdrop-blur`). منطق/Props/`useOfferTimer` بدون تغییر. کلیدفریم‌ها در `globals.css` و با `prefers-reduced-motion` غیرفعال می‌شوند. رنگ‌های گرادینت مقدار ثابت داخل کامپوننت‌اند (Token جدید ساخته نشد).
-- تست: Lint ✅ Typecheck ✅ `npm test` ✅ (۹۱۶) Build ✅ (Env ساختگی). **NOT VERIFIED:** ظاهر واقعی روی گوشی/Vercel (خوانایی سفید روی بخش نارنجی، اجرای Shimmer).
+- **نسخهٔ نهایی (بازخورد: نسخهٔ توپر خوشایند نبود، Outline بهتر؛ قاب تایمر حذف شود):** حاشیهٔ گرادینتی `#be123c → #f43f5e → #fb923c` (`border-2 border-transparent` + `background` دوتایی `padding-box`/`border-box`) روی زمینهٔ بسیار روشن `#fff1f2 → #fff7ed`؛ برچسب و تایمر رنگ `--sf-cherry`؛ تایمر **بدون هیچ قاب/Pill**؛ آیکون با تپش ملایم (`.sf-offer-pulse`، با `prefers-reduced-motion` غیرفعال). نسخهٔ توپر/Shimmer/شیشه‌ای حذف شد. منطق/Props/`useOfferTimer` بدون تغییر.
+- تست: Lint ✅ Typecheck ✅ `npm test` ✅ (۹۱۶) Build ✅ (Env ساختگی). **NOT VERIFIED:** ظاهر واقعی روی گوشی/Vercel.
 
 ---
 
