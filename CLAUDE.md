@@ -30,7 +30,8 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 - **حذف شد:** گالری قبلی (Focus مشترک، Pinch-Zoom/Pan، انیمیشن اسکرول دستی) و فایل‌های `lib/storefront/product-gallery-math.ts` + تست آن. **هر توضیح قدیمی گالری پایین‌تر در این سند (Focus/Pinch/`product-gallery-math`) منسوخ است.**
 - **جدید:** `product-image-gallery.tsx` — `motion.div` با `drag="x"`، Snap به نزدیک‌ترین تصویر با `spring` (Swipe سریع یا ≥۴۰px = اسلاید بعدی/قبلی)، `useReducedMotion` رعایت می‌شود. نسبت `aspect-[3/4]`، عرض هر اسلاید ۶۰٪ کانتینر، `gap` ۱۲px، `dir="ltr"` (تصویر اول سمت چپ) همان قبلی است. تک‌تصویر: وسط‌چین و بدون Drag. Placeholder `animate-pulse` تا لود تصویر حفظ شد. نوع `ProductGalleryImage` و Props بدون تغییر (`get-product-detail.ts`/`page.tsx` دست‌نخورده).
-- **TODO (فاز بعد، به دستور کاربر):** بقیه انیمیشن‌ها (مثلاً Focus/Zoom، Dot Indicator، افکت‌های ورود).
+- **اصلاح بعدی:** (۱) بعد از آخرین اسلاید فضای خالی نمی‌ماند: حد Scroll = `کل عرض محتوا − عرض کانتینر` (`maxScroll`) و `dragConstraints`/هدف Snap با آن Clamp می‌شود. (۲) کلیک (`onTap`، فقط وقتی Drag نبوده) روی هر تصویر همهٔ اسلایدها را ۴۰٪ بزرگ‌تر می‌کند (عرض ۶۰٪ → ۸۴٪، ارتفاع با `aspect-[3/4]` دنبال می‌شود)، کلیک دوباره برمی‌گرداند. عرض و جابه‌جایی با یک Transition مشترک (۰.۵ثانیه، `[0.22,1,0.36,1]`) هم‌زمان نرم حرکت می‌کنند؛ `useReducedMotion` رعایت می‌شود.
+- **TODO (فاز بعد، به دستور کاربر):** بقیه انیمیشن‌ها (مثلاً Dot Indicator، افکت‌های ورود).
 - **تست:** Lint ✅ Typecheck ✅ `npm test` ✅ (۹۱۶ موفق، ۳ Skip) Build ✅ (Env ساختگی). **NOT VERIFIED:** حس Drag روی گوشی واقعی و بررسی بصری؛ تست خودکار UI نداریم.
 
 ---
