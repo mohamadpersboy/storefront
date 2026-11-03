@@ -36,19 +36,12 @@ const SWIPE_OFFSET_PX = 40;
 const PINCH_MAX_SCALE = 3;
 /** اسکرول رو‌به‌پایین صفحه (px) که همه‌چیز را به حالت اول برمی‌گرداند. */
 const SCROLL_RESET_PX = 4;
-/** بعد از ژست دو انگشتی، Tap تصادفی تا این مدت (ms) نادیده گرفته می‌شود. */
-const TAP_AFTER_GESTURE_MS = 350;
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 /** یک Transition مشترک برای عرض و جابه‌جایی، تا هم‌زمان و نرم حرکت کنند. */
 const SMOOTH = { duration: 0.5, ease: EASE } as const;
 const INSTANT = { duration: 0 } as const;
 const ZOOM_RETURN_CSS = "transform 500ms cubic-bezier(0.22, 1, 0.36, 1)";
-
-/** خارج از Component تا قانون Purity ESLint (Date.now حین Render) فعال نشود؛ فقط از Event Handler صدا زده می‌شود. */
-function nowMs() {
-  return Date.now();
-}
 
 function touchDistance(a: React.Touch, b: React.Touch) {
   return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
@@ -84,7 +77,8 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
 
   const pinchRef = useRef<{ index: number; startDistance: number; baseScale: number } | null>(null);
   const panRef = useRef<{ index: number; lastX: number; lastY: number } | null>(null);
-  const lastGestureAtRef = useRef(0);
+  // فقط وقتی واقعاً Pinch/Pan حرکت کرده `true` است؛ با شروع لمس تازه پاک می‌شود.
+  const didGestureRef = useRef(false);
 
   const count = images.length;
   const widthRatio = SLIDE_WIDTH_RATIO * (zoomed ? ZOOM_FACTOR : 1);
@@ -150,13 +144,14 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
   }
 
   function toggleZoomed() {
-    if (nowMs() - lastGestureAtRef.current < TAP_AFTER_GESTURE_MS) return;
+    if (didGestureRef.current) return;
     setZoomed((current) => !current);
     setZoom(null);
   }
 
   // --- Pinch-Zoom و Pan (فقط وقتی تصاویر بزرگ شده‌اند) ---
   function handleTouchStart(event: React.TouchEvent<HTMLDivElement>, i: number) {
+    if (event.touches.length === 1) didGestureRef.current = false;
     if (!zoomed) return;
     const touches = event.touches;
     if (touches.length === 2) {
@@ -170,10 +165,7 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
     } else if (touches.length === 1 && zoom && zoom.index === i && zoom.scale > 1.01) {
       panRef.current = { index: i, lastX: touches[0].clientX, lastY: touches[0].clientY };
     }
-    if (pinchRef.current || panRef.current) {
-      lastGestureAtRef.current = nowMs();
-      setIsLiveGesture(true);
-    }
+    if (pinchRef.current || panRef.current) setIsLiveGesture(true);
   }
 
   function handleTouchMove(event: React.TouchEvent<HTMLDivElement>, i: number) {
@@ -184,7 +176,7 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
     const touches = event.touches;
 
     if (touches.length === 2 && pinchRef.current && pinchRef.current.index === i) {
-      lastGestureAtRef.current = nowMs();
+      didGestureRef.current = true;
       const ratio = touchDistance(touches[0], touches[1]) / pinchRef.current.startDistance;
       const scale = Math.min(PINCH_MAX_SCALE, Math.max(1, pinchRef.current.baseScale * ratio));
       setZoom((current) => {
@@ -201,7 +193,7 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
     }
 
     if (touches.length === 1 && panRef.current && panRef.current.index === i) {
-      lastGestureAtRef.current = nowMs();
+      didGestureRef.current = true;
       const dx = touches[0].clientX - panRef.current.lastX;
       const dy = touches[0].clientY - panRef.current.lastY;
       panRef.current.lastX = touches[0].clientX;
@@ -224,7 +216,6 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
       pinchRef.current = null;
       panRef.current = null;
       setIsLiveGesture(false);
-      lastGestureAtRef.current = nowMs();
       // اگر تقریباً به اندازه اول برگشته، زوم پاک شود (با انیمیشن).
       setZoom((current) => (current && current.index === i && current.scale <= 1.01 ? null : current));
     } else if (event.touches.length === 1) {
