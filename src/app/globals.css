@@ -109,8 +109,45 @@ html {
   animation-delay: var(--d, 0ms);
 }
 
+/*
+ * بنر «پیشنهاد شگفت‌انگیز» صفحه محصول: درخشش (Shimmer) آرام که هر چند
+ * ثانیه یک‌بار از روی بنر عبور می‌کند + تپش ملایم آیکون. هر دو با
+ * `prefers-reduced-motion` غیرفعال می‌شوند.
+ */
+@keyframes sf-offer-shimmer {
+  0%,
+  55% {
+    transform: translateX(-130%) skewX(-18deg);
+  }
+  100% {
+    transform: translateX(330%) skewX(-18deg);
+  }
+}
+
+@keyframes sf-offer-pulse {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.18) rotate(8deg);
+    opacity: 0.85;
+  }
+}
+
+.sf-offer-shimmer {
+  animation: sf-offer-shimmer 3.6s ease-in-out infinite;
+}
+
+.sf-offer-pulse {
+  animation: sf-offer-pulse 2.2s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .sf-fade-up {
+  .sf-fade-up,
+  .sf-offer-shimmer,
+  .sf-offer-pulse {
     animation: none;
   }
 }

@@ -26,6 +26,13 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: بازطراحی بصری `ProductAmazingOfferBanner` (برچسب «پیشنهاد شگفت‌انگیز» + تایمر صفحه محصول) با گرادینت.**
+
+- زمینه: گرادینت مورب `#be123c → #e11d48 → #f43f5e → #fb923c` (رز تا نارنجی گرم، هم‌خانواده با رنگ برند Cherry)، سایهٔ رنگی، `ring` سفید محو، دو هالهٔ نور محو، و درخشش عبوری آرام (`.sf-offer-shimmer`). متن‌ها سفید؛ آیکون در دایرهٔ شیشه‌ای با تپش ملایم (`.sf-offer-pulse`)؛ تایمر در Pill شیشه‌ای تیره (`bg-black/20`، `backdrop-blur`). منطق/Props/`useOfferTimer` بدون تغییر. کلیدفریم‌ها در `globals.css` و با `prefers-reduced-motion` غیرفعال می‌شوند. رنگ‌های گرادینت مقدار ثابت داخل کامپوننت‌اند (Token جدید ساخته نشد).
+- تست: Lint ✅ Typecheck ✅ `npm test` ✅ (۹۱۶) Build ✅ (Env ساختگی). **NOT VERIFIED:** ظاهر واقعی روی گوشی/Vercel (خوانایی سفید روی بخش نارنجی، اجرای Shimmer).
+
+---
+
 **آخرین کار: گالری تصاویر صفحه محصول (`ProductImageGallery`) از صفر با framer-motion بازنویسی شد (فاز ۱: فقط اسلایدر ساده).**
 
 - **حذف شد:** گالری قبلی (Focus مشترک، Pinch-Zoom/Pan، انیمیشن اسکرول دستی) و فایل‌های `lib/storefront/product-gallery-math.ts` + تست آن. **هر توضیح قدیمی گالری پایین‌تر در این سند (Focus/Pinch/`product-gallery-math`) منسوخ است.**
