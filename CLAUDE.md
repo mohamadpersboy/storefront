@@ -26,6 +26,15 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: گالری تصاویر صفحه محصول (`ProductImageGallery`) از صفر با framer-motion بازنویسی شد (فاز ۱: فقط اسلایدر ساده).**
+
+- **حذف شد:** گالری قبلی (Focus مشترک، Pinch-Zoom/Pan، انیمیشن اسکرول دستی) و فایل‌های `lib/storefront/product-gallery-math.ts` + تست آن. **هر توضیح قدیمی گالری پایین‌تر در این سند (Focus/Pinch/`product-gallery-math`) منسوخ است.**
+- **جدید:** `product-image-gallery.tsx` — `motion.div` با `drag="x"`، Snap به نزدیک‌ترین تصویر با `spring` (Swipe سریع یا ≥۴۰px = اسلاید بعدی/قبلی)، `useReducedMotion` رعایت می‌شود. نسبت `aspect-[3/4]`، عرض هر اسلاید ۶۰٪ کانتینر، `gap` ۱۲px، `dir="ltr"` (تصویر اول سمت چپ) همان قبلی است. تک‌تصویر: وسط‌چین و بدون Drag. Placeholder `animate-pulse` تا لود تصویر حفظ شد. نوع `ProductGalleryImage` و Props بدون تغییر (`get-product-detail.ts`/`page.tsx` دست‌نخورده).
+- **TODO (فاز بعد، به دستور کاربر):** بقیه انیمیشن‌ها (مثلاً Focus/Zoom، Dot Indicator، افکت‌های ورود).
+- **تست:** Lint ✅ Typecheck ✅ `npm test` ✅ (۹۱۶ موفق، ۳ Skip) Build ✅ (Env ساختگی). **NOT VERIFIED:** حس Drag روی گوشی واقعی و بررسی بصری؛ تست خودکار UI نداریم.
+
+---
+
 **آخرین کار: `HeroSlider` با framer-motion — افکت «محو بالا، آمدن پایین» (نسخهٔ سوم؛ نسخهٔ ورق‌خوردن/چرخش به درخواست کاربر کامل حذف شد).**
 
 - **وابستگی:** `framer-motion` (`^14.9.0`). همهٔ انیمیشن‌های `hero-slider.tsx` فقط با `motion.*` است؛ بدون CSS transition دستی و بدون Touch Handler دستی.
