@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, LayoutGrid, ShoppingCart, Heart, User } from "lucide-react";
@@ -20,13 +21,38 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 /**
+ * تعداد ردیف‌های سبد کاربر از `GET /api/v1/cart/count`. Guest (۴۰۱)
+ * یا خطا ← ۰ (نشانی نمایش داده نمی‌شود). با هر تغییر مسیر دوباره
+ * خوانده می‌شود: افزودن/حذف از سبد فقط در صفحه محصول و سبد انجام
+ * می‌شود که این نوار در آن‌ها پنهان است، پس بعد از بازگشت به صفحهٔ
+ * دیگر مقدار تازه است.
+ */
+function useCartCount(pathname: string | null): number {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/v1/cart/count", { signal: controller.signal, cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { data?: { count?: number } } | null) => {
+        setCount(Number(body?.data?.count) || 0);
+      })
+      .catch(() => {
+        // قطع شبکه/Abort: مقدار قبلی می‌ماند.
+      });
+    return () => controller.abort();
+  }, [pathname]);
+
+  return count;
+}
+
+/**
  * Bottom Navigation موبایل Storefront.
  *
  * فقط زیر breakpoint `sm` نمایش داده می‌شود (`tab:hidden`) — در
  * Tablet/Desktop به‌جای آن Header استفاده خواهد شد (مرحله بعدی).
- * `itemCount` سبد خرید فعلاً همیشه صفر است چون این مرحله فقط
- * Navigation را می‌سازد، نه اتصال به Cart واقعی (که نیاز به Login
- * دارد) — یک صفر واقعی، نه یک عدد ساختگی.
+ * نشان سبد خرید: تعداد ردیف‌های واقعی سبد (`useCartCount`)؛ وقتی سبد
+ * خالی یا کاربر Guest است نشانی دیده نمی‌شود.
  *
  * استایل بر اساس رفرنس تأییدشده کارفرما:
  * - Backdrop شیشه‌ای/شفاف (`backdrop-blur` + پس‌زمینه نیمه‌شفاف)
@@ -38,7 +64,7 @@ const NAV_ITEMS: NavItem[] = [
  */
 export function MobileBottomBar() {
   const pathname = usePathname();
-  const cartItemCount = 0;
+  const cartItemCount = useCartCount(pathname);
 
   return (
     <nav
@@ -73,8 +99,11 @@ export function MobileBottomBar() {
                     aria-hidden="true"
                   />
                   {href === "/cart" && cartItemCount > 0 && (
-                    <span className="absolute -end-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-primary)] px-1 text-[9px] font-bold leading-none text-white">
-                      {cartItemCount > 99 ? "99+" : cartItemCount}
+                    <span
+                      className="absolute -end-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--sf-cherry)] px-1 text-[9px] font-bold leading-none text-white ring-2 ring-white"
+                      aria-label={`${cartItemCount} کالا در سبد خرید`}
+                    >
+                      {cartItemCount > 99 ? "99+" : cartItemCount.toLocaleString("fa-IR")}
                     </span>
                   )}
                 </span>

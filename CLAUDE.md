@@ -44,6 +44,15 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ---
 
+**آخرین کار: سه اصلاح Storefront (بازخورد کاربر): Chip برند Outline، متن «ضمانت اصل بودن»، نشان سبد در Bottom Bar.**
+
+- **Chip برند (صفحه محصول):** `product-info-header.tsx` ← Outline لاجوردی تم (`border border-[var(--color-primary)]`، بدون پس‌زمینه). Chipهای دسته‌بندی `border-transparent` گرفتند تا ارتفاع هر دو یکسان بماند.
+- **`FeaturesRow`:** عنوان «اصالت اصل بودن» ← «ضمانت اصل بودن».
+- **نشان سبد (`mobile-bottom-bar.tsx`):** قبلاً `cartItemCount = 0` ثابت بود. حالا `useCartCount` از Endpoint جدید و سبک `GET /api/v1/cart/count` (فقط خواندن `Cart.items.length`؛ بدون `recalculateCart`/`save`/ساخت سبد؛ Guest ← ۴۰۱ ← نشان نمایش داده نمی‌شود) می‌خواند. **شمارش = تعداد ردیف‌های سبد** (نه جمع تعداد). با هر تغییر مسیر دوباره خوانده می‌شود (افزودن/حذف فقط در صفحهٔ محصول/سبد انجام می‌شود که Bottom Bar در آن‌ها پنهان است). نشان قرمز `--sf-cherry` با حلقهٔ سفید و عدد فارسی؛ سبد خالی ← بدون نشان.
+- **تست:** Lint ✅ Typecheck ✅ `npm test` ✅ Build ✅ (Env ساختگی). بررسی بصری با Chrome Headless (پاسخ `count` شبیه‌سازی‌شده، ۳ و ۰) روی صفحهٔ پیش‌نمایش موقت (حذف شد). **NOT VERIFIED:** Endpoint `count` با Mongo/ورود واقعی؛ تست خودکار برای آن نداریم (DB-touching).
+
+---
+
 **آخرین کار: `HeroSlider` با framer-motion — افکت «محو بالا، آمدن پایین» (نسخهٔ سوم؛ نسخهٔ ورق‌خوردن/چرخش به درخواست کاربر کامل حذف شد).**
 
 - **وابستگی:** `framer-motion` (`^14.9.0`). همهٔ انیمیشن‌های `hero-slider.tsx` فقط با `motion.*` است؛ بدون CSS transition دستی و بدون Touch Handler دستی.

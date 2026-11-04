@@ -162,6 +162,7 @@ hasNextPage, hasPrevPage }` است.
 | DELETE | `/api/v1/cart/items/:itemId` | حذف یک قلم |
 | DELETE | `/api/v1/cart` | خالی‌کردن کامل |
 | POST | `/api/v1/cart/validate` | بازمحاسبه صریح (برای قبل از Checkout) |
+| GET | `/api/v1/cart/count` | تعداد ردیف‌های سبد کاربر (`{ count }`)؛ سبک، بدون بازمحاسبه؛ Guest ← ۴۰۱ (برای نشان Bottom Bar) |
 | POST | `/api/v1/cart/coupon` | اعمال کد تخفیف `{code}` |
 | DELETE | `/api/v1/cart/coupon` | حذف کد تخفیف اعمال‌شده |
 

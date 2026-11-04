@@ -2,7 +2,7 @@ import { Headphones, ShieldCheck, Truck, Wallet } from "lucide-react";
 
 // ترتیب آرایه = ترتیب دیداری راست‌به‌چپ (چون Container راست‌به‌چپ
 // است، اولین آیتم سمت راست می‌نشیند) — دقیقاً طبق دستور صریح
-// کارفرما: ارسال سراسری → پرداخت در محل → اصالت اصل بودن → پشتیبانی.
+// کارفرما: ارسال سراسری → پرداخت در محل → ضمانت اصل بودن → پشتیبانی.
 const FEATURES = [
   {
     icon: Truck,
@@ -12,7 +12,7 @@ const FEATURES = [
     iconClassName: "-scale-x-100",
   },
   { icon: Wallet, title: "پرداخت در محل", subtitle: "نقدی یا کارت" },
-  { icon: ShieldCheck, title: "اصالت اصل بودن", subtitle: "فرش ۱۰۰٪ اصل" },
+  { icon: ShieldCheck, title: "ضمانت اصل بودن", subtitle: "فرش ۱۰۰٪ اصل" },
   { icon: Headphones, title: "پشتیبانی", subtitle: "پاسخگوی شما" },
 ];
 

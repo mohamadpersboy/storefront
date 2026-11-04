@@ -27,7 +27,7 @@ type ProductInfoHeaderProps = {
  * ساختن خودِ آن صفحه (فهرست محصولات یک دسته‌بندی) یک ماژول کاملاً
  * جدا و به‌اندازه صفحه محصول است؛ منتظر دستور/تأیید جدا برای آن.
  *
- * **برند:** یک Chip جدا، با عنوان «برند: نام‌برند» — فقط اگر محصول
+ * **برند:** یک Chip جدا (Outline لاجوردی تم، بدون پس‌زمینه؛ بازخورد کاربر)، با عنوان «برند: نام‌برند» — فقط اگر محصول
  * برند داشته باشد (`Product.brand`)، وگرنه چیزی رندر نمی‌شود.
  */
 export function ProductInfoHeader({ title, categories, brandName }: ProductInfoHeaderProps) {
@@ -41,13 +41,13 @@ export function ProductInfoHeader({ title, categories, brandName }: ProductInfoH
             <Link
               key={category.slug}
               href={`/categories/${category.slug}`}
-              className="inline-block rounded-full bg-gray-200 px-2.5 py-1 text-[11px] font-medium text-gray-600 active:bg-gray-300"
+              className="inline-block rounded-full border border-transparent bg-gray-200 px-2.5 py-1 text-[11px] font-medium text-gray-600 active:bg-gray-300"
             >
               {category.name}
             </Link>
           ))}
           {brandName && (
-            <span className="inline-block rounded-full bg-[var(--color-primary-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-primary)]">
+            <span className="inline-block rounded-full border border-[var(--color-primary)] bg-transparent px-2.5 py-1 text-[11px] font-medium text-[var(--color-primary)]">
               برند: {brandName}
             </span>
           )}
