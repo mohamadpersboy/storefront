@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, LayoutGrid, ShoppingCart, Heart, User } from "lucide-react";
@@ -47,12 +48,43 @@ function useCartCount(pathname: string | null): number {
 }
 
 /**
+ * نقطهٔ «سبد پر است»: لاجوردی تم، دقیقاً بالای آیکون سبد (وسط‌چین)،
+ * بدون عدد. با framer-motion: ورود با `spring` (بزرگ‌شدن از صفر)،
+ * خروج با کوچک‌شدن، و یک حلقهٔ آرام که مدام پخش می‌شود (Ping).
+ */
+function CartDot({ reduceMotion }: { reduceMotion: boolean }) {
+  return (
+    <motion.span
+      role="img"
+      aria-label="سبد خرید شما کالا دارد"
+      className="pointer-events-none absolute -top-2.5 left-1/2 size-2.5 -translate-x-1/2"
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 0, opacity: 0 }}
+      transition={
+        reduceMotion ? { duration: 0.01 } : { type: "spring", stiffness: 500, damping: 18 }
+      }
+    >
+      {!reduceMotion && (
+        <motion.span
+          aria-hidden="true"
+          className="absolute inset-0 rounded-full bg-[var(--color-primary)]"
+          animate={{ scale: [1, 2.6], opacity: [0.45, 0] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
+        />
+      )}
+      <span className="absolute inset-0 rounded-full bg-[var(--color-primary)] ring-2 ring-white" />
+    </motion.span>
+  );
+}
+
+/**
  * Bottom Navigation موبایل Storefront.
  *
  * فقط زیر breakpoint `sm` نمایش داده می‌شود (`tab:hidden`) — در
  * Tablet/Desktop به‌جای آن Header استفاده خواهد شد (مرحله بعدی).
- * نشان سبد خرید: تعداد ردیف‌های واقعی سبد (`useCartCount`)؛ وقتی سبد
- * خالی یا کاربر Guest است نشانی دیده نمی‌شود.
+ * نشان سبد خرید: یک نقطهٔ لاجوردی متحرک (`CartDot`) وقتی سبد حداقل یک
+ * ردیف دارد (`useCartCount`)؛ سبد خالی یا Guest ← بدون نشان.
  *
  * استایل بر اساس رفرنس تأییدشده کارفرما:
  * - Backdrop شیشه‌ای/شفاف (`backdrop-blur` + پس‌زمینه نیمه‌شفاف)
@@ -64,7 +96,8 @@ function useCartCount(pathname: string | null): number {
  */
 export function MobileBottomBar() {
   const pathname = usePathname();
-  const cartItemCount = useCartCount(pathname);
+  const cartHasItems = useCartCount(pathname) > 0;
+  const reduceMotion = useReducedMotion();
 
   return (
     <nav
@@ -98,13 +131,10 @@ export function MobileBottomBar() {
                     strokeWidth={isActive ? 2.25 : 1.75}
                     aria-hidden="true"
                   />
-                  {href === "/cart" && cartItemCount > 0 && (
-                    <span
-                      className="absolute -end-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--sf-cherry)] px-1 text-[9px] font-bold leading-none text-white ring-2 ring-white"
-                      aria-label={`${cartItemCount} کالا در سبد خرید`}
-                    >
-                      {cartItemCount > 99 ? "99+" : cartItemCount.toLocaleString("fa-IR")}
-                    </span>
+                  {href === "/cart" && (
+                    <AnimatePresence>
+                      {cartHasItems && <CartDot reduceMotion={!!reduceMotion} />}
+                    </AnimatePresence>
                   )}
                 </span>
                 {isActive && (

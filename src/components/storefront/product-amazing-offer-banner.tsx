@@ -36,9 +36,10 @@ export function ProductAmazingOfferBanner({ offer }: ProductAmazingOfferBannerPr
   return (
     <div className="px-4 pt-4 tab:mx-auto tab:max-w-md tab:px-6">
       {/*
-        نسخه چهارم (بازخورد کارفرما: نسخهٔ توپر گرادینتی خوشایند نبود؛
-        Outline بهتر است و قاب جدا برای تایمر حذف شود): حاشیهٔ گرادینتی
-        رز ← نارنجی با یک المان واحد (`border-2 border-transparent` +
+        نسخه پنجم (بازخورد کارفرما: ترکیب زرد/نارنجی و قرمز خوشایند نبود):
+        رنگ‌ها دقیقاً هم‌رنگ دکمهٔ «مشاهده جزئیات سفارش» اعلان لغوشده
+        (حاشیه رز ← قرمز، متن گرادینتی rose-500 ← red-600) روی زمینهٔ سفید؛
+        هیچ نارنجی/زردی نمانده. حاشیهٔ گرادینتی با یک المان واحد (`border-2 border-transparent` +
         دو `background` با `padding-box`/`border-box`، هم‌الگو با دکمه‌های
         گرادینتی صفحهٔ اعلان‌ها) روی زمینهٔ بسیار روشن؛ متن‌ها رنگ Cherry.
         تایمر بدون هیچ قاب/Pill، فقط متن.
@@ -47,19 +48,21 @@ export function ProductAmazingOfferBanner({ offer }: ProductAmazingOfferBannerPr
         className="flex items-center justify-between gap-2 rounded-2xl border-2 border-transparent p-3.5"
         style={{
           background:
-            "linear-gradient(135deg, #fff1f2, #fff7ed) padding-box, linear-gradient(115deg, #be123c, #f43f5e 55%, #fb923c) border-box",
+            "linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(to left, #fb7185, #ef4444) border-box",
         }}
       >
-        <span className="flex shrink-0 items-center gap-1.5 text-xs font-bold text-[var(--sf-cherry)]">
-          <Sparkles className="sf-offer-pulse size-4" strokeWidth={2.25} aria-hidden="true" />
-          پیشنهاد شگفت‌انگیز
+        <span className="flex shrink-0 items-center gap-1.5 text-xs font-bold">
+          <Sparkles className="sf-offer-pulse size-4 text-rose-500" strokeWidth={2.25} aria-hidden="true" />
+          <span className="bg-gradient-to-l from-rose-500 to-red-600 bg-clip-text text-transparent">
+            پیشنهاد شگفت‌انگیز
+          </span>
         </span>
 
         {/* شمارش معکوس عمداً LTR است (هم‌الگو با `ProductCard`)، وگرنه
             ترتیب ساعت/دقیقه/ثانیه در صفحه RTL برعکس خوانده می‌شود. */}
         <span
           dir="ltr"
-          className="shrink-0 text-base font-bold tracking-widest tabular-nums text-[var(--sf-cherry)]"
+          className="shrink-0 bg-gradient-to-l from-rose-500 to-red-600 bg-clip-text text-base font-bold tracking-widest tabular-nums text-transparent"
         >
           {label}
         </span>

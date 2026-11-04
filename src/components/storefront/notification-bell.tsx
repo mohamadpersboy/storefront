@@ -1,13 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { NotificationItem } from "@/components/storefront/notification-item";
 import { POPUP_LIMIT, type NotificationDTO } from "@/lib/notifications/constants";
 
+/** حداکثر تعداد اعلانِ هم‌زمان‌دیده‌شده در پاپ‌آپ؛ بقیه با اسکرول. */
+const POPUP_VISIBLE_ITEMS = 3;
+
 /**
  * دکمه اعلان‌ها + پاپ‌آپ.
+ *
+ * **ارتفاع لیست:** پاپ‌آپ ۵ اعلان می‌گیرد ولی ارتفاعش دقیقاً به اندازهٔ
+ * سه اعلان اول است (`POPUP_VISIBLE_ITEMS`)؛ ارتفاع از اندازه‌گیری واقعی
+ * `li`ها می‌آید (ارتفاع اعلان‌ها یکسان نیست) و بقیه با اسکرول دیده
+ * می‌شوند. نوار اسکرول عمداً پنهان است.
  *
  * بستن با کلیک بیرون: با `pointerdown` روی `document` (نه فقط
  * `mousedown`) تا روی موبایل/تاچ هم درست کار کند. بستن با کلید
@@ -35,6 +43,8 @@ export function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loggedIn, setLoggedIn] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const [listMaxHeight, setListMaxHeight] = useState<number | null>(null);
 
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -73,6 +83,24 @@ export function NotificationBell() {
       cancelled = true;
     };
   }, [open, reloadToken]);
+
+  // ارتفاع سه اعلان اول را اندازه می‌گیریم (و با تغییر عرض/محتوا به‌روز می‌کنیم).
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!open || !list) return;
+    function measure() {
+      const rows = Array.from(list!.children).slice(0, POPUP_VISIBLE_ITEMS) as HTMLElement[];
+      if (list!.children.length <= POPUP_VISIBLE_ITEMS) {
+        setListMaxHeight(null);
+        return;
+      }
+      setListMaxHeight(rows.reduce((sum, row) => sum + row.offsetHeight, 0));
+    }
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [open, items]);
 
   useEffect(() => {
     if (!open) return;
@@ -184,7 +212,11 @@ export function NotificationBell() {
                 <p className="text-sm text-gray-400">اعلان جدیدی ندارید.</p>
               </div>
             ) : (
-              <ul className="max-h-[60vh] divide-y divide-black/5 overflow-y-auto">
+              <ul
+                ref={listRef}
+                className="max-h-[60vh] divide-y divide-black/5 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                style={listMaxHeight ? { maxHeight: listMaxHeight } : undefined}
+              >
                 {items?.map((item) => (
                   <li key={item.id}>
                     <NotificationItem item={item} canMarkRead={loggedIn} onRead={handleItemRead} />
