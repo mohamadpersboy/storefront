@@ -38,7 +38,7 @@ export function ProductAmazingOfferBanner({ offer }: ProductAmazingOfferBannerPr
       {/*
         نسخه پنجم (بازخورد کارفرما: ترکیب زرد/نارنجی و قرمز خوشایند نبود):
         رنگ‌ها دقیقاً هم‌رنگ دکمهٔ «مشاهده جزئیات سفارش» اعلان لغوشده
-        (حاشیه رز ← قرمز، متن گرادینتی rose-500 ← red-600) روی زمینهٔ سفید؛
+        (حاشیه رز ← قرمز، متن گرادینتی rose-500 ← red-600) روی زمینهٔ رز بسیار کم‌رنگ (`#fff5f6`، نه بی‌رنگ؛ بازخورد کاربر)؛
         هیچ نارنجی/زردی نمانده. حاشیهٔ گرادینتی با یک المان واحد (`border-2 border-transparent` +
         دو `background` با `padding-box`/`border-box`، هم‌الگو با دکمه‌های
         گرادینتی صفحهٔ اعلان‌ها) روی زمینهٔ بسیار روشن؛ متن‌ها رنگ Cherry.
@@ -48,7 +48,7 @@ export function ProductAmazingOfferBanner({ offer }: ProductAmazingOfferBannerPr
         className="flex items-center justify-between gap-2 rounded-2xl border-2 border-transparent p-3.5"
         style={{
           background:
-            "linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(to left, #fb7185, #ef4444) border-box",
+            "linear-gradient(#fff5f6, #fff5f6) padding-box, linear-gradient(to left, #fb7185, #ef4444) border-box",
         }}
       >
         <span className="flex shrink-0 items-center gap-1.5 text-xs font-bold">

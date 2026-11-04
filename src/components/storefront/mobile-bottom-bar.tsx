@@ -57,7 +57,7 @@ function CartDot({ reduceMotion }: { reduceMotion: boolean }) {
     <motion.span
       role="img"
       aria-label="سبد خرید شما کالا دارد"
-      className="pointer-events-none absolute -top-2.5 left-1/2 size-2.5 -translate-x-1/2"
+      className="pointer-events-none absolute -top-1.5 left-1/2 size-1.5 -translate-x-1/2"
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       exit={{ scale: 0, opacity: 0 }}
@@ -73,7 +73,7 @@ function CartDot({ reduceMotion }: { reduceMotion: boolean }) {
           transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
         />
       )}
-      <span className="absolute inset-0 rounded-full bg-[var(--color-primary)] ring-2 ring-white" />
+      <span className="absolute inset-0 rounded-full bg-[var(--color-primary)] ring-[1.5px] ring-white" />
     </motion.span>
   );
 }
