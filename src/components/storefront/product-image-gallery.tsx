@@ -60,7 +60,8 @@ function clampPan(value: number, size: number, scale: number) {
  * بزرگ شده‌اند، با دو انگشت می‌توان داخل تصویر زوم کرد و با یک انگشت
  * جابه‌جا شد. اسکرول رو‌به‌پایین صفحه، هم بزرگ‌نمایی و هم زوم را
  * با انیمیشن نرم به حالت اول برمی‌گرداند. بعد از آخرین اسلاید فضای
- * خالی نمی‌ماند و Drag بیرون از انتها (Elastic) ندارد. `dir="ltr"`:
+ * خالی نمی‌ماند، تصویر Tap‌شده هنگام بزرگ/کوچک‌شدن سر جایش (مرکزش) می‌ماند
+ * (`computeAnchorX`؛ نه «اولین اسلاید دیده‌شده») و Drag بیرون از انتها (Elastic) ندارد. `dir="ltr"`:
  * تصویر اول سمت چپ شروع می‌شود.
  */
 export function ProductImageGallery({ images, productTitle }: ProductImageGalleryProps) {
@@ -70,6 +71,9 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
   const x = useMotionValue(0);
   const [containerWidth, setContainerWidth] = useState(0);
   const [index, setIndex] = useState(0);
+  // موقعیت X دلخواه Track بعد از بزرگ/کوچک‌شدن (تا تصویر Tap‌شده سر جایش بماند)؛
+  // با Swipe پاک می‌شود و دوباره موقعیت از `index` می‌آید.
+  const [anchorX, setAnchorX] = useState<number | null>(null);
   const [zoomed, setZoomed] = useState(false);
   const [zoom, setZoom] = useState<ZoomState | null>(null);
   const [isLiveGesture, setIsLiveGesture] = useState(false);
@@ -91,6 +95,10 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
   const canScroll = count > 1 && maxScroll > 0;
   const isImageZoomedIn = zoom !== null && zoom.scale > 1.01;
   const hasActiveState = zoomed || zoom !== null;
+  const layoutRef = useRef({ containerWidth, slideWidth, step, canScroll, count });
+  useEffect(() => {
+    layoutRef.current = { containerWidth, slideWidth, step, canScroll, count };
+  });
 
   useEffect(() => {
     const el = containerRef.current;
@@ -102,13 +110,37 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
     return () => observer.disconnect();
   }, []);
 
-  // به موقعیت اسلاید فعال برو؛ هرگز بیشتر از انتهای محتوا.
+  /**
+   * موقعیت X جدید Track وقتی عرض اسلایدها عوض می‌شود، به‌طوری که مرکز
+   * اسلاید `i` (همان که Tap شده) سر جای فعلی‌اش بماند. قبلاً Track همیشه
+   * به «اولین اسلاید دیده‌شده» لنگر می‌شد؛ پس با Tap روی تصویر راست،
+   * اسلاید چپ در جایش می‌ماند و تصویر راست از قاب بیرون می‌رفت.
+   * نتیجه همیشه داخل بازهٔ مجاز محتوا (بدون فضای خالی) و تصویر کامل
+   * داخل دید است. با Transition یکسانِ عرض، مرکز در طول انیمیشن ثابت می‌ماند.
+   */
+  function computeAnchorX(nextZoomed: boolean, i: number): number | null {
+    if (containerWidth <= 0 || count < 2) return null;
+    const nextWidth = containerWidth * SLIDE_WIDTH_RATIO * (nextZoomed ? ZOOM_FACTOR : 1);
+    const nextStep = nextWidth + GAP_PX;
+    const nextMax = Math.max(0, count * nextWidth + (count - 1) * GAP_PX - containerWidth);
+    const currentX = canScroll ? x.get() : 0;
+    const oldCenter = i * step + currentX + slideWidth / 2;
+    const left = Math.min(Math.max(0, oldCenter - nextWidth / 2), containerWidth - nextWidth);
+    return Math.min(0, Math.max(-nextMax, left - i * nextStep));
+  }
+  // نسخهٔ همیشه‌تازه برای Effectهایی که وابستگی‌شان را عمداً محدود نگه داشته‌ایم.
+  const computeAnchorXRef = useRef(computeAnchorX);
+  useEffect(() => {
+    computeAnchorXRef.current = computeAnchorX;
+  });
+
+  // به موقعیت دلخواه (بعد از Tap) یا اسلاید فعال برو؛ هرگز بیشتر از انتهای محتوا.
   useEffect(() => {
     if (containerWidth <= 0) return;
-    const target = -Math.min(index * step, maxScroll);
+    const target = anchorX ?? -Math.min(index * step, maxScroll);
     const controls = animate(x, target, transition);
     return () => controls.stop();
-  }, [index, step, maxScroll, containerWidth, transition, x]);
+  }, [index, anchorX, step, maxScroll, containerWidth, transition, x]);
 
   // اسکرول رو‌به‌پایین صفحه → بزرگ‌نمایی و زوم با انیمیشن برمی‌گردند.
   useEffect(() => {
@@ -117,6 +149,14 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
 
     function handleScroll() {
       if (getScrollTop() - baseScrollTop >= SCROLL_RESET_PX) {
+        // لنگر: اسلایدی که مرکزش به مرکز قاب نزدیک‌تر است.
+        const { containerWidth: cw } = layoutRef.current;
+        const currentX = layoutRef.current.canScroll ? x.get() : 0;
+        const nearest = Math.round(
+          (cw / 2 - currentX - layoutRef.current.slideWidth / 2) / layoutRef.current.step,
+        );
+        const i = Math.min(layoutRef.current.count - 1, Math.max(0, nearest));
+        setAnchorX(computeAnchorXRef.current(false, Number.isFinite(i) ? i : 0));
         setZoomed(false);
         setZoom(null);
       }
@@ -125,17 +165,21 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
     const target = getScrollTarget();
     target.addEventListener("scroll", handleScroll, { passive: true });
     return () => target.removeEventListener("scroll", handleScroll);
-  }, [hasActiveState]);
+  }, [hasActiveState, x]);
 
   function handleDragEnd(_event: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) {
-    // `dir="ltr"`: کشیدن به چپ (offset منفی) = اسلاید بعدی.
-    let next = Math.min(index, maxIndex);
+    // `dir="ltr"`: کشیدن به چپ (offset منفی) = اسلاید بعدی. اسلاید شروعِ
+    // Drag از موقعیت واقعی Track می‌آید (بعد از Tap ممکن است بین دو
+    // اسلاید باشد).
+    const startX = x.get() - info.offset.x;
+    let next = Math.min(maxIndex, Math.max(0, Math.round(-startX / step)));
     if (info.velocity.x < -SWIPE_VELOCITY_PX || info.offset.x < -SWIPE_OFFSET_PX) {
       next += 1;
     } else if (info.velocity.x > SWIPE_VELOCITY_PX || info.offset.x > SWIPE_OFFSET_PX) {
       next -= 1;
     }
     next = Math.min(maxIndex, Math.max(0, next));
+    setAnchorX(null);
     if (next === index) {
       animate(x, -Math.min(index * step, maxScroll), transition);
     } else {
@@ -143,9 +187,11 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
     }
   }
 
-  function toggleZoomed() {
+  function toggleZoomed(tappedIndex: number) {
     if (didGestureRef.current) return;
-    setZoomed((current) => !current);
+    const nextZoomed = !zoomed;
+    setAnchorX(computeAnchorX(nextZoomed, tappedIndex));
+    setZoomed(nextZoomed);
     setZoom(null);
   }
 
@@ -277,14 +323,14 @@ export function ProductImageGallery({ images, productTitle }: ProductImageGaller
                 initial={false}
                 animate={{ width: `${widthRatio * 100}%` }}
                 transition={transition}
-                onTap={toggleZoomed}
+                onTap={() => toggleZoomed(i)}
                 onTouchStart={(event) => handleTouchStart(event, i)}
                 onTouchMove={(event) => handleTouchMove(event, i)}
                 onTouchEnd={(event) => handleTouchEnd(event, i)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    toggleZoomed();
+                    toggleZoomed(i);
                   }
                 }}
               >

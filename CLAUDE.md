@@ -26,6 +26,14 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: اصلاح لنگر Tap در گالری صفحه محصول (`ProductImageGallery`).**
+
+- **باگ:** با Tap روی تصویر سمت راست، تصویر سمت چپ (اولین اسلاید دیده‌شده) بزرگ/کوچک می‌شد. علت: موقعیت Track همیشه از روی «اندیس اسلاید اول» محاسبه می‌شد، نه اسلاید Tap‌شده.
+- **اصلاح:** `computeAnchorX(nextZoomed, i)` مرکز اسلاید Tap‌شده را حین تغییر اندازه ثابت نگه می‌دارد (با Clamp به قاب و حد Scroll) و در `anchorX` ذخیره می‌شود؛ افکت موقعیت از `anchorX ?? -min(index*step, maxScroll)` استفاده می‌کند. `toggleZoomed(tappedIndex)` برای Tap و صفحه‌کلید. شروع Swipe از موقعیت واقعی (`x.get() - info.offset.x`) محاسبه می‌شود و `anchorX` را پاک می‌کند. ریست با اسکرول صفحه به اسلاید نزدیک‌ترین مرکز قاب لنگر می‌اندازد.
+- **تست:** Playwright (۳۹۰px، لمسی): اسلاید راست Tap شد، کامل در دید ماند و بعد از کوچک‌شدن هم‌جا ماند؛ بدون خطای Console. Lint ✅ Typecheck ✅ `npm test` ✅ Build ✅ (Env ساختگی). **NOT VERIFIED:** گوشی واقعی.
+
+---
+
 **آخرین کار: بازطراحی بصری `ProductAmazingOfferBanner` (برچسب «پیشنهاد شگفت‌انگیز» + تایمر صفحه محصول) — Outline گرادینتی.**
 
 - **نسخهٔ نهایی (بازخورد: نسخهٔ توپر خوشایند نبود، Outline بهتر؛ قاب تایمر حذف شود):** حاشیهٔ گرادینتی `#be123c → #f43f5e → #fb923c` (`border-2 border-transparent` + `background` دوتایی `padding-box`/`border-box`) روی زمینهٔ بسیار روشن `#fff1f2 → #fff7ed`؛ برچسب و تایمر رنگ `--sf-cherry`؛ تایمر **بدون هیچ قاب/Pill**؛ آیکون با تپش ملایم (`.sf-offer-pulse`، با `prefers-reduced-motion` غیرفعال). نسخهٔ توپر/Shimmer/شیشه‌ای حذف شد. منطق/Props/`useOfferTimer` بدون تغییر.
