@@ -132,13 +132,13 @@ export function NotificationsChat({
   return (
     <div className="relative min-h-dvh">
       {/* پس‌زمینهٔ چت؛ روی دسکتاپ `fixed` نسبت به قاب موبایل است. */}
-      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-[#e9dfa8]">
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-[#a9aef5]">
         <Image
           src="/images/notifications-chat-bg.jpg"
           alt=""
           fill
           priority
-          // فایل اصلی (۱۵۵۱×۲۳۸۰) بدون Resize/فشرده‌سازی مجدد، برای وضوح کامل.
+          // فایل اصلی کاربر (۲۲۵۰×۴۸۷۲، طرح باغ‌وحش) برای وضوح کامل.
           unoptimized
           sizes="100vw"
           className="object-cover"
