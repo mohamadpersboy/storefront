@@ -3,7 +3,8 @@ import { requireAuthenticatedUser } from "@/lib/auth/api-guard";
 import { apiError, apiSuccess } from "@/lib/utils/api-response";
 import { topupWalletSchema } from "@/lib/validations/wallet";
 import { WalletTopup } from "@/models/WalletTopup";
-import { requestZarinpalPayment, getZarinpalStartPayUrl } from "@/lib/payment/zarinpal";
+import { getActiveGateway, getGateway, isOnlineGatewayId } from "@/lib/payment/gateways";
+import { GATEWAY_TOKEN_REUSE_TTL_MS } from "@/lib/payment/initiate-order-payment";
 import { env } from "@/config/env";
 
 /**
@@ -37,28 +38,41 @@ export async function POST(request: Request) {
     amount: parsed.data.amount,
   }).sort({ createdAt: -1 });
   if (openTopup) {
-    return apiSuccess({
-      topupId: openTopup.id,
-      paymentUrl: getZarinpalStartPayUrl(openTopup.authority),
-      amount: openTopup.amount,
-      reused: true,
-    });
+    const openGateway = await getGateway(isOnlineGatewayId(openTopup.provider) ? openTopup.provider : "zarinpal");
+    const fresh =
+      openGateway.id === "zarinpal" ||
+      (Boolean(openTopup.gatewayToken) &&
+        Date.now() - new Date(openTopup.createdAt).getTime() < GATEWAY_TOKEN_REUSE_TTL_MS);
+    if (fresh) {
+      return apiSuccess({
+        topupId: openTopup.id,
+        paymentUrl: openGateway.buildPaymentUrl({
+          authority: openTopup.authority,
+          gatewayToken: openTopup.gatewayToken,
+        }),
+        amount: openTopup.amount,
+        reused: true,
+      });
+    }
   }
 
   const description = `شارژ کیف پول فرش سقطچی — ${parsed.data.amount.toLocaleString("fa-IR")} تومان`;
-  const callbackUrl = new URL(
-    "/api/v1/wallet/topup/callback",
-    env.NEXT_PUBLIC_APP_URL,
-  ).toString();
+  const gateway = await getActiveGateway();
+  // زرین‌پال: مسیر قدیمی بدون تغییر. سایر درگاه‌ها: `/callback/<gateway>`.
+  const callbackPath =
+    gateway.id === "zarinpal"
+      ? "/api/v1/wallet/topup/callback"
+      : `/api/v1/wallet/topup/callback/${gateway.id}`;
+  const callbackUrl = new URL(callbackPath, env.NEXT_PUBLIC_APP_URL).toString();
 
-  const result = await requestZarinpalPayment({
+  const result = await gateway.requestPayment({
     amount: parsed.data.amount,
     description,
     callbackUrl,
     mobile: guard.user.phoneNumber,
   });
 
-  if (!("authority" in result)) {
+  if (!result.ok) {
     return apiError(result.message, { status: 502 });
   }
 
@@ -66,7 +80,9 @@ export async function POST(request: Request) {
     user: guard.user.id,
     amount: parsed.data.amount,
     status: "pending",
+    provider: gateway.id,
     authority: result.authority,
+    ...(result.gatewayToken ? { gatewayToken: result.gatewayToken } : {}),
     description,
   });
 

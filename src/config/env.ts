@@ -42,6 +42,15 @@ const envSchema = z.object({
   // Switching later is env-only, no code change (see CLAUDE.md).
   ZARINPAL_MODE: z.enum(["sandbox", "production"]).default("sandbox"),
 
+  // Online gateway selection + Sepehr (پرداخت الکترونیک سپهر).
+  // `PAYMENT_GATEWAY` درگاه فعال پرداخت‌های جدید است؛ پیش‌فرض zarinpal.
+  // تغییر آن فقط env است. پرداخت‌های قدیمی با `Payment.provider` خودشان
+  // Verify می‌شوند. `SEPEHR_TERMINAL_ID` فقط وقتی لازم است که
+  // `PAYMENT_GATEWAY=sepehr` باشد.
+  PAYMENT_GATEWAY: z.preprocess(emptyToUndefined, z.enum(["zarinpal", "sepehr"]).default("zarinpal")),
+  SEPEHR_TERMINAL_ID: z.preprocess(emptyToUndefined, z.string().regex(/^\d{8}$/, "SEPEHR_TERMINAL_ID must be 8 digits").optional()),
+  SEPEHR_BASE_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
+
   // Notifications (سیستم اطلاع‌رسانی درون‌برنامه‌ای)
   //
   // همه اختیاری‌اند و مقدار پیش‌فرض دارند. مقدارِ خالیِ `KEY=` در
@@ -101,6 +110,14 @@ const envSchema = z.object({
           : "http://localhost:3000";
     return /^https?:\/\//.test(raw) ? raw : `https://${raw}`;
   }, z.string().url()),
+}).superRefine((value, ctx) => {
+  if (value.PAYMENT_GATEWAY === "sepehr" && !value.SEPEHR_TERMINAL_ID) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["SEPEHR_TERMINAL_ID"],
+      message: "SEPEHR_TERMINAL_ID is required when PAYMENT_GATEWAY=sepehr",
+    });
+  }
 });
 
 function loadEnv() {

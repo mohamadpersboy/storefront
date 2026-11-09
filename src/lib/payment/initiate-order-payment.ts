@@ -4,7 +4,7 @@ import { Order } from "@/models/Order";
 import { Payment } from "@/models/Payment";
 import { WalletTransaction } from "@/models/WalletTransaction";
 import { computeRemainingOnlineAmount } from "@/lib/utils/pricing";
-import { requestZarinpalPayment, getZarinpalStartPayUrl } from "@/lib/payment/zarinpal";
+import { getActiveGateway, getGateway, isOnlineGatewayId } from "@/lib/payment/gateways";
 import { env } from "@/config/env";
 import {
   getOrCreateWallet,
@@ -19,6 +19,12 @@ import { paymentWalletDebitKey, paymentRefundKey } from "@/lib/payment/payment-k
  * وابسته نیست: کسر و استرداد کیف پول با کلید یکتای هر Payment انجام می‌شود.
  */
 export const PAYMENT_INITIATION_CLAIM_TTL_MS = 2 * 60 * 1000;
+
+/**
+ * حداکثر سن یک Payment باز که لینکش دوباره استفاده می‌شود (فقط درگاه‌های غیر
+ * زرین‌پال؛ توکن آن‌ها انقضای کوتاه دارد). رفتار زرین‌پال تغییر نکرده است.
+ */
+export const GATEWAY_TOKEN_REUSE_TTL_MS = 10 * 60 * 1000;
 
 export class PaymentInitiationError extends Error {
   status: number;
@@ -149,14 +155,26 @@ export async function initiateOrderPayment(params: InitiateOrderPaymentParams) {
       status: { $in: ["pending", "processing"] },
     }).sort({ createdAt: -1 });
     if (openPayment) {
-      return {
-        paymentId: openPayment.id,
-        paymentUrl: getZarinpalStartPayUrl(openPayment.authority),
-        amount: openPayment.amount,
-        walletAmount: openPayment.walletAmount,
-        paidFromWallet: false,
-        reused: true,
-      };
+      const openGateway = await getGateway(
+        isOnlineGatewayId(openPayment.provider) ? openPayment.provider : "zarinpal",
+      );
+      const fresh =
+        openGateway.id === "zarinpal" ||
+        (Boolean(openPayment.gatewayToken) &&
+          Date.now() - new Date(openPayment.createdAt).getTime() < GATEWAY_TOKEN_REUSE_TTL_MS);
+      if (fresh) {
+        return {
+          paymentId: openPayment.id,
+          paymentUrl: openGateway.buildPaymentUrl({
+            authority: openPayment.authority,
+            gatewayToken: openPayment.gatewayToken,
+          }),
+          amount: openPayment.amount,
+          walletAmount: openPayment.walletAmount,
+          paidFromWallet: false,
+          reused: true,
+        };
+      }
     }
 
     // پرداخت ترکیبی — تا سقف موجودی واقعی کیف پول مشتری، نه بیشتر؛ اگر
@@ -233,11 +251,15 @@ export async function initiateOrderPayment(params: InitiateOrderPaymentParams) {
     }
 
     const description = `پرداخت سفارش #${order.orderNumber} — فروشگاه فرش`;
-    const callbackUrl = new URL("/api/v1/payments/callback", env.NEXT_PUBLIC_APP_URL).toString();
 
+    const gateway = await getActiveGateway();
+    // زرین‌پال: مسیر قدیمی بدون تغییر. سایر درگاه‌ها: `/callback/<gateway>`.
+    const callbackPath =
+      gateway.id === "zarinpal" ? "/api/v1/payments/callback" : `/api/v1/payments/callback/${gateway.id}`;
+    const callbackUrl = new URL(callbackPath, env.NEXT_PUBLIC_APP_URL).toString();
     let result;
     try {
-      result = await requestZarinpalPayment({
+      result = await gateway.requestPayment({
         amount: remainingAfterWallet,
         description,
         callbackUrl,
@@ -248,13 +270,13 @@ export async function initiateOrderPayment(params: InitiateOrderPaymentParams) {
       throw error;
     }
 
-    if (!("authority" in result)) {
+    if (!result.ok) {
       // درگاه رد کرد — سهم کیف پول با کلید یکتا برمی‌گردد (تکرار اثر ندارد).
       await refundWalletPortion("درخواست پرداخت توسط درگاه رد شد،");
       throw new PaymentInitiationError(result.message, 502);
     }
 
-    const { authority, paymentUrl } = result;
+    const { authority, paymentUrl, gatewayToken } = result;
 
     let payment;
     try {
@@ -263,9 +285,10 @@ export async function initiateOrderPayment(params: InitiateOrderPaymentParams) {
         order: order._id,
         amount: remainingAfterWallet,
         walletAmount: walletPortion,
-        provider: "zarinpal",
+        provider: gateway.id,
         status: "pending",
         authority,
+        ...(gatewayToken ? { gatewayToken } : {}),
         description,
         initiatedBy: initiatedByUserId,
       });

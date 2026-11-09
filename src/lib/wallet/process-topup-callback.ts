@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { Types } from "mongoose";
 import { WalletTopup, type WalletTopupStatus } from "@/models/WalletTopup";
-import { verifyZarinpalPayment } from "@/lib/payment/zarinpal";
+import { getGateway, isOnlineGatewayId, type OnlineGatewayId } from "@/lib/payment/gateways";
+import { isDigitalReceiptUsed } from "@/lib/payment/digital-receipt";
 import { adjustWalletBalance } from "@/lib/wallet/wallet-service";
 import { runInTransaction } from "@/lib/db/transaction";
 
@@ -29,6 +30,7 @@ interface TopupRow {
   user: Types.ObjectId;
   amount: number;
   status: WalletTopupStatus;
+  provider?: string;
 }
 
 export function topupCreditKey(topupId: unknown): string {
@@ -52,18 +54,30 @@ function settled(status: WalletTopupStatus): TopupCallbackOutcome | null {
 export async function processTopupCallback(params: {
   authority: string | null;
   now?: Date;
+  /** درگاهی که Callback از آن آمده. اگر داده شود باید با `provider` رکورد یکی باشد (پیش‌فرض: provider رکورد). */
+  gateway?: OnlineGatewayId;
+  callbackData?: Record<string, string>;
 }): Promise<TopupCallbackResult> {
   const now = params.now ?? new Date();
   const { authority } = params;
   if (!authority || !AUTHORITY_PATTERN.test(authority)) return { outcome: "error" };
 
   const topup = await WalletTopup.findOne({ authority })
-    .select("user amount status")
+    .select("user amount status provider")
     .lean<TopupRow | null>();
   if (!topup) return { outcome: "error" };
 
+  // Verify همیشه با درگاهی که رکورد با آن ساخته شده؛ نه با پارامتر ورودی.
+  const providerId: OnlineGatewayId = isOnlineGatewayId(topup.provider) ? topup.provider : "zarinpal";
+  if (params.gateway && params.gateway !== providerId) return { outcome: "error" };
+  const gateway = await getGateway(providerId);
+
   const done = settled(topup.status);
   if (done) return { outcome: done, amount: topup.amount };
+
+  // سپهر بدون داده‌ی Callback (رسید دیجیتال) قابل Verify نیست (مثلاً Cron):
+  // بدون Claim و بدون شمارش تلاش، همان `pending` می‌ماند.
+  if (providerId !== "zarinpal" && !params.callbackData) return { outcome: "pending", amount: topup.amount };
 
   const token = randomUUID();
   const staleBefore = new Date(now.getTime() - TOPUP_CLAIM_TTL_MS);
@@ -103,14 +117,38 @@ export async function processTopupCallback(params: {
   const clear = { processingToken: null, processingStartedAt: null };
 
   try {
-    const verification = await verifyZarinpalPayment({ amount: topup.amount, authority });
+    const receipt = gateway.extractReceipt?.(params.callbackData) ?? null;
+    if (receipt && (await isDigitalReceiptUsed(receipt, { topupId: topup._id }))) {
+      await WalletTopup.findOneAndUpdate(owned, {
+        $set: {
+          status: "pending",
+          needsManualReview: true,
+          reconciliationNote: "manual_review_required: digital_receipt_already_used",
+          ...clear,
+        },
+      });
+      return { outcome: "pending", amount: topup.amount, manualReview: true };
+    }
+
+    const verification = await gateway.verifyPayment({
+      amount: topup.amount,
+      authority,
+      callbackData: params.callbackData,
+    });
 
     if (!verification.success) {
       if (verification.retryable) {
         await WalletTopup.findOneAndUpdate(owned, { $set: { status: "pending", ...clear } });
         return { outcome: "pending", amount: topup.amount };
       }
-      // کدهای -50/-51/-53/-54 با مستند رسمی تأیید نشده‌اند (NOT VERIFIED)؛
+      if (!verification.unconfirmed) {
+        // رد قطعی (مثلاً لغو توسط کاربر): فقط رکورد شارژ failed می‌شود؛ پولی کسر نشده.
+        await WalletTopup.findOneAndUpdate(owned, {
+          $set: { status: "failed", failureReason: verification.message, ...clear },
+        });
+        return currentOutcome();
+      }
+      // کدهای تأییدنشده (زرین‌پال -50/-51/-53/-54، سپهر) NOT VERIFIED‌اند؛
       // پس هرگز خودکار `failed` نمی‌شوند. رکورد `pending` می‌ماند، علامت
       // بررسی دستی می‌گیرد و Cron تا سقف سن، دوباره Verify می‌کند.
       await WalletTopup.findOneAndUpdate(owned, {
@@ -141,6 +179,7 @@ export async function processTopupCallback(params: {
             status: "paid",
             refId: verification.refId,
             cardPan: verification.cardPan,
+            ...(verification.digitalReceipt ? { digitalReceipt: verification.digitalReceipt } : {}),
             paidAt: now,
             failureReason: null,
             reconciliationNote: null,

@@ -3,8 +3,8 @@ import { paymentRefundKey } from "@/lib/payment/payment-keys";
 import type { Types } from "mongoose";
 import { Payment, type PaymentStatus } from "@/models/Payment";
 import { Order } from "@/models/Order";
-import { verifyZarinpalPayment } from "@/lib/payment/zarinpal";
-import { isUnconfirmedVerifyFailureCode } from "@/lib/payment/verify-failure-codes";
+import { getGateway, type OnlineGatewayId } from "@/lib/payment/gateways";
+import { isDigitalReceiptUsed } from "@/lib/payment/digital-receipt";
 import { adjustWalletBalance } from "@/lib/wallet/wallet-service";
 import { runInTransaction } from "@/lib/db/transaction";
 import { notifyPaymentResult } from "@/lib/notifications/events";
@@ -109,13 +109,19 @@ async function isOrderAlreadyCovered(payment: PaymentRow, order: OrderRow | null
 export async function processGatewayCallback(params: {
   authority: string | null;
   now?: Date;
+  /** درگاهی که این Callback از آن آمده؛ پیش‌فرض zarinpal. رکورد باید همان `provider` را داشته باشد. */
+  gateway?: OnlineGatewayId;
+  /** پارامترهای خام برگشتی درگاه (سپهر: respcode، digitalreceipt، ...). */
+  callbackData?: Record<string, string>;
 }): Promise<GatewayCallbackResult> {
   const { authority } = params;
+  const gatewayId = params.gateway ?? "zarinpal";
+  const gateway = await getGateway(gatewayId);
   const now = params.now ?? new Date();
 
   if (!authority || !AUTHORITY_PATTERN.test(authority)) return { outcome: "error" };
 
-  const payment = await Payment.findOne({ authority, provider: "zarinpal" })
+  const payment = await Payment.findOne({ authority, provider: gatewayId })
     .select("order amount walletAmount status processingStartedAt")
     .lean<PaymentRow | null>();
   if (!payment) return { outcome: "error" };
@@ -154,17 +160,32 @@ export async function processGatewayCallback(params: {
   }
 
   // ── Verify با درگاه؛ مبلغ همیشه از رکورد ذخیره‌شده ──
-  const verification = await verifyZarinpalPayment({
-    amount: payment.amount,
-    authority,
-  });
-
   const owned = {
     _id: payment._id,
     status: "processing" as const,
     processingToken: token,
   };
   const clear = { processingToken: null, processingStartedAt: null };
+
+  // رسید دیجیتال تکراری (Replay رسید پرداخت دیگر): Advice نمی‌زنیم.
+  const receipt = gateway.extractReceipt?.(params.callbackData) ?? null;
+  if (receipt && (await isDigitalReceiptUsed(receipt, { paymentId: payment._id }))) {
+    await Payment.findOneAndUpdate(owned, {
+      $set: {
+        status: "pending",
+        needsManualReview: true,
+        reconciliationNote: "manual_review_required: digital_receipt_already_used",
+        ...clear,
+      },
+    });
+    return toResult("pending", payment, order);
+  }
+
+  const verification = await gateway.verifyPayment({
+    amount: payment.amount,
+    authority,
+    callbackData: params.callbackData,
+  });
 
   if (verification.success) {
     const covered = await isOrderAlreadyCovered(payment, order);
@@ -175,6 +196,7 @@ export async function processGatewayCallback(params: {
           status: "paid",
           refId: verification.refId,
           cardPan: verification.cardPan,
+          ...(verification.digitalReceipt ? { digitalReceipt: verification.digitalReceipt } : {}),
           paidAt: now,
           failureReason: null,
           ...clear,
@@ -206,8 +228,8 @@ export async function processGatewayCallback(params: {
     return toResult("pending", payment, order);
   }
 
-  if (isUnconfirmedVerifyFailureCode(verification.code)) {
-    // کدهای -50/-51/-53/-54 با مستند رسمی تأیید نشده‌اند (NOT VERIFIED)؛
+  if (verification.unconfirmed) {
+    // کد خطای تأییدنشده (زرین‌پال -50/-51/-53/-54 یا کدهای Advice سپهر؛ NOT VERIFIED)؛
     // پس هرگز خودکار `failed` نمی‌شوند: بدون استرداد، بدون اعلان شکست.
     // Payment `pending` می‌ماند، علامت بررسی دستی می‌گیرد و Claim آزاد
     // می‌شود تا Callback/Retry بعدی دوباره Verify کند.

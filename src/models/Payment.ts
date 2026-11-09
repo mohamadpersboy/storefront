@@ -9,7 +9,7 @@ import "mongoose-paginate-v2";
  * gateway (cash/POS/card-to-card/check) — Master Prompt — Financial
  * Management, Phase ۲.
  */
-export type PaymentProvider = "zarinpal" | "manual";
+export type PaymentProvider = "zarinpal" | "sepehr" | "manual";
 
 /**
  * How the money for this Payment was actually received. Only
@@ -94,6 +94,10 @@ export interface IPayment {
    * رکوردهای قدیمی بدون این فیلد = غیرعلامت‌خورده.
    */
   needsManualReview?: boolean;
+  /** توکن درگاه برای ساخت دوباره‌ی لینک پرداخت (سپهر: Accesstoken). */
+  gatewayToken?: string | null;
+  /** رسید دیجیتال یکتای درگاه (سپهر). Unique جزئی: یک رسید فقط برای یک پرداخت. */
+  digitalReceipt?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -105,7 +109,7 @@ const PaymentSchema = new Schema<IPayment>(
     order: { type: Schema.Types.ObjectId, ref: "Order", required: true, index: true },
     amount: { type: Number, required: true, min: 0 },
     walletAmount: { type: Number, default: 0, min: 0 },
-    provider: { type: String, enum: ["zarinpal", "manual"], default: "zarinpal", required: true },
+    provider: { type: String, enum: ["zarinpal", "sepehr", "manual"], default: "zarinpal", required: true },
     method: { type: String, enum: PAYMENT_METHODS, default: "zarinpal", required: true },
     status: {
       type: String,
@@ -128,8 +132,15 @@ const PaymentSchema = new Schema<IPayment>(
     processingStartedAt: { type: Date, default: null },
     reconciliationNote: { type: String, default: null },
     needsManualReview: { type: Boolean, default: false },
+    gatewayToken: { type: String, default: null },
+    digitalReceipt: { type: String, default: null },
   },
   { timestamps: true },
+);
+
+PaymentSchema.index(
+  { digitalReceipt: 1 },
+  { unique: true, partialFilterExpression: { digitalReceipt: { $type: "string" } } },
 );
 
 PaymentSchema.plugin(mongoosePaginate);

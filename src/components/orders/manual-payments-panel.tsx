@@ -36,6 +36,7 @@ export interface ManualPaymentItem {
 
 const methodLabels: Record<string, string> = {
   zarinpal: "درگاه آنلاین",
+  sepehr: "درگاه آنلاین (سپهر)",
   cash: "نقدی",
   pos: "کارتخوان",
   card_transfer: "کارت به کارت",

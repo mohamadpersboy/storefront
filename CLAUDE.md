@@ -3732,7 +3732,7 @@ API هم UI از همین استفاده می‌کنند (بند ۲۶: «Countdo
 
 ### Payment
 `order` (ref Order)، `amount` (تومان — فقط سهم آنلاین قابل‌جمع‌آوری،
-نه همیشه `Order.totalAmount`)، `provider` (فعلاً فقط `zarinpal`، اما
+نه همیشه `Order.totalAmount`)، `provider` (`zarinpal` | `sepehr` | `manual`؛
 Enum باز برای افزودن Gatewayهای دیگر بعداً)، `status`
 (`pending`/`processing`/`paid`/`failed`/`cancelled`/`refunded`/
 `partially_paid` — دقیقاً enum بند ۳۱)، `authority` (شناسه تراکنش
@@ -3755,6 +3755,41 @@ Verify همیشه از رکورد ذخیره‌شده `Payment.amount` خوان�
 از Query String که قابل‌دستکاری توسط کاربر است. موفقیت پرداخت وضعیت
 `Order.status` را خودکار تغییر نمی‌دهد؛ آن State Machine یک تصمیم
 آگاهانه ادمین در Dashboard می‌ماند.
+
+#### درگاه‌های ماژولار (Zarinpal + Sepehr) — Nov 2026
+- ساختار: `src/lib/payment/gateways/` — `types.ts` (Interface `PaymentGateway`:
+  `requestPayment` / `buildPaymentUrl` / `verifyPayment` / `extractReceipt?`)،
+  `zarinpal-gateway.ts` و `sepehr-gateway.ts` (Adapter)، `index.ts` (ثبت:
+  `getGateway(id)` و `getActiveGateway()`). منطق مالی مشترک (Claim اتمیک،
+  Idempotency، کیف پول) فقط در `process-gateway-callback.ts` و
+  `process-topup-callback.ts` است. افزودن درگاه جدید (مثلاً به‌پرداخت):
+  یک Adapter + یک `case` در `getGateway` + مقدار در `OnlineGatewayId` +
+  Route `callback/<gateway>` برای سفارش و شارژ.
+- انتخاب درگاه فعال: env `PAYMENT_GATEWAY` (`zarinpal` پیش‌فرض | `sepehr`)؛
+  با `sepehr` متغیر `SEPEHR_TERMINAL_ID` (۸ رقم) اجباری است. `SEPEHR_BASE_URL`
+  اختیاری (پیش‌فرض `https://sepehr.shaparak.ir`). `ZARINPAL_MERCHANT_ID` هنوز
+  در Schema اجباری است. تصمیم: پیش‌فرض زرین‌پال ماند؛ سوییچ فقط env.
+- هر `Payment`/`WalletTopup` با `provider` خودش Verify می‌شود (نه درگاه فعال).
+  فیلدهای جدید: `Payment.gatewayToken`، `digitalReceipt` (Unique جزئی)؛
+  `WalletTopup.provider/gatewayToken/digitalReceipt`.
+- Callbackها: زرین‌پال همان مسیر قبلی (GET). سپهر:
+  `POST|GET /api/v1/payments/callback/sepehr` و
+  `/api/v1/wallet/topup/callback/sepehr` (Redirect با ۳۰۳).
+- سپهر: مبلغ ریال (× ۱۰)؛ `InvoiceID` = UUID تصادفی ما (در `authority`)؛
+  Callback شامل توکن نیست. `respcode`/`amount` Callback قابل جعل‌اند: فقط
+  `respcode≠0` (لغو/Timeout) شکست قطعی است؛ ناسازگاری داده بدون Advice و
+  بدون تغییر وضعیت نادیده گرفته می‌شود؛ مبلغ نهایی فقط از `ReturnId` در
+  Advice. `Duplicate` = موفق. `NOK -3`/شبکه = Retry؛ سایر کدهای NOK =
+  `pending + needsManualReview` (بدون استرداد/اعلان شکست). رسید تکراری →
+  Advice نمی‌خورد، بررسی دستی. Rollback سپهر پیاده نشد (پیش‌فرض غیرفعال).
+- Cron آشتی‌سازی شارژ برای سپهر Verify نمی‌کند (رسید دیجیتال فقط در Callback
+  هست)؛ رکورد pending می‌ماند و بعد از ۴۸ ساعت علامت بررسی دستی می‌گیرد.
+- ⚠️ TODO/ریسک Deploy (NOT VERIFIED): سپهر GetToken/Advice را فقط از IPهای
+  ثبت‌شده می‌پذیرد (خطای -2/-5)؛ Vercel IP ثابت ندارد (Static IPs یا Proxy
+  لازم است). ایمیل سپهر از پورت 8081 روی IP 92.242.223.125 می‌گوید؛ مستند
+  4.0.2 پورتی ذکر نمی‌کند. ترمینال تا اولین تراکنش موفق ۱۰٬۰۰۰ ریال محدود است.
+  تست زنده با ۱۰۰۰ تومان انجام نشده. TODO: تست Integration روی Mongo واقعی،
+  Dashboard برای صف بررسی دستی.
 
 ### Bank
 مرجع بانک‌ها برای انتخاب هنگام ثبت چک (و آماده برای استفاده مجدد در

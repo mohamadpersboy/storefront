@@ -14,7 +14,11 @@ export interface IWalletTopup {
   user: Types.ObjectId;
   amount: number;
   status: WalletTopupStatus;
-  authority: string; // شناسه تراکنش Zarinpal — یکتا
+  /** درگاهی که این تلاش با آن ساخته شد؛ Verify همیشه با همین درگاه انجام می‌شود (رکوردهای قدیمی بدون فیلد = zarinpal). */
+  provider?: "zarinpal" | "sepehr";
+  authority: string; // شناسه تراکنش درگاه — یکتا (سپهر: InvoiceID ما)
+  gatewayToken?: string | null;
+  digitalReceipt?: string | null;
   refId: number | null;
   cardPan: string | null;
   description: string;
@@ -41,7 +45,10 @@ const WalletTopupSchema = new Schema<IWalletTopup>(
     user: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     amount: { type: Number, required: true, min: 0 },
     status: { type: String, enum: ["pending", "processing", "paid", "failed"], default: "pending", required: true },
+    provider: { type: String, enum: ["zarinpal", "sepehr"], default: "zarinpal" },
     authority: { type: String, required: true, unique: true },
+    gatewayToken: { type: String, default: null },
+    digitalReceipt: { type: String, default: null },
     refId: { type: Number, default: null },
     cardPan: { type: String, default: null },
     description: { type: String, required: true },
@@ -64,6 +71,11 @@ WalletTopupSchema.index({ status: 1, lastReconcileAt: 1, createdAt: 1 });
 WalletTopupSchema.index(
   { needsManualReview: 1, createdAt: -1 },
   { partialFilterExpression: { needsManualReview: true } },
+);
+
+WalletTopupSchema.index(
+  { digitalReceipt: 1 },
+  { unique: true, partialFilterExpression: { digitalReceipt: { $type: "string" } } },
 );
 
 type WalletTopupModel = Model<IWalletTopup>;
