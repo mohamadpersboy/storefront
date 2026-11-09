@@ -17,7 +17,7 @@
  *   بود، باید آگاهانه و با تأیید کارفرما اضافه شود.
  */
 
-const STATIC_CACHE = "sf-static-v1";
+const STATIC_CACHE = "sf-static-v2";
 const STATIC_PATH_PREFIXES = ["/_next/static/", "/icons/", "/fonts/"];
 
 self.addEventListener("install", () => {
