@@ -224,6 +224,18 @@ export function CartPageClient({ initialCart, initialAddress, walletBalance }: C
   }
 
   if (cart.items.length === 0) {
+    // سفارش ثبت شده ولی شروع پرداخت خطا داده: سبد خالی است، اما خطا باید دیده شود.
+    if (checkoutError) {
+      return (
+        <EmptyState
+          icon={ShoppingCart}
+          title="سفارش ثبت شد، اما پرداخت شروع نشد"
+          description={checkoutError}
+          actionLabel="مشاهده سفارش‌ها"
+          actionHref="/orders"
+        />
+      );
+    }
     return (
       <EmptyState
         icon={ShoppingCart}
