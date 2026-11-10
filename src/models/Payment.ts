@@ -96,6 +96,8 @@ export interface IPayment {
   needsManualReview?: boolean;
   /** توکن درگاه برای ساخت دوباره‌ی لینک پرداخت (سپهر: Accesstoken). */
   gatewayToken?: string | null;
+  /** اگر پرداخت از صفحه‌ی لینک پرداخت (`/pay/<token>`) شروع شده، همان لینک؛ برای بازگشت به همان صفحه. */
+  paymentLink?: Types.ObjectId | null;
   /** رسید دیجیتال یکتای درگاه (سپهر). Unique جزئی: یک رسید فقط برای یک پرداخت. */
   digitalReceipt?: string | null;
   createdAt: Date;
@@ -133,6 +135,7 @@ const PaymentSchema = new Schema<IPayment>(
     reconciliationNote: { type: String, default: null },
     needsManualReview: { type: Boolean, default: false },
     gatewayToken: { type: String, default: null },
+    paymentLink: { type: Schema.Types.ObjectId, ref: "PaymentLink", default: null },
     digitalReceipt: { type: String, default: null },
   },
   { timestamps: true },

@@ -40,6 +40,8 @@ export interface InitiateOrderPaymentParams {
   initiatedByUserId: string;
   /** پرداخت ترکیبی: تا سقف موجودی واقعی کیف پول مشتری کسر می‌شود */
   useWallet?: boolean;
+  /** لینک پرداخت منبع (اختیاری) — روی Payment ثبت می‌شود تا بازگشت از درگاه به همان صفحه برگردد. */
+  paymentLinkId?: string;
 }
 
 /**
@@ -60,7 +62,7 @@ export interface InitiateOrderPaymentParams {
  *  - «پرداخت‌شده تاکنون» شامل `walletAmount` هم هست (قبلاً فقط `amount`).
  */
 export async function initiateOrderPayment(params: InitiateOrderPaymentParams) {
-  const { orderId, initiatedByUserId, useWallet = false } = params;
+  const { orderId, initiatedByUserId, useWallet = false, paymentLinkId } = params;
 
   if (!mongoose.isValidObjectId(orderId)) {
     throw new PaymentInitiationError("سفارش یافت نشد", 404);
@@ -163,6 +165,9 @@ export async function initiateOrderPayment(params: InitiateOrderPaymentParams) {
         (Boolean(openPayment.gatewayToken) &&
           Date.now() - new Date(openPayment.createdAt).getTime() < GATEWAY_TOKEN_REUSE_TTL_MS);
       if (fresh) {
+        if (paymentLinkId && !openPayment.paymentLink) {
+          await Payment.updateOne({ _id: openPayment._id }, { $set: { paymentLink: paymentLinkId } });
+        }
         return {
           paymentId: openPayment.id,
           paymentUrl: openGateway.buildPaymentUrl({
@@ -289,6 +294,7 @@ export async function initiateOrderPayment(params: InitiateOrderPaymentParams) {
         status: "pending",
         authority,
         ...(gatewayToken ? { gatewayToken } : {}),
+        ...(paymentLinkId ? { paymentLink: paymentLinkId } : {}),
         description,
         initiatedBy: initiatedByUserId,
       });

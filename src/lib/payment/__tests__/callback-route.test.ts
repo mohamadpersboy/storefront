@@ -4,6 +4,8 @@ import { NextRequest } from "next/server";
 const processFn = vi.fn();
 const connectFn = vi.fn();
 vi.mock("@/lib/db/connect", () => ({ connectToDatabase: (...a: unknown[]) => connectFn(...a) }));
+const returnPathFn = vi.fn();
+vi.mock("@/lib/payment/payment-links", () => ({ getPaymentLinkReturnPath: (...a: unknown[]) => returnPathFn(...a) }));
 vi.mock("@/lib/payment/process-gateway-callback", () => ({ processGatewayCallback: (...a: unknown[]) => processFn(...a) }));
 
 import { GET } from "@/app/api/v1/payments/callback/route";
@@ -13,6 +15,8 @@ const loc = (r: Response) => new URL(r.headers.get("location")!);
 
 beforeEach(() => {
   processFn.mockReset();
+  returnPathFn.mockReset();
+  returnPathFn.mockResolvedValue(null);
   connectFn.mockReset();
   connectFn.mockResolvedValue(undefined);
 });
@@ -25,6 +29,15 @@ describe("GET /api/v1/payments/callback", () => {
     const u = loc(r);
     expect(u.searchParams.get("status")).toBe("success");
     expect(u.searchParams.get("amount")).toBe("5000");
+  });
+
+  it("payment started from a pay link returns to /pay/<token>", async () => {
+    processFn.mockResolvedValue({ outcome: "failed" });
+    returnPathFn.mockResolvedValue("/pay/" + "T".repeat(32));
+    const u = loc(await call("Authority=A123"));
+    expect(returnPathFn).toHaveBeenCalledWith("A123");
+    expect(u.pathname).toBe("/pay/" + "T".repeat(32));
+    expect(u.searchParams.get("status")).toBe("failed");
   });
 
   it("maps pending/failed/error outcomes to the result page", async () => {

@@ -34,7 +34,7 @@ export function PaymentPanel({
   prepaymentAmount: number;
   initialPayments: PaymentPanelData[];
 }) {
-  const [payments, setPayments] = useState(initialPayments);
+  const [payments] = useState(initialPayments);
   const [creating, setCreating] = useState(false);
   const [link, setLink] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +50,7 @@ export function PaymentPanel({
     setError(null);
     setLink(null);
     try {
-      const res = await fetch("/api/v1/payments/initiate", {
+      const res = await fetch("/api/v1/payments/links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId }),
@@ -60,20 +60,8 @@ export function PaymentPanel({
         setError(body.message ?? "خطا در ساخت لینک پرداخت");
         return;
       }
-      setLink(body.data.paymentUrl);
-      if (!body.data.reused) {
-        setPayments((prev) => [
-          {
-            id: body.data.paymentId,
-            amount: body.data.amount,
-            status: "pending",
-            refId: null,
-            createdAt: new Date().toISOString(),
-            paidAt: null,
-          },
-          ...prev,
-        ]);
-      }
+      // لینک صفحه‌ی پرداخت ما (`/pay/<token>`)؛ پرداخت فقط وقتی پرداخت‌کننده روی آن بزند شروع می‌شود.
+      setLink(body.data.url);
     } catch {
       setError("ارتباط با سرور برقرار نشد");
     } finally {

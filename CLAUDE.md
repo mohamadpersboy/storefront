@@ -3791,6 +3791,30 @@ Verify همیشه از رکورد ذخیره‌شده `Payment.amount` خوان�
   تست زنده با ۱۰۰۰ تومان انجام نشده. TODO: تست Integration روی Mongo واقعی،
   Dashboard برای صف بررسی دستی.
 
+#### لینک پرداخت `/pay/<token>` — Nov 2026
+- مدل `PaymentLink` (`order`، `token` یکتا ۳۲ نویسه base64url تصادفی، `expiresAt`
+  = ۷۲ ساعت، `createdBy`، `revokedAt`). `Payment.paymentLink` اختیاری.
+- Dashboard: دکمه «ساخت لینک پرداخت» → `POST /api/v1/payments/links`
+  (`PAYMENTS_MANAGE`) لینک `/pay/<token>` می‌سازد (لینک معتبر قبلی دوباره
+  برمی‌گردد). دیگر لینک خام درگاه ساخته/نمایش داده نمی‌شود؛ Payment فقط وقتی
+  ساخته می‌شود که پرداخت‌کننده روی صفحه «پرداخت» بزند.
+- صفحه عمومی `/pay/[token]` (noindex، `referrer: no-referrer`): فقط شماره سفارش،
+  مبلغ مانده و انقضا. حالت‌ها از DB: payable / processing / paid / unavailable
+  (`status` در Query فقط پیام راهنما برای حالت پرداخت‌نشده است، هرگز موفقیت).
+- `POST /api/v1/pay/[token]/start` (عمومی): فقط توکن؛ همان
+  `initiateOrderPayment` (Claim اتمیک، مبلغ از DB) با `initiatedBy = createdBy`
+  لینک و `useWallet=false`. سفارش لغوشده/نقدی/کاملاً پرداخت‌شده/لینک
+  منقضی‌شده یا ابطال‌شده رد می‌شود.
+- بازگشت از درگاه: Callbackهای سفارش (زرین‌پال و سپهر) با
+  `getPaymentLinkReturnPath` اگر Payment از لینک شروع شده باشد به
+  `/pay/<token>?status=…` برمی‌گردند؛ وگرنه `/payment/result`.
+- ⚠️ دامنه Callback باید دقیقاً دامنه ثبت‌شده نزد زرین‌پال/سپهر باشد؛
+  `NEXT_PUBLIC_APP_URL` را در Vercel روی `https://saghatchi.ir` بگذارید (اگر خالی
+  باشد به `VERCEL_URL` برمی‌گردد و زرین‌پال «دسترسی از این دامنه مجاز نیست» می‌دهد).
+- TODO: Rate limit روی `/pay/*/start`، ابطال دستی لینک در Dashboard،
+  لغو/ثبت پرداخت مجدد توسط خود مشتری از صفحه سفارش (هنوز `/payments/initiate`
+  فقط ادمین).
+
 ### Bank
 مرجع بانک‌ها برای انتخاب هنگام ثبت چک (و آماده برای استفاده مجدد در
 حساب‌های بانکی فروشگاه در Phase ۲): `name` (unique)، `logoUrl`/

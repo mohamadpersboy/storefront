@@ -6,6 +6,8 @@ const topupFn = vi.fn();
 const connectFn = vi.fn();
 vi.mock("@/config/env", () => ({ env: { NEXT_PUBLIC_APP_URL: "https://shop.example" } }));
 vi.mock("@/lib/db/connect", () => ({ connectToDatabase: (...a: unknown[]) => connectFn(...a) }));
+const returnPathFn = vi.fn();
+vi.mock("@/lib/payment/payment-links", () => ({ getPaymentLinkReturnPath: (...a: unknown[]) => returnPathFn(...a) }));
 vi.mock("@/lib/payment/process-gateway-callback", () => ({ processGatewayCallback: (...a: unknown[]) => processFn(...a) }));
 vi.mock("@/lib/wallet/process-topup-callback", () => ({ processTopupCallback: (...a: unknown[]) => topupFn(...a) }));
 
@@ -22,6 +24,8 @@ const loc = (r: Response) => new URL(r.headers.get("location")!);
 
 beforeEach(() => {
   processFn.mockReset();
+  returnPathFn.mockReset();
+  returnPathFn.mockResolvedValue(null);
   topupFn.mockReset();
   connectFn.mockReset();
   connectFn.mockResolvedValue(undefined);
@@ -38,6 +42,15 @@ describe("Sepehr order callback route", () => {
       callbackData: { invoiceid: "inv1234567", respcode: "0", digitalreceipt: "rcpt-1234567" },
     });
     expect(loc(r).pathname).toBe("/payment/result");
+    expect(loc(r).searchParams.get("status")).toBe("success");
+  });
+
+  it("payment started from a pay link returns to /pay/<token>", async () => {
+    processFn.mockResolvedValue({ outcome: "success", orderNumber: 9, amount: 5000 });
+    returnPathFn.mockResolvedValue("/pay/" + "T".repeat(32));
+    const r = await POST(form({ invoiceid: "inv1234567", respcode: "0" }));
+    expect(returnPathFn).toHaveBeenCalledWith("inv1234567");
+    expect(loc(r).pathname).toBe("/pay/" + "T".repeat(32));
     expect(loc(r).searchParams.get("status")).toBe("success");
   });
 

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
 import { processGatewayCallback } from "@/lib/payment/process-gateway-callback";
+import { getPaymentLinkReturnPath } from "@/lib/payment/payment-links";
 import { env } from "@/config/env";
 
 /**
@@ -12,11 +13,14 @@ import { env } from "@/config/env";
  */
 export async function GET(request: NextRequest) {
   const authority = request.nextUrl.searchParams.get("Authority");
-  const resultUrl = new URL("/payment/result", env.NEXT_PUBLIC_APP_URL);
+  let resultUrl = new URL("/payment/result", env.NEXT_PUBLIC_APP_URL);
 
   try {
     await connectToDatabase();
     const result = await processGatewayCallback({ authority });
+    // پرداخت از صفحه‌ی `/pay/<token>` شروع شده؟ به همان صفحه برگرد.
+    const back = await getPaymentLinkReturnPath(authority);
+    if (back) resultUrl = new URL(back, env.NEXT_PUBLIC_APP_URL);
     resultUrl.searchParams.set("status", result.outcome);
     if (result.orderNumber !== undefined) {
       resultUrl.searchParams.set("orderNumber", String(result.orderNumber));

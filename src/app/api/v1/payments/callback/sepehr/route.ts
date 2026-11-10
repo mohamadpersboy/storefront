@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
 import { processGatewayCallback } from "@/lib/payment/process-gateway-callback";
 import { readCallbackData } from "@/lib/payment/gateways/callback-data";
+import { getPaymentLinkReturnPath } from "@/lib/payment/payment-links";
 import { env } from "@/config/env";
 
 /**
@@ -11,7 +12,7 @@ import { env } from "@/config/env";
  * Redirect با ۳۰۳ تا POST به GET تبدیل شود.
  */
 async function handle(request: NextRequest) {
-  const resultUrl = new URL("/payment/result", env.NEXT_PUBLIC_APP_URL);
+  let resultUrl = new URL("/payment/result", env.NEXT_PUBLIC_APP_URL);
   try {
     const callbackData = await readCallbackData(request);
     await connectToDatabase();
@@ -20,6 +21,8 @@ async function handle(request: NextRequest) {
       gateway: "sepehr",
       callbackData,
     });
+    const back = await getPaymentLinkReturnPath(callbackData.invoiceid ?? null);
+    if (back) resultUrl = new URL(back, env.NEXT_PUBLIC_APP_URL);
     resultUrl.searchParams.set("status", result.outcome);
     if (result.orderNumber !== undefined) resultUrl.searchParams.set("orderNumber", String(result.orderNumber));
     if (result.amount !== undefined) resultUrl.searchParams.set("amount", String(result.amount));
