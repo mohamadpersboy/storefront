@@ -71,7 +71,7 @@ vi.mock("@/models/Payment", () => ({
     exists: (f: { _id: unknown }) => q(() => (payments.some((p) => String(p._id) === String(f._id)) ? { _id: f._id } : null)),
     create: async (d: Doc) => {
       await Promise.resolve();
-      payments.push({ ...d });
+      payments.push({ ...d, createdAt: new Date() });
       return { ...d, id: String(d._id) };
     },
   },
@@ -163,6 +163,23 @@ describe("initiateOrderPayment", () => {
     expect(gatewayCalls).toBe(1);
     expect(balance).toBe(0);
     expect(payments).toHaveLength(1);
+  });
+
+  it("an open Payment older than the reuse window is NOT reused (expired authority)", async () => {
+    await run();
+    payments[0].createdAt = new Date(Date.now() - 60 * 60 * 1000);
+    const again = await run();
+    expect(again.reused).toBe(false);
+    expect(gatewayCalls).toBe(2);
+  });
+
+  it("an open Payment of another gateway is NOT reused", async () => {
+    await run();
+    payments[0].provider = "sepehr";
+    payments[0].gatewayToken = "tok";
+    const again = await run();
+    expect(again.reused).toBe(false);
+    expect(gatewayCalls).toBe(2);
   });
 
   it("gateway rejection refunds the wallet share exactly once and the claim is released", async () => {

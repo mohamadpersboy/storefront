@@ -157,13 +157,17 @@ export async function initiateOrderPayment(params: InitiateOrderPaymentParams) {
       status: { $in: ["pending", "processing"] },
     }).sort({ createdAt: -1 });
     if (openPayment) {
+      const activeGatewayId = (await getActiveGateway()).id;
       const openGateway = await getGateway(
         isOnlineGatewayId(openPayment.provider) ? openPayment.provider : "zarinpal",
       );
+      // فقط وقتی استفاده مجدد مجاز است که: درگاه همان درگاه فعال فعلی باشد
+      // و Session تازه باشد. Authority قدیمی (یا درگاه قبلی) منقضی است و
+      // کاربر را به صفحهٔ خطای «شناسه پرداخت منقضی شده» می‌برد.
       const fresh =
-        openGateway.id === "zarinpal" ||
-        (Boolean(openPayment.gatewayToken) &&
-          Date.now() - new Date(openPayment.createdAt).getTime() < GATEWAY_TOKEN_REUSE_TTL_MS);
+        openGateway.id === activeGatewayId &&
+        (openGateway.id === "zarinpal" || Boolean(openPayment.gatewayToken)) &&
+        Date.now() - new Date(openPayment.createdAt).getTime() < GATEWAY_TOKEN_REUSE_TTL_MS;
       if (fresh) {
         if (paymentLinkId && !openPayment.paymentLink) {
           await Payment.updateOne({ _id: openPayment._id }, { $set: { paymentLink: paymentLinkId } });

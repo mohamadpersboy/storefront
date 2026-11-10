@@ -26,6 +26,14 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: رفع باگ «لینک پرداخت به زرین‌پال می‌رفت با وجود PAYMENT_GATEWAY=sepehr» (Nov 2026).**
+
+- **علت:** در `initiate-order-payment.ts` یک Payment باز (`pending/processing`) با `provider=zarinpal` همیشه دوباره استفاده می‌شد (شرط `openGateway.id === "zarinpal"` بدون محدودیت زمان و بدون مقایسه با درگاه فعال). سفارش‌هایی که قبل از تغییر درگاه Payment باز داشتند (مثل #10007) به Authority قدیمی و منقضی زرین‌پال می‌رفتند («شناسه پرداخت منقضی شده است»).
+- **اصلاح:** استفاده مجدد فقط وقتی مجاز است که درگاه Payment باز = درگاه فعال فعلی **و** سن آن < ۱۰ دقیقه (`GATEWAY_TOKEN_REUSE_TTL_MS`) باشد؛ برای همهٔ درگاه‌ها (زرین‌پال هم). Payment قدیمی `pending` می‌ماند (Callback دیررس هنوز Verify می‌شود) و Payment تازه ساخته می‌شود. ۲ تست جدید.
+- **تست:** Typecheck ✅ ESLint ✅ `npm test` ✅ (۹۶۰) Build ✅ (Env ساختگی). **NOT VERIFIED:** تست واقعی روی Vercel/سپهر (IP ثابت سرور و Callback).
+
+---
+
 **آخرین کار: آیکون PWA (آیکون نصب روی گوشی) با طرح جدید کاربر (چهرهٔ سفیدخط روی بنفش `#5203cd`) جایگزین شد.**
 
 - **فایل‌ها:** `public/icons/icon-192.png`، `icon-512.png` (گوشه‌های گرد شفاف)، `icon-512-maskable.png` (تمام‌قاب، طرح ۷۰٪ مرکز برای Safe Zone)، `apple-touch-icon.png` (۱۸۰px، تمام‌قاب و بدون شفافیت)، و `src/app/favicon.ico`. گوشه‌های مشکی فایل اصلی با تشخیص ناحیهٔ تیرهٔ متصل به گوشه‌ها حذف شد.
