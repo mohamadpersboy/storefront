@@ -50,6 +50,7 @@ const envSchema = z.object({
   PAYMENT_GATEWAY: z.preprocess(emptyToUndefined, z.enum(["zarinpal", "sepehr"]).default("zarinpal")),
   SEPEHR_TERMINAL_ID: z.preprocess(emptyToUndefined, z.string().regex(/^\d{8}$/, "SEPEHR_TERMINAL_ID must be 8 digits").optional()),
   SEPEHR_BASE_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
+  SEPEHR_PAY_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
 
   // Notifications (سیستم اطلاع‌رسانی درون‌برنامه‌ای)
   //

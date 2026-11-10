@@ -26,6 +26,17 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: Adapter سپهر مطابق نمونهٔ رسمی PHP (`ipg_tester`) بازنویسی شد (Nov 2026).**
+
+- **علت:** Adapter اولیه از روی PDF نسخه 4.0.2 نوشته شده بود و با نمونهٔ رسمی تفاوت داشت: آدرس، قالب بدنه و روش رفتن به درگاه.
+- **اکنون (مطابق نمونه):** GetToken = POST فرم‌کدشده (`application/x-www-form-urlencoded`: `Amount`، `callbackURL`، `InvoiceID`، `TerminalID`، `Payload`) به `https://mabna.shaparak.ir:8081/V1/PeymentApi/GetToken`؛ پاسخ `Status` (۰ = موفق، عدد یا رشته) + `Accesstoken`. رفتن به درگاه = **POST** فرم (`TerminalID` + `token`) به `https://mabna.shaparak.ir:8080/pay` — با Route داخلی جدید `GET /api/v1/payments/redirect/sepehr?token=` که صفحهٔ فرم خودکار برمی‌گرداند (`buildPaymentUrl` به همین Route اشاره می‌کند). Advice = POST فرم (`digitalreceipt` + `Tid`) به `.../V1/PeymentApi/Advice`؛ `Status=Ok` و `ReturnId` = مبلغ ریال.
+- **Env:** `SEPEHR_BASE_URL` (پیش‌فرض `https://mabna.shaparak.ir:8081`) و `SEPEHR_PAY_URL` (پیش‌فرض `https://mabna.shaparak.ir:8080/pay`) اختیاری‌اند.
+- **عیب‌یابی:** شکست GetToken/Advice (کد/HTTP/خطای شبکه، بدون Token و رسید) در لاگ Vercel با پیشوند `[sepehr]` ثبت می‌شود.
+- **حذف شد:** ارسال `CellNumber`/JSON و `AdviceWithInvoicId` (در نمونه نیست). تطبیق فاکتور هنوز سمت ما با `invoiceid` ↔ `Payment.authority` انجام می‌شود.
+- **تست:** Typecheck ✅ ESLint ✅ `npm test` ✅ (۹۶۳) Build ✅ (Env ساختگی). **NOT VERIFIED:** تماس واقعی با سپهر. سپهر فقط IP ثبت‌شده را می‌پذیرد و Vercel IP ثابت ندارد؛ اگر لاگ `[sepehr] GetToken` با کد `-2/-5` یا خطای شبکه (`ETIMEDOUT`/`ECONNREFUSED`) آمد، مشکل IP/پورت ۸۰۸۱ است، نه کد. نمونهٔ PHP اعتبار TLS را خاموش می‌کند؛ ما نکرده‌ایم (اگر خطای گواهی دیده شد، گزارش شود).
+
+---
+
 **آخرین کار: رفع باگ «لینک پرداخت به زرین‌پال می‌رفت با وجود PAYMENT_GATEWAY=sepehr» (Nov 2026).**
 
 - **علت:** در `initiate-order-payment.ts` یک Payment باز (`pending/processing`) با `provider=zarinpal` همیشه دوباره استفاده می‌شد (شرط `openGateway.id === "zarinpal"` بدون محدودیت زمان و بدون مقایسه با درگاه فعال). سفارش‌هایی که قبل از تغییر درگاه Payment باز داشتند (مثل #10007) به Authority قدیمی و منقضی زرین‌پال می‌رفتند («شناسه پرداخت منقضی شده است»).

@@ -1,13 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/config/env", () => ({
-  env: { SEPEHR_TERMINAL_ID: "99482044", SEPEHR_BASE_URL: undefined, NEXT_PUBLIC_APP_URL: "https://shop.example" },
+  env: { SEPEHR_TERMINAL_ID: "99482044", SEPEHR_BASE_URL: undefined, SEPEHR_PAY_URL: undefined, NEXT_PUBLIC_APP_URL: "https://shop.example" },
 }));
 
 import { sepehrGateway } from "@/lib/payment/gateways/sepehr-gateway";
 
 const fetchMock = vi.fn();
-const json = (body: unknown, ok = true) => ({ ok, status: ok ? 200 : 500, json: async () => body });
+const json = (body: unknown, ok = true) => ({
+  ok,
+  status: ok ? 200 : 500,
+  json: async () => body,
+  text: async () => JSON.stringify(body),
+});
+const form = (call: unknown[]) => Object.fromEntries(new URLSearchParams((call[1] as { body: string }).body));
 
 const INVOICE = "a".repeat(32);
 const RECEIPT = "824b3098-7035-4e61-ab09-51f07e22aebd";
@@ -37,12 +43,26 @@ describe("sepehr requestPayment", () => {
       callbackUrl: "https://shop.example/api/v1/payments/callback/sepehr",
       mobile: "09120000000",
     });
-    const sent = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(fetchMock.mock.calls[0][0]).toBe("https://sepehr.shaparak.ir/Rest/V1/PeymentApi/GetToken");
-    expect(sent).toMatchObject({ TerminalID: "99482044", Amount: "50000", payload: "" });
+    const sent = form(fetchMock.mock.calls[0]);
+    expect(fetchMock.mock.calls[0][0]).toBe("https://mabna.shaparak.ir:8081/V1/PeymentApi/GetToken");
+    expect(fetchMock.mock.calls[0][1].headers["Content-Type"]).toBe("application/x-www-form-urlencoded");
+    expect(sent).toMatchObject({
+      TerminalID: "99482044",
+      Amount: "50000",
+      Payload: "",
+      callbackURL: "https://shop.example/api/v1/payments/callback/sepehr",
+    });
     expect(sent.InvoiceID).toMatch(/^[0-9a-f]{32}$/);
     expect(r).toMatchObject({ ok: true, gatewayToken: "TOKEN123", authority: sent.InvoiceID });
-    if (r.ok) expect(r.paymentUrl).toBe("https://sepehr.shaparak.ir/Payment/Pay?token=TOKEN123&terminalId=99482044");
+    // سپهر فقط POST می‌پذیرد → لینک به Route داخلی با فرم خودکار اشاره می‌کند.
+    if (r.ok) expect(r.paymentUrl).toBe("https://shop.example/api/v1/payments/redirect/sepehr?token=TOKEN123");
+  });
+
+  it("accepts Status returned as string \"0\" and rejects non-JSON body", async () => {
+    fetchMock.mockResolvedValueOnce(json({ Status: "0", Accesstoken: "T" }));
+    expect((await sepehrGateway.requestPayment({ amount: 1, description: "", callbackUrl: "https://x" })).ok).toBe(true);
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, text: async () => "<html>blocked</html>" });
+    expect(await sepehrGateway.requestPayment({ amount: 1, description: "", callbackUrl: "https://x" })).toMatchObject({ ok: false });
   });
 
   it("maps gateway error and network failure without leaking details", async () => {
@@ -65,8 +85,8 @@ describe("sepehr verifyPayment", () => {
   it("success: Advice Ok with matching Rial amount", async () => {
     fetchMock.mockResolvedValue(json({ Status: "Ok", ReturnId: "50000" }));
     const r = await verify(cb());
-    const sent = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(sent).toEqual({ digitalreceipt: RECEIPT, Tid: 99482044, InvoiceID: INVOICE });
+    expect(fetchMock.mock.calls[0][0]).toBe("https://mabna.shaparak.ir:8081/V1/PeymentApi/Advice");
+    expect(form(fetchMock.mock.calls[0])).toEqual({ digitalreceipt: RECEIPT, Tid: "99482044" });
     expect(r).toEqual({ success: true, refId: 125014252007, cardPan: "603769******0286", digitalReceipt: RECEIPT });
   });
 

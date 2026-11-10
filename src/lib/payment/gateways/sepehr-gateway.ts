@@ -5,8 +5,16 @@ import type { PaymentGateway } from "@/lib/payment/gateways/types";
 /**
  * Adapter درگاه پرداخت الکترونیک سپهر (توکن) — مستند نسخه 4.0.2.
  *
- * جریان: GetToken → Redirect مشتری به `/Payment/Pay` → Callback (POST) به
- * سایت → Advice (تأیید) از سرور. بدون Advice، سپهر پس از ۳۰ دقیقه
+ * مطابق نمونه‌ی PHP رسمی سپهر (`ipg_tester`):
+ * - GetToken: POST فرم (`application/x-www-form-urlencoded`) به
+ *   `https://mabna.shaparak.ir:8081/V1/PeymentApi/GetToken`.
+ * - Redirect مشتری: **POST** فرم (`TerminalID` + `token`) به
+ *   `https://mabna.shaparak.ir:8080/pay` (از طریق Route داخلی
+ *   `/api/v1/payments/redirect/sepehr` که فرم خودکار می‌سازد).
+ * - Advice: POST فرم (`digitalreceipt` + `Tid`) به `.../V1/PeymentApi/Advice`.
+ *
+ * جریان: GetToken → Redirect مشتری → Callback (POST) به سایت → Advice
+ * (تأیید) از سرور. بدون Advice، سپهر پس از ۳۰ دقیقه
  * تراکنش را خودکار برمی‌گرداند.
  *
  * - مبلغ در Sepehr «ریال» است؛ پروژه تومان نگه می‌دارد (× ۱۰).
@@ -30,8 +38,29 @@ export function sepehrAmountToRial(toman: number): number {
   return toman * RIAL_PER_TOMAN;
 }
 
+export const SEPEHR_DEFAULT_API_BASE = "https://mabna.shaparak.ir:8081";
+export const SEPEHR_DEFAULT_PAY_URL = "https://mabna.shaparak.ir:8080/pay";
+
 function baseUrl(): string {
-  return (env.SEPEHR_BASE_URL ?? "https://sepehr.shaparak.ir").replace(/\/+$/, "");
+  return (env.SEPEHR_BASE_URL ?? SEPEHR_DEFAULT_API_BASE).replace(/\/+$/, "");
+}
+
+/** آدرس صفحه‌ی پرداخت بانک (مقصد POST فرم). */
+export function getSepehrPayUrl(): string {
+  return env.SEPEHR_PAY_URL ?? SEPEHR_DEFAULT_PAY_URL;
+}
+
+export function getSepehrTerminalId(): string {
+  return terminalId();
+}
+
+function formBody(fields: Record<string, string>): string {
+  return new URLSearchParams(fields).toString();
+}
+
+function logSepehrFailure(step: string, detail: Record<string, unknown>) {
+  // بدون Token/رسید/Secret؛ فقط برای عیب‌یابی در لاگ Vercel.
+  console.error(`[sepehr] ${step} failed`, JSON.stringify(detail));
 }
 
 function terminalId(): string {
@@ -53,29 +82,33 @@ const TOKEN_ERRORS: Record<number, string> = {
 export const sepehrGateway: PaymentGateway = {
   id: "sepehr",
 
-  async requestPayment({ amount, callbackUrl, mobile }) {
+  async requestPayment({ amount, callbackUrl }) {
     const invoiceId = createSepehrInvoiceId();
     try {
-      const response = await fetch(`${baseUrl()}/Rest/V1/PeymentApi/GetToken`, {
+      const response = await fetch(`${baseUrl()}/V1/PeymentApi/GetToken`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          TerminalID: terminalId(),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formBody({
           Amount: String(sepehrAmountToRial(amount)),
-          InvoiceID: invoiceId,
           callbackURL: callbackUrl,
-          ...(mobile ? { CellNumber: mobile } : {}),
-          payload: PAYLOAD,
+          InvoiceID: invoiceId,
+          TerminalID: terminalId(),
+          Payload: PAYLOAD,
         }),
         signal: AbortSignal.timeout(TOKEN_TIMEOUT_MS),
       });
-      const body = (await response.json().catch(() => null)) as {
-        Status?: number;
-        Accesstoken?: string;
-      } | null;
+      const raw = await response.text();
+      let body: { Status?: number | string; Accesstoken?: string; Message?: string } | null = null;
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        body = null;
+      }
+      const status = body?.Status === undefined ? NaN : Number(body.Status);
 
-      if (!response.ok || body?.Status !== 0 || !body.Accesstoken) {
-        const code = typeof body?.Status === "number" ? body.Status : response.status;
+      if (!response.ok || status !== 0 || !body?.Accesstoken) {
+        const code = Number.isFinite(status) ? status : response.status;
+        logSepehrFailure("GetToken", { http: response.status, status: body?.Status ?? null, message: body?.Message ?? null, bodyHead: body ? undefined : raw.slice(0, 120) });
         return { ok: false, code, message: TOKEN_ERRORS[code] ?? "سپهر درخواست پرداخت را رد کرد" };
       }
 
@@ -86,16 +119,18 @@ export const sepehrGateway: PaymentGateway = {
         gatewayToken: token,
         paymentUrl: sepehrGateway.buildPaymentUrl({ authority: invoiceId, gatewayToken: token }),
       };
-    } catch {
+    } catch (error) {
+      const e = error as { name?: string; message?: string; cause?: { code?: string; message?: string } };
+      logSepehrFailure("GetToken network", { name: e?.name, message: e?.message, cause: e?.cause?.code ?? e?.cause?.message });
       return { ok: false, code: 0, message: "ارتباط با درگاه پرداخت برقرار نشد" };
     }
   },
 
   buildPaymentUrl({ gatewayToken }) {
     if (!gatewayToken) throw new Error("Sepehr payment URL needs a gateway token");
-    const url = new URL(`${baseUrl()}/Payment/Pay`);
+    // سپهر فقط POST می‌پذیرد؛ این Route داخلی فرم POST خودکار می‌سازد.
+    const url = new URL("/api/v1/payments/redirect/sepehr", env.NEXT_PUBLIC_APP_URL);
     url.searchParams.set("token", gatewayToken);
-    url.searchParams.set("terminalId", terminalId());
     return url.toString();
   },
 
@@ -138,10 +173,10 @@ export const sepehrGateway: PaymentGateway = {
     if (data.amount && Number(data.amount) !== expectedRial) return ignore("مبلغ بازگشتی با مبلغ ثبت‌شده مطابقت ندارد");
 
     try {
-      const response = await fetch(`${baseUrl()}/Rest/V1/PeymentApi/AdviceWithInvoicId`, {
+      const response = await fetch(`${baseUrl()}/V1/PeymentApi/Advice`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ digitalreceipt: receipt, Tid: Number(terminalId()), InvoiceID: authority }),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formBody({ digitalreceipt: receipt, Tid: terminalId() }),
         signal: AbortSignal.timeout(SEPEHR_VERIFY_TIMEOUT_MS),
       });
       const body = (await response.json().catch(() => null)) as {
@@ -187,6 +222,8 @@ export const sepehrGateway: PaymentGateway = {
       return { success: false, code: -1004, message: "پاسخ نامعتبر از درگاه", retryable: true, unconfirmed: false };
     } catch (error) {
       const timedOut = error instanceof Error && error.name === "TimeoutError";
+      const e = error as { name?: string; message?: string; cause?: { code?: string; message?: string } };
+      logSepehrFailure("Advice network", { name: e?.name, message: e?.message, cause: e?.cause?.code ?? e?.cause?.message });
       return {
         success: false,
         code: 0,
