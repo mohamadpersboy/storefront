@@ -16,6 +16,12 @@ export const RECONCILE_BATCH_LIMIT = 20;
  */
 export const RECONCILE_TIME_BUDGET_MS = 40 * 1000;
 
+/**
+ * Providerهایی که Cron می‌تواند بدون داده‌ی Callback Verify کند. فهرست مجاز (نه
+ * فهرست ممنوع)، تا Providerهای آینده تا تصمیم صریح، صف را اشغال نکنند.
+ */
+const CRON_RECONCILABLE_PROVIDERS = ["zarinpal"] as const;
+
 export const MANUAL_REVIEW_NOTE_TOO_OLD =
   "manual_review_required: unverified_after_max_age";
 
@@ -90,7 +96,13 @@ export async function reconcileTopups(params: {
   }
 
   // ۲) صف چرخشی رکوردهای قابل Verify (سن بین حداقل و حداکثر).
+  // فقط رکوردهای زرین‌پال (یا قدیمی بدون فیلد `provider`، یعنی `null` در Mongo) وارد صف
+  // می‌شوند. سپهر بدون داده‌ی Callback قابل Verify نیست و `processTopupCallback` قبل از
+  // Claim برمی‌گرداند؛ پس `lastReconcileAt` هرگز پر نمی‌شد و آن رکوردها همیشه اول صف
+  // می‌ماندند و سهمیه ۲۰تایی را از زرین‌پال می‌گرفتند (M-1). فیلتر باید همین‌جا، هنگام
+  // انتخاب، باشد (نه بعد از `limit`). وضعیت رکوردهای سپهر دست‌نخورده می‌ماند.
   const candidates = await WalletTopup.find({
+    provider: { $in: [...CRON_RECONCILABLE_PROVIDERS, null] },
     createdAt: { $lt: minAgeBefore, $gte: maxAgeBefore },
     $or: [
       {

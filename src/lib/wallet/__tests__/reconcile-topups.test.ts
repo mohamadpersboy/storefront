@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Fake Store اتمیک در حافظه. توجه: این تست‌ها منطق Claim/Idempotency را
@@ -10,6 +10,8 @@ type Topup = {
   processingToken: string | null; processingStartedAt: Date | null;
   refId?: number | null; createdAt: Date; reconciliationNote?: string | null;
   needsManualReview?: boolean; lastReconcileAt?: Date | null; reconcileAttempts?: number;
+  /** رکوردهای قدیمی فیلد ندارند (= zarinpal). */
+  provider?: string;
 };
 type WalletRow = { _id: string; user: string; balance: number; appliedOperationKeys: string[] };
 
@@ -39,8 +41,12 @@ vi.mock("@/models/WalletTopup", () => ({
       const [pendingBranch, processingBranch] = f.$or;
       const retryBefore = (pendingBranch.$or[1].lastReconcileAt.$lt) as Date;
       const staleBefore = processingBranch.processingStartedAt.$lt as Date;
+      // شرط `provider` از خود Query خوانده می‌شود (نه سخت‌کد): `{ $in: [...] }` با
+      // `null` رکوردهای بدون فیلد را هم می‌گیرد (مثل Mongo). بدون شرط = همه Providerها.
+      const providerIn = f.provider?.$in as (string | null)[] | undefined;
       let rows = [...topups.values()].filter(
         (t) =>
+          (!providerIn || providerIn.includes(t.provider ?? null)) &&
           t.createdAt < f.createdAt.$lt &&
           t.createdAt >= f.createdAt.$gte &&
           ((t.status === "pending" && (!t.lastReconcileAt || t.lastReconcileAt < retryBefore)) ||
@@ -156,11 +162,12 @@ const auth = (n: number) => `A${String(n).padStart(35, "0")}`;
 const AFTER_RETRY = new Date(NOW.getTime() + 31 * 60 * 1000);
 const minutesAgo = (m: number) => new Date(NOW.getTime() - m * 60 * 1000);
 
-function addTopup(id: string, user: string, amount: number, n: number, createdAt: Date) {
+function addTopup(id: string, user: string, amount: number, n: number, createdAt: Date, provider?: string) {
   topups.set(id, {
     _id: id, user, amount, authority: auth(n), status: "pending",
     processingToken: null, processingStartedAt: null, createdAt, reconciliationNote: null,
     needsManualReview: false, lastReconcileAt: null, reconcileAttempts: 0,
+    ...(provider ? { provider } : {}),
   });
   if (![...wallets.values()].some((w) => w.user === user)) {
     wallets.set(`w-${user}`, { _id: `w-${user}`, user, balance: 0, appliedOperationKeys: [] });
@@ -397,5 +404,134 @@ describe("reconcileTopups (Fake Store — NOT VERIFIED on real MongoDB)", () => 
     const s = await reconcileTopups({ now: NOW, timeBudgetMs: -1 });
     expect(s.stoppedByBudget).toBe(true);
     expect(s.scanned).toBe(0);
+  });
+});
+
+/**
+ * M-1 (Phase 2.2A.4): TopUpهای Sepehr از صف Cron کنار گذاشته می‌شوند تا سهمیه Batch
+ * را اشغال نکنند. Fake Store شرط `provider` را از خود Query می‌خواند؛ پس این تست‌ها
+ * Query واقعی `reconcileTopups` را می‌آزمایند. (NOT VERIFIED روی MongoDB واقعی.)
+ */
+describe("reconcileTopups — Sepehr is excluded from the Cron queue (M-1)", () => {
+  const SEPEHR_STUCK = 25; // بیشتر از RECONCILE_BATCH_LIMIT (۲۰)
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    // Verify سپهر با fetch انجام می‌شود؛ هیچ تماسی نباید برقرار شود.
+    fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network must not be used"));
+  });
+  afterEach(() => fetchSpy.mockRestore());
+
+  /** Sepehr قدیمی‌تر از زرین‌پال است تا بدون فیلتر، در ترتیب صف جلوتر بیاید. */
+  function addStuckSepehr(count: number) {
+    for (let i = 1; i <= count; i++) addTopup(`s${i}`, `su${i}`, 2000, 100 + i, minutesAgo(600 - i), "sepehr");
+  }
+  function snapshotSepehr() {
+    return JSON.stringify([...topups.values()].filter((t) => t.provider === "sepehr"));
+  }
+  function expectSepehrUntouched(before: string) {
+    expect(snapshotSepehr()).toBe(before);
+    for (const t of topups.values()) {
+      if (t.provider !== "sepehr") continue;
+      expect(t.status).toBe("pending");
+      expect(t.lastReconcileAt).toBeNull();
+      expect(t.reconcileAttempts).toBe(0);
+      expect(t.processingToken).toBeNull();
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(txs.filter((x) => x.user.startsWith("su"))).toHaveLength(0);
+    for (const w of wallets.values()) if (w.user.startsWith("su")) expect(w.balance).toBe(0);
+  }
+
+  it("case 1: 20+ stuck Sepehr top-ups do not starve a Zarinpal top-up in the same run", async () => {
+    addStuckSepehr(SEPEHR_STUCK);
+    addTopup("z1", "uz1", 7000, 1, minutesAgo(60));
+    verify.mockResolvedValue(OK);
+    const before = snapshotSepehr();
+
+    const s = await reconcileTopups({ now: NOW });
+
+    expect(s.scanned).toBe(1);
+    expect(s.credited).toBe(1);
+    expect(topups.get("z1")!.status).toBe("paid");
+    expect(bal("uz1")).toBe(7000);
+    expect(verify).toHaveBeenCalledTimes(1);
+    expectSepehrUntouched(before);
+  });
+
+  it("case 2: only Sepehr top-ups — nothing is processed, nothing changes, no endless loop", async () => {
+    addStuckSepehr(SEPEHR_STUCK);
+    const before = snapshotSepehr();
+
+    const s1 = await reconcileTopups({ now: NOW });
+    const s2 = await reconcileTopups({ now: new Date(NOW.getTime() + RECONCILE_RETRY_INTERVAL_MS + 1000) });
+
+    for (const s of [s1, s2]) {
+      expect(s).toMatchObject({
+        scanned: 0, processed: 0, credited: 0, stillPending: 0,
+        failed: 0, flaggedForReview: 0, errors: 0, stoppedByBudget: false,
+      });
+    }
+    expect(verify).not.toHaveBeenCalled();
+    expectSepehrUntouched(before);
+  });
+
+  it("case 3: Zarinpal behaviour is kept — legacy (no provider field) and explicit zarinpal are queued, window and stale processing respected", async () => {
+    addTopup("legacy", "ul", 1000, 1, minutesAgo(60)); // بدون فیلد provider
+    addTopup("explicit", "ue", 1000, 2, minutesAgo(61), "zarinpal");
+    addTopup("young", "uy", 1000, 3, minutesAgo(1)); // کمتر از حداقل سن
+    addTopup("old", "uo", 1000, 4, new Date(NOW.getTime() - RECONCILE_MAX_AGE_MS - 60_000)); // بیشتر از سقف سن
+    addTopup("stale", "us", 1000, 5, minutesAgo(90));
+    Object.assign(topups.get("stale")!, {
+      status: "processing", processingToken: "dead",
+      processingStartedAt: new Date(NOW.getTime() - TOPUP_CLAIM_TTL_MS - 1000),
+    });
+    addTopup("sepehrStale", "su-stale", 1000, 6, minutesAgo(90), "sepehr");
+    Object.assign(topups.get("sepehrStale")!, {
+      status: "processing", processingToken: "dead",
+      processingStartedAt: new Date(NOW.getTime() - TOPUP_CLAIM_TTL_MS - 1000),
+    });
+    verify.mockResolvedValue(OK);
+
+    const s = await reconcileTopups({ now: NOW });
+
+    expect(s.scanned).toBe(3);
+    expect(s.credited).toBe(3);
+    expect(["legacy", "explicit", "stale"].map((id) => topups.get(id)!.status)).toEqual(["paid", "paid", "paid"]);
+    expect(topups.get("young")!.status).toBe("pending");
+    expect(topups.get("sepehrStale")).toMatchObject({ status: "processing", processingToken: "dead" });
+    expect(topups.get("sepehrStale")!.reconcileAttempts).toBe(0);
+    expect(verify).toHaveBeenCalledTimes(3);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("case 3b: Batch Limit and idempotent retry for Zarinpal are unchanged", async () => {
+    for (let i = 1; i <= 5; i++) addTopup(`z${i}`, `uz${i}`, 1000, i, minutesAgo(60 + i));
+    verify.mockResolvedValue(OK);
+    const s1 = await reconcileTopups({ now: NOW, limit: 2 });
+    expect(s1.scanned).toBe(2);
+    const s2 = await reconcileTopups({ now: NOW, limit: 2 });
+    expect(s2.scanned).toBe(2);
+    // دو اجرای پشت‌سرهم، چهار رکورد متفاوت؛ هیچ رکوردی دوبار اعتبار نگرفت.
+    expect(txs.filter((x) => x.idempotencyKey?.startsWith("topup-credit:"))).toHaveLength(4);
+    expect([...wallets.values()].reduce((a, w) => a + w.balance, 0)).toBe(4000);
+  });
+
+  it("case 4: Sepehr beyond the Batch Limit never blocks Zarinpal; Zarinpal respects the limit", async () => {
+    addStuckSepehr(SEPEHR_STUCK);
+    for (let i = 1; i <= 4; i++) addTopup(`z${i}`, `uz${i}`, 1000, i, minutesAgo(60 + i));
+    verify.mockResolvedValue(OK);
+    const before = snapshotSepehr();
+
+    const s1 = await reconcileTopups({ now: NOW, limit: 3 });
+    expect(s1.scanned).toBe(3);
+    expect(s1.credited).toBe(3);
+
+    const s2 = await reconcileTopups({ now: NOW, limit: 3 });
+    expect(s2.scanned).toBe(1);
+    expect(s2.credited).toBe(1);
+
+    expect([...topups.values()].filter((t) => t.provider !== "sepehr").every((t) => t.status === "paid")).toBe(true);
+    expectSepehrUntouched(before);
   });
 });

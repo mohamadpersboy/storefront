@@ -26,7 +26,16 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار: Adapter سپهر مطابق نمونهٔ رسمی PHP (`ipg_tester`) بازنویسی شد (Nov 2026).**
+**آخرین کار: Phase 2.2A.4 — رفع Starvation صف Cron آشتی‌سازی TopUp (M-1، Nov 2026).**
+
+- **علت:** `processTopupCallback` برای سپهر بدون `callbackData` قبل از Claim برمی‌گردد، پس `lastReconcileAt` سپهر هرگز پر نمی‌شد و آن رکوردها (`lastReconcileAt: null`) همیشه اول صف می‌ماندند. ۲۰ TopUp رهاشدهٔ سپهر سهمیهٔ Batch را کامل می‌گرفت و زرین‌پال هرگز بررسی نمی‌شد. روی کد قبلی بازتولید شد (تست: ۲۰ رکورد سپهر انتخاب، ۰ رکورد زرین‌پال).
+- **اصلاح (تصمیم تأییدشدهٔ کاربر):** در `reconcile-topups.ts` فیلتر `provider: { $in: ["zarinpal", null] }` به Query انتخاب صف اضافه شد (فهرست مجاز؛ `null` = رکوردهای قدیمی بدون فیلد). فیلتر هنگام انتخاب است، نه بعد از `limit`. Schema، Index، `processTopupCallback`، Verify و Idempotency دست‌نخورده‌اند. رکوردهای سپهر Verify/Credit/تغییر وضعیت نمی‌شوند و Cron/Retry اختصاصی برای آن‌ها ساخته نشد.
+- **بدون تغییر (آگاهانه):** مرحلهٔ ۱ همان تابع (`updateMany`) هنوز رکوردهای `pending` قدیمی‌تر از ۴۸ ساعت را برای همهٔ Providerها (از جمله سپهر) فقط `needsManualReview` علامت می‌زند؛ وضعیت عوض نمی‌شود. این رفتار قبلی است و در این فاز تغییر نکرد.
+- **تست:** ۵ تست جدید در `reconcile-topups.test.ts` (Fake Store شرط `provider` را از خود Query می‌خواند). Lint ✅ Typecheck ✅ `npm test` ✅ (۹۶۸ موفق، ۳ Skip) Build ✅ (Env ساختگی). **NOT VERIFIED/BLOCKED:** Integration واقعی با MongoDB (`mongod` در محیط اجرا نبود)؛ `reconcileTopups` هنوز تست Integration ندارد؛ رفتار `$in` با `null` روی Atlas/Mongo واقعی فقط از مستند Mongo استنباط شده است.
+
+---
+
+**قبلاً: Adapter سپهر مطابق نمونهٔ رسمی PHP (`ipg_tester`) بازنویسی شد (Nov 2026).**
 
 - **علت:** Adapter اولیه از روی PDF نسخه 4.0.2 نوشته شده بود و با نمونهٔ رسمی تفاوت داشت: آدرس، قالب بدنه و روش رفتن به درگاه.
 - **اکنون (مطابق نمونه):** GetToken = POST فرم‌کدشده (`application/x-www-form-urlencoded`: `Amount`، `callbackURL`، `InvoiceID`، `TerminalID`، `Payload`) به `https://mabna.shaparak.ir:8081/V1/PeymentApi/GetToken`؛ پاسخ `Status` (۰ = موفق، عدد یا رشته) + `Accesstoken`. رفتن به درگاه = **POST** فرم (`TerminalID` + `token`) به `https://mabna.shaparak.ir:8080/pay` — با Route داخلی جدید `GET /api/v1/payments/redirect/sepehr?token=` که صفحهٔ فرم خودکار برمی‌گرداند (`buildPaymentUrl` به همین Route اشاره می‌کند). Advice = POST فرم (`digitalreceipt` + `Tid`) به `.../V1/PeymentApi/Advice`؛ `Status=Ok` و `ReturnId` = مبلغ ریال.
