@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -20,9 +21,8 @@ import { SupportPopup, type SupportContactData } from "@/components/storefront/s
  *   گروه آیکون‌ها دوم) با `justify-between` به‌طور طبیعی Logo را
  *   سمت راست و آیکون‌ها را سمت چپ می‌نشاند — دقیقاً برعکس رفرنس
  *   اصلی (که LTR بود و Avatar سمت چپ/Start بود).
- * - به‌جای عکس پروفایل کاربر، Badge برند («فس» = فرش سقطچی، دو حرف
- *   اول، هم‌الگو با روش Initials موجود در Dashboard) نمایش داده
- *   می‌شود — چون هنوز فایل Logo واقعی در پروژه آپلود نشده.
+ * - به‌جای عکس پروفایل کاربر، Logo واقعی برند (`/icons/icon-192.png`،
+ *   طرح مارپیچ سفید روی بنفش) در دایره نمایش داده می‌شود.
  *
  * هماهنگ‌سازی با Bottom Bar (بازخورد کارفرما بعد از دیدن نسخه
  * Deploy‌شده):
@@ -67,9 +67,17 @@ export function MobileTopBar({ support }: { support: SupportContactData }) {
         <Link
           href="/"
           aria-label="فرش سقطچی"
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-bold text-white"
+          className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full"
         >
-          فس
+          <Image
+            src="/icons/icon-192.png?v=3"
+            alt=""
+            width={44}
+            height={44}
+            priority
+            unoptimized
+            className="h-11 w-11"
+          />
         </Link>
 
         <div className="flex items-center gap-2">

@@ -26,6 +26,15 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: لوگوی جدید (مارپیچ سفید روی بنفش) جایگزین Badge «فس» در هدر موبایل و آیکون‌های PWA/Favicon شد (Nov 2026).**
+
+- **هدر:** `mobile-top-bar.tsx` به‌جای Badge متنی «فس»، تصویر `/icons/icon-192.png?v=3` را در دایرهٔ ۴۴px نشان می‌دهد (`next/image` با `unoptimized`). Desktop Header جداگانه‌ای با Logo در کد نیست.
+- **آیکون‌ها:** `public/icons/icon-192.png`، `icon-512.png` (گوشه‌گرد شفاف)، `icon-512-maskable.png` و `apple-touch-icon.png` (تمام‌قاب) و `src/app/favicon.ico` (۱۶/۳۲/۴۸، باید RGBA باشد وگرنه Build شکست می‌خورد) از فایل جدید ساخته شدند.
+- **Cache:** `?v=2` → `?v=3` در `manifest.ts` و `layout.tsx`؛ `STATIC_CACHE` در `public/sw.js` از `sf-static-v2` به `v3`. برای تغییر بعدی، هر دو را بالا ببرید.
+- **تست:** Lint ✅ Typecheck ✅ `npm test` ✅ (۹۶۸ موفق، ۳ Skip) Build ✅ (Env ساختگی). **NOT VERIFIED:** نمایش واقعی روی گوشی؛ روی Android آیکون برنامهٔ نصب‌شده با تأخیر عوض می‌شود.
+
+---
+
 **آخرین کار: Phase 2.2A.4 — رفع Starvation صف Cron آشتی‌سازی TopUp (M-1، Nov 2026).**
 
 - **علت:** `processTopupCallback` برای سپهر بدون `callbackData` قبل از Claim برمی‌گردد، پس `lastReconcileAt` سپهر هرگز پر نمی‌شد و آن رکوردها (`lastReconcileAt: null`) همیشه اول صف می‌ماندند. ۲۰ TopUp رهاشدهٔ سپهر سهمیهٔ Batch را کامل می‌گرفت و زرین‌پال هرگز بررسی نمی‌شد. روی کد قبلی بازتولید شد (تست: ۲۰ رکورد سپهر انتخاب، ۰ رکورد زرین‌پال).
