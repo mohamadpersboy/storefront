@@ -66,8 +66,8 @@ export function MobileTopBar({ support }: { support: SupportContactData }) {
       <div className="flex items-center justify-between">
         <Link
           href="/"
-          aria-label="فرش سقطچی"
-          className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full"
+          aria-label="سرای فرش سَقَطچی"
+          className="flex min-w-0 items-center gap-2"
         >
           <Image
             src="/icons/icon-192.png?v=3"
@@ -76,8 +76,16 @@ export function MobileTopBar({ support }: { support: SupportContactData }) {
             height={44}
             priority
             unoptimized
-            className="h-11 w-11"
+            className="h-11 w-11 shrink-0 overflow-hidden rounded-full"
           />
+          <span className="flex min-w-0 flex-col leading-tight">
+            <span className="truncate text-[15px] font-bold text-[var(--sf-ink)]">
+              سرای فرش سَقَطچی
+            </span>
+            <span className="truncate text-[11px] text-gray-400">
+              انتخاب از شما، اعتماد از ما
+            </span>
+          </span>
         </Link>
 
         <div className="flex items-center gap-2">
