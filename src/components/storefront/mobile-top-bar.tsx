@@ -66,7 +66,7 @@ export function MobileTopBar({ support }: { support: SupportContactData }) {
       <div className="flex items-center justify-between">
         <Link
           href="/"
-          aria-label="سرای فرش سَقَطچی"
+          aria-label="فرش سَقَطچی"
           className="flex min-w-0 items-center gap-3"
         >
           <Image
@@ -80,9 +80,9 @@ export function MobileTopBar({ support }: { support: SupportContactData }) {
           />
           <span className="min-w-0">
             <span className="block truncate text-base font-bold text-[var(--color-primary)]">
-              سرای فرش سَقَطچی
+              فرش سَقَطچی
             </span>
-            <span className="block truncate text-xs text-[var(--sf-ink)]/50">
+            <span className="mt-1 block truncate text-xs text-[var(--sf-ink)]/50">
               انتخاب از شما، اعتماد از ما
             </span>
           </span>
