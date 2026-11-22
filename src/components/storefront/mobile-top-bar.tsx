@@ -67,7 +67,7 @@ export function MobileTopBar({ support }: { support: SupportContactData }) {
         <Link
           href="/"
           aria-label="سرای فرش سَقَطچی"
-          className="flex min-w-0 items-center gap-2"
+          className="flex min-w-0 items-center gap-3"
         >
           <Image
             src="/icons/icon-192.png?v=3"
@@ -78,11 +78,11 @@ export function MobileTopBar({ support }: { support: SupportContactData }) {
             unoptimized
             className="h-11 w-11 shrink-0 overflow-hidden rounded-full"
           />
-          <span className="flex min-w-0 flex-col leading-tight">
-            <span className="truncate text-[15px] font-bold text-[var(--sf-ink)]">
+          <span className="min-w-0">
+            <span className="block truncate text-base font-bold text-[var(--color-primary)]">
               سرای فرش سَقَطچی
             </span>
-            <span className="truncate text-[11px] text-gray-400">
+            <span className="block truncate text-xs text-[var(--sf-ink)]/50">
               انتخاب از شما، اعتماد از ما
             </span>
           </span>
