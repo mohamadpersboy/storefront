@@ -4,7 +4,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, BellOff, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { EmptyIllustration } from "@/components/storefront/empty-illustration";
 import { getActiveScroller } from "@/lib/storefront/scroll-container";
 import { chatDayKey, formatChatDayLabel } from "@/lib/notifications/chat-format";
 import { PAGE_SIZE, type NotificationDetailDTO } from "@/lib/notifications/constants";
@@ -195,10 +196,9 @@ export function NotificationsChat({
 
           {items.length === 0 ? (
             <div className="mx-auto mt-16 flex w-full max-w-xs flex-col items-center gap-3 rounded-2xl bg-white p-6 text-center shadow-[0_1px_2px_rgba(3,23,37,0.18)]">
-              <span className="flex size-14 items-center justify-center rounded-full bg-gray-100 text-gray-400">
-                <BellOff className="size-7" strokeWidth={1.5} aria-hidden="true" />
-              </span>
+              <EmptyIllustration kind="notifications" className="w-full max-w-[210px]" />
               <p className="text-sm font-bold text-[var(--sf-ink)]">اعلان جدیدی ندارید.</p>
+              <p className="text-xs leading-6 text-[var(--sf-ink)]/50">خبرهای مهم اینجا نمایش داده می‌شوند.</p>
               <Link
                 href="/"
                 className="rounded-full bg-[var(--color-primary)] px-5 py-2 text-xs font-bold text-white active:bg-[var(--color-primary-hover)]"

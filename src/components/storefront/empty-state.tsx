@@ -1,8 +1,12 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
+import { EmptyIllustration, type EmptyIllustrationKind } from "@/components/storefront/empty-illustration";
 
 type EmptyStateProps = {
-  icon: LucideIcon;
+  /** تصویر مینیاتوری اختصاصی (سبد، علاقه‌مندی‌ها، سفارش‌ها، اعلان‌ها). اگر داده شود به‌جای آیکون نمایش داده می‌شود. */
+  illustration?: EmptyIllustrationKind;
+  /** آیکون ساده برای صفحه‌هایی که تصویر اختصاصی ندارند. */
+  icon?: LucideIcon;
   title: string;
   description?: string;
   actionLabel: string;
@@ -30,12 +34,16 @@ type EmptyStateProps = {
  * `cart-page-client.tsx` (Client Component) بدون مشکل قابل استفاده
  * است.
  */
-export function EmptyState({ icon: Icon, title, description, actionLabel, actionHref }: EmptyStateProps) {
+export function EmptyState({ illustration, icon: Icon, title, description, actionLabel, actionHref }: EmptyStateProps) {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6 text-center">
-      <span className="flex size-20 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-primary-soft)] to-white text-[var(--color-primary)] ring-1 ring-black/5">
-        <Icon className="size-9" strokeWidth={1.5} aria-hidden="true" />
-      </span>
+      {illustration ? (
+        <EmptyIllustration kind={illustration} className="w-[230px] max-w-full" />
+      ) : Icon ? (
+        <span className="flex size-20 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-primary-soft)] to-white text-[var(--color-primary)] ring-1 ring-black/5">
+          <Icon className="size-9" strokeWidth={1.5} aria-hidden="true" />
+        </span>
+      ) : null}
       <div className="space-y-1.5">
         <p className="text-sm font-bold text-[var(--sf-ink)]">{title}</p>
         {description ? (

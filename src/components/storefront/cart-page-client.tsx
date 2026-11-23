@@ -238,9 +238,9 @@ export function CartPageClient({ initialCart, initialAddress, walletBalance }: C
     }
     return (
       <EmptyState
-        icon={ShoppingCart}
+        illustration="cart"
         title="سبد خرید شما خالی است"
-        description="محصولی به سبد خرید خود اضافه نکرده‌اید"
+        description="قالی موردعلاقه‌تان را به سبد اضافه کنید."
         actionLabel="مشاهده محصولات"
         actionHref="/"
       />

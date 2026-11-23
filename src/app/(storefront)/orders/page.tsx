@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Package, ChevronRight, ChevronLeft } from "lucide-react";
+import { ChevronRight, ChevronLeft } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { connectToDatabase } from "@/lib/db/connect";
 import {
@@ -60,7 +60,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
 
         {items.length === 0 ? (
           <EmptyState
-            icon={Package}
+            illustration="orders"
             title={EMPTY_STATE_TEXT[filter]}
             actionLabel="مشاهده محصولات"
             actionHref="/"

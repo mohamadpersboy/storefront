@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
+import { EmptyIllustration } from "@/components/storefront/empty-illustration";
 import { NotificationItem } from "@/components/storefront/notification-item";
 import { POPUP_LIMIT, type NotificationDTO } from "@/lib/notifications/constants";
 
@@ -207,8 +208,8 @@ export function NotificationBell() {
                 </button>
               </div>
             ) : items && items.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
-                <Bell className="h-8 w-8 text-gray-300" strokeWidth={1.5} aria-hidden="true" />
+              <div className="flex flex-col items-center gap-1 px-4 py-5 text-center">
+                <EmptyIllustration kind="notifications" className="w-36" />
                 <p className="text-sm text-gray-400">اعلان جدیدی ندارید.</p>
               </div>
             ) : (

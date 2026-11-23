@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Heart } from "lucide-react";
 import { FavoriteProductCard } from "@/components/storefront/favorite-product-card";
 import { EmptyState } from "@/components/storefront/empty-state";
 import type { ProductCardData } from "@/components/storefront/product-card";
@@ -28,8 +27,9 @@ export function FavoritesGrid({ initialItems }: FavoritesGridProps) {
   if (items.length === 0) {
     return (
       <EmptyState
-        icon={Heart}
+        illustration="favorites"
         title="هنوز محصولی را به علاقه‌مندی‌ها اضافه نکرده‌اید"
+        description="با زدن قلب، قالی‌ها اینجا ذخیره می‌شوند."
         actionLabel="مشاهده محصولات"
         actionHref="/"
       />
