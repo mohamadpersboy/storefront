@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
+// Docker Phase 1: خروجی Standalone فقط وقتی فعال می‌شود که Build داخل
+// Docker با DOCKER_BUILD=1 اجرا شود. Build فعلی Vercel (بدون این متغیر)
+// دقیقاً مثل قبل می‌ماند.
+const isDockerBuild = process.env.DOCKER_BUILD === "1";
+
 const nextConfig: NextConfig = {
+  ...(isDockerBuild ? { output: "standalone" as const } : {}),
   images: {
     remotePatterns: [
       {

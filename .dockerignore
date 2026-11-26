@@ -1,0 +1,37 @@
+# Secrets and local env files (never enter the build context)
+.env
+.env.*
+!.env.example
+*.pem
+
+# VCS and CI metadata
+.git
+.gitignore
+.github
+
+# Dependencies and build output (installed/built inside the image)
+node_modules
+.next
+out
+build
+coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# Local tooling, logs, OS files
+.vercel
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+.pnpm-debug.log*
+
+# Docker files themselves
+Dockerfile
+.dockerignore
+
+# Not needed to build the app
+docs
+scripts
+README.md
+CLAUDE.md
+AGENTS.md

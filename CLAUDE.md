@@ -26,6 +26,17 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: Docker Phase 1 — Dockerfile، `.dockerignore`، Workflow انتشار به GHCR (Nov 2026). وضعیت کلی: ناقص (Docker build و Push واقعی هنوز NOT VERIFIED).**
+
+- **فایل‌ها:** `Dockerfile` (چندمرحله‌ای، `node:24-bookworm-slim`، کاربر غیر Root با UID 1001، `node server.js`، `HOSTNAME=0.0.0.0`)، `.dockerignore` (همهٔ `.env*` به‌جز `.env.example`، `.git`، `node_modules`، `.next`)، `.github/workflows/docker-image.yml` (Buildx، Actionها با SHA پین‌شده، `permissions` حداقلی، Tag = SHA کامل Commit، PR فقط Build بدون Push)، و `next.config.ts` (فقط `output: "standalone"` وقتی `DOCKER_BUILD=1`).
+- **Vercel:** Build بدون `DOCKER_BUILD` همان قبلی است (`.next/standalone` ساخته نمی‌شود — اجرا و تأیید شد).
+- **Build Env:** مقادیر Dummy فقط در Stage `builder` با `ENV` هستند (به Runner نمی‌رسند). `NEXT_PUBLIC_NESHAN_API_KEY` و `NEXT_PUBLIC_APP_URL` در زمان Build داخل Bundle کلاینت Inline می‌شوند؛ Workflow آن‌ها را از Repository Variables (نه Secret) می‌گیرد. اگر Variable تنظیم نشود، Image مقدار Dummy می‌گیرد و نقشه کار نمی‌کند.
+- **ریسک شناخته‌شده:** صفحات ISR (`revalidate=60`) در Build با DB Dummy، خالی Prerender می‌شوند؛ اولین درخواست بعد از شروع Container محتوای خالی می‌بیند و تا بازسازی (با DB واقعی) همان می‌ماند. تصمیم لازم قبل از Cutover.
+- **Runtime Env:** همهٔ متغیرهای `.env.example` (به‌جز Cloudinary که تا حذف کامل لازم است) باید هنگام اجرای Container داده شوند؛ `env.ts` بدون آن‌ها Throw می‌کند.
+- **NOT VERIFIED:** `docker build`/اجرای Container/کاربر Non-root/اندازه Image (Docker Hub از این محیط مسدود)، Push به GHCR و Visibility، ISR با DB واقعی، اسکن Git History (Clone سطحی).
+
+---
+
 **آخرین کار: تصویرهای «خالی» مینیاتوری برای سبد خرید، علاقه‌مندی‌ها، سفارش‌ها و اعلان‌ها (Nov 2026).**
 
 - **فایل جدید:** `src/components/storefront/empty-illustration.tsx` (`EmptyIllustration`، `kind`: `cart | favorites | orders | notifications`). SVG ساده، بدون Hook و بدون `id`؛ ترنج + قالی گرد با ریشه + دو بوته + ستاره‌ها، و یک نماد برای هر صفحه (سبد بافت‌دار، قلب با ستاره، قالی لوله‌شده، زنگ با منگوله). همه رنگ‌ها از توکن‌های تم (`--color-primary`، `--color-primary-soft`، `color-mix`) و خطوط از `--sf-ink` می‌آیند؛ هیچ رنگ ثابت برندی نیست.
