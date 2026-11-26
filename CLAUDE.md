@@ -4074,19 +4074,17 @@ Arbitrary-value Tailwind استفاده کنند (مثل `bg-[var(--sf-accent)]`
 
 ## 11. Git Workflow
 
-**⚠️ سیاست فعلی (تصمیم صریح کاربر، جایگزین سیاست اولیه Master Prompt):**
-Push مستقیماً روی `main` انجام می‌شود — بدون Branch جداگانه برای هر
-Feature و بدون توقف برای تأیید UI/Backend جدا. دلیل: تست هر مرحله نیاز
-به OTP واقعی دارد و هزینه پیامک روی کاربر است.
+**سیاست فعلی (جایگزین سیاست قبلی «Push مستقیم روی main»، تصمیم کاربر ۲۰۲۶/۱۱/۲۶):**
 
-**همچنان اجباری قبل از هر Push:**
-- Lint، Typecheck، Test، Build — همه باید سبز باشند
-- به‌روزرسانی همین فایل (CLAUDE.md) بعد از هر تغییر مهم
-- Commit Message واضح و توصیفی
-- بدون Commit شدن هیچ Secret واقعی
+- `main` فقط کد Production روی Vercel است. هیچ تغییر مربوط به Docker/VPS مستقیم روی `main` Push نمی‌شود.
+- تمام کارهای مهاجرت Docker/VPS روی Branch `docker-migration` انجام می‌شود (Commit و Push مستقیم روی همین Branch، بدون PR).
+- Branch جدید فقط از `main` ساخته شده است. تغییر Branch بدون دستور صریح کاربر مجاز نیست.
+- ادغام `docker-migration` در `main` فقط با دستور صریح کاربر (بعد از Cutover و تأیید).
+- قبل از هر فاز جدید، `main` در `docker-migration` ادغام (merge) می‌شود تا تغییرات Storefront از دست نروند.
+- کد باید با Vercel سازگار بماند: Build بدون `DOCKER_BUILD=1` باید مثل قبل کار کند.
 
-**دیگر اعمال نمی‌شود:** Branch جدا به ازای هر Feature، توقف برای تأیید
-میان‌مرحله‌ای. اگر کاربر بخواهد برگردد، کافی است اعلام کند.
+**همچنان اجباری قبل از هر Push:** Lint، Typecheck، Test و Build موفق باشند؛ `CLAUDE.md` به‌روز شود؛ بدون Secret در Commit.
+**ایمیل Commit:** `persboy.dev@gmail.com`
 
 ## 12. Git History (خلاصه)
 
