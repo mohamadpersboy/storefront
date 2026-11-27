@@ -26,6 +26,16 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: Docker Phase 1.1 — Workflow شاخه‌ای + تحلیل ISR (Nov 2026). ISR هنوز اصلاح نشده (منتظر تأیید).**
+
+- **Workflow (`docker-image.yml`):** دو Job. `build-check` (Push به `docker-migration` و PR): فقط Build، بدون Login/Push، فقط `contents: read`، Tag محلی `storefront-ci:<sha>` که هرگز Push نمی‌شود. `publish` (فقط Push/Manual روی `main`): Login + Push به GHCR با Tag = SHA کامل، تنها Job با `packages: write`. Cache جدا (`scope=ci` / `scope=publish`). **NOT VERIFIED:** اجرای واقعی روی Actions (بعد از Push این Commit دیده می‌شود).
+- **ISR (VERIFIED با Build واقعی و DB ساختگی):** `/`، `/about`، `/categories`، `/faq`، `/terms`، `/contact` (همه `revalidate=60`) با محتوای خالی Prerender می‌شوند چون Getterها خطای اتصال را با `catch` می‌خورند. درخواست اول `HIT` خالی است؛ بعد از ۶۰ ثانیه `STALE` + بازتولید پس‌زمینه. `catch` فراگیر یعنی بازتولید ناموفق (DB قطع) صفحهٔ خالی را جایگزین نسخهٔ سالم می‌کند.
+- **آزمایش‌های محلی (پروژهٔ آزمایشی کوچک، نه کد اصلی):** (۱) `next build --experimental-build-mode compile` ISR را از بین می‌برد (`no-store`) → رد شد. (۲) `revalidatePath` بعد از Start → درخواست بعدی `MISS` و محتوای واقعی. (۳) Throw در بازتولید → نسخهٔ سالم قبلی ماند و خالی جایگزین نشد (طبق مستند Next). (۴) بعد از برگشت DB، دو درخواست بعدی محتوای جدید.
+- **تصمیم:** راه‌حل A (حذف فایل‌های Prerender در Dockerfile) توسط کاربر فعلاً رد شد. تغییری در کد ISR یا Dockerfile اعمال نشده.
+- Neshan Variable: کاربر خودش بررسی/تنظیم می‌کند. Docker Runtime و GHCR Pull همچنان BLOCKED (Daemon/ghcr.io در این محیط).
+
+---
+
 **آخرین کار: Docker Phase 1 — Dockerfile، `.dockerignore`، Workflow انتشار به GHCR (Nov 2026). وضعیت کلی: ناقص (Docker build و Push واقعی هنوز NOT VERIFIED).**
 
 - **فایل‌ها:** `Dockerfile` (چندمرحله‌ای، `node:24-bookworm-slim`، کاربر غیر Root با UID 1001، `node server.js`، `HOSTNAME=0.0.0.0`)، `.dockerignore` (همهٔ `.env*` به‌جز `.env.example`، `.git`، `node_modules`، `.next`)، `.github/workflows/docker-image.yml` (Buildx، Actionها با SHA پین‌شده، `permissions` حداقلی، Tag = SHA کامل Commit، PR فقط Build بدون Push)، و `next.config.ts` (فقط `output: "standalone"` وقتی `DOCKER_BUILD=1`).

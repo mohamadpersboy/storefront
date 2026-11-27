@@ -2,12 +2,12 @@ name: Docker image
 
 on:
   push:
-    branches: [main]
+    branches: [main, docker-migration]
   pull_request:
     branches: [main]
   workflow_dispatch:
 
-# Least privilege: read the repo, write only GHCR packages.
+# Least privilege: read-only by default. Only the publish job gets packages: write.
 permissions:
   contents: read
 
@@ -19,7 +19,42 @@ env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}
 
 jobs:
-  build:
+  # CI build: docker-migration pushes and pull requests.
+  # No registry login, no push, no packages permission.
+  build-check:
+    if: ${{ !(github.event_name != 'pull_request' && github.ref == 'refs/heads/main') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build (no push)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: false
+          # Local-only tag. It is never pushed, so it cannot clash with
+          # the production tags (full commit SHA) in GHCR.
+          tags: storefront-ci:${{ github.sha }}
+          # Public (non-secret) build-time values; set them as repository
+          # *variables* (not secrets). Empty values fall back to Dockerfile defaults.
+          build-args: |
+            NEXT_PUBLIC_NESHAN_API_KEY=${{ vars.NEXT_PUBLIC_NESHAN_API_KEY || 'dummy-public-key' }}
+            NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
+          cache-from: type=gha,scope=ci
+          cache-to: type=gha,mode=max,scope=ci
+
+  # Publish: only for pushes (and manual runs) on main.
+  # Only this job has `packages: write`.
+  publish:
+    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -33,10 +68,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      # Login only for pushes to main / manual runs. Pull requests build
-      # without credentials and never publish an image.
       - name: Log in to GHCR
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
@@ -55,7 +87,7 @@ jobs:
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # Public (non-secret) build-time values; set them as repository
@@ -63,5 +95,5 @@ jobs:
           build-args: |
             NEXT_PUBLIC_NESHAN_API_KEY=${{ vars.NEXT_PUBLIC_NESHAN_API_KEY || 'dummy-public-key' }}
             NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=publish
+          cache-to: type=gha,mode=max,scope=publish
