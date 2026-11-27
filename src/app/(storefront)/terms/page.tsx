@@ -1,5 +1,6 @@
 import { FileText } from "lucide-react";
 import { connectToDatabase } from "@/lib/db/connect";
+import { rethrowIfIsrStrictDbError } from "@/lib/db/isr-strict";
 import { getTerms } from "@/models/Terms";
 import { PageHeader } from "@/components/storefront/page-header";
 import { EmptyState } from "@/components/storefront/empty-state";
@@ -11,7 +12,8 @@ async function getTermsSafe(): Promise<{ title: string; content: string }> {
     await connectToDatabase();
     const doc = await getTerms();
     return { title: doc.title, content: doc.content };
-  } catch {
+  } catch (error) {
+    rethrowIfIsrStrictDbError(error);
     // اگر DB در دسترس نبود، صفحه نباید خراب شود — همان Empty State
     // «هنوز محتوایی ثبت نشده» نمایش داده می‌شود (هم‌الگو با
     // `getActiveBanners()` در صفحه اصلی).

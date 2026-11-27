@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/storefront/page-header";
 import { CategoryProductsSection } from "@/components/storefront/category-products-section";
 import { EmptyState } from "@/components/storefront/empty-state";
 import { connectToDatabase } from "@/lib/db/connect";
+import { rethrowIfIsrStrictDbError } from "@/lib/db/isr-strict";
 import { getAllRootCategorySections } from "@/lib/storefront/category-listing";
 
 export const metadata = {
@@ -38,7 +39,8 @@ async function getSectionsSafe() {
   try {
     await connectToDatabase();
     return await getAllRootCategorySections();
-  } catch {
+  } catch (error) {
+    rethrowIfIsrStrictDbError(error);
     return [];
   }
 }

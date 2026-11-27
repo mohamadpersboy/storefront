@@ -1,5 +1,6 @@
 import { HelpCircle } from "lucide-react";
 import { connectToDatabase } from "@/lib/db/connect";
+import { rethrowIfIsrStrictDbError } from "@/lib/db/isr-strict";
 import { Faq } from "@/models/Faq";
 import { PageHeader } from "@/components/storefront/page-header";
 import { EmptyState } from "@/components/storefront/empty-state";
@@ -20,7 +21,8 @@ async function getActiveFaqsSafe(): Promise<FaqRow[]> {
       question: f.question,
       answer: f.answer,
     }));
-  } catch {
+  } catch (error) {
+    rethrowIfIsrStrictDbError(error);
     // اگر DB در دسترس نبود، صفحه نباید خراب شود — همان Empty State
     // «هنوز سوالی ثبت نشده» نمایش داده می‌شود (هم‌الگو با
     // `getActiveBanners()` در صفحه اصلی).

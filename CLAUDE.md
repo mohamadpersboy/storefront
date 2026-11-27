@@ -26,13 +26,14 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
-**آخرین کار: Docker Phase 1.1 — Workflow شاخه‌ای + تحلیل ISR (Nov 2026). ISR هنوز اصلاح نشده (منتظر تأیید).**
+**آخرین کار: Docker Phase 1.1 — `ISR_STRICT` پیاده‌سازی شد (Nov 2026). وضعیت: Runtime واقعی MongoDB و Docker NOT VERIFIED.**
 
-- **Workflow (`docker-image.yml`):** دو Job. `build-check` (Push به `docker-migration` و PR): فقط Build، بدون Login/Push، فقط `contents: read`، Tag محلی `storefront-ci:<sha>` که هرگز Push نمی‌شود. `publish` (فقط Push/Manual روی `main`): Login + Push به GHCR با Tag = SHA کامل، تنها Job با `packages: write`. Cache جدا (`scope=ci` / `scope=publish`). **NOT VERIFIED:** اجرای واقعی روی Actions (بعد از Push این Commit دیده می‌شود).
-- **ISR (VERIFIED با Build واقعی و DB ساختگی):** `/`، `/about`، `/categories`، `/faq`، `/terms`، `/contact` (همه `revalidate=60`) با محتوای خالی Prerender می‌شوند چون Getterها خطای اتصال را با `catch` می‌خورند. درخواست اول `HIT` خالی است؛ بعد از ۶۰ ثانیه `STALE` + بازتولید پس‌زمینه. `catch` فراگیر یعنی بازتولید ناموفق (DB قطع) صفحهٔ خالی را جایگزین نسخهٔ سالم می‌کند.
-- **آزمایش‌های محلی (پروژهٔ آزمایشی کوچک، نه کد اصلی):** (۱) `next build --experimental-build-mode compile` ISR را از بین می‌برد (`no-store`) → رد شد. (۲) `revalidatePath` بعد از Start → درخواست بعدی `MISS` و محتوای واقعی. (۳) Throw در بازتولید → نسخهٔ سالم قبلی ماند و خالی جایگزین نشد (طبق مستند Next). (۴) بعد از برگشت DB، دو درخواست بعدی محتوای جدید.
-- **تصمیم:** راه‌حل A (حذف فایل‌های Prerender در Dockerfile) توسط کاربر فعلاً رد شد. تغییری در کد ISR یا Dockerfile اعمال نشده.
-- Neshan Variable: کاربر خودش بررسی/تنظیم می‌کند. Docker Runtime و GHCR Pull همچنان BLOCKED (Daemon/ghcr.io در این محیط).
+- **Workflow (`docker-image.yml`):** VERIFIED — اجرای Actions روی `docker-migration` برای `f65a527` موفق بود (run 45936787652، ۵ دقیقه ۱۱ ثانیه). اجرای مربوط به Commit ISR_STRICT بعد از Push بررسی و ثبت می‌شود.
+- **ISR_STRICT:** `src/lib/db/isr-strict.ts`. فقط وقتی `ISR_STRICT=1` و `NEXT_PHASE` برابر `phase-production-build` نباشد، خطای DB (نام خطا با `Mongo*` شروع شود؛ به‌جز `ValidationError`/`CastError` و مانند آن) در `catch` Getterها دوباره پرتاب می‌شود. نتیجه خالی عادی خطا نیست. `Dockerfile` فقط در Stage `runner` این متغیر را دارد؛ Vercel و Builder آن را ندارند.
+- **Getterها (۱۶ `catch` در ۶ صفحه):** `page.tsx` (۱۱)، `categories`، `about`، `faq`، `terms` (هرکدام ۱)، `contact` (۲، شامل `getSocialLinks` تو در تو). Layout و Componentهای Storefront DB نمی‌خوانند. `homepage-products.ts` و `category-listing.ts` `catch` ندارند.
+- **تست:** Lint ✅ Typecheck ✅ `npm test` ✅ (۹۷۷؛ ۹ تست جدید `isr-strict.test.ts` با Env ساختگی، نه Integration واقعی). Build بدون `DOCKER_BUILD` و بدون `ISR_STRICT` ✅ (بدون `standalone`)؛ Build با `DOCKER_BUILD=1` بدون MongoDB ✅. Runtime (standalone، DB ساختگی غیرقابل‌اتصال): بدون `ISR_STRICT` هیچ خطایی؛ با `ISR_STRICT=1` در بازتولید `MongooseServerSelectionError` پرتاب شد و صفحه `STALE` سپس `HIT` ماند. «نسخه سالم می‌ماند» و «بعد از برگشت DB محتوا جایگزین می‌شود» در پروژه آزمایشی VERIFIED شد (نه با MongoDB واقعی).
+- **قرارداد Warm-up (فقط مستند؛ پیاده‌سازی در فاز Compose):** Route داخلی `POST` فقط؛ احراز هویت با Secret (هدر، مقایسه ثابت‌زمان، بدون لاگ/نمایش Secret)؛ فقط شش مسیر ثابت (`/`، `/about`، `/categories`، `/faq`، `/terms`، `/contact`) با `revalidatePath`؛ فقط بعد از آماده‌بودن MongoDB؛ سپس درخواست مجدد صفحات و تأیید محتوای واقعی پیش از پذیرش ترافیک عمومی. جزئیات Healthcheck/ترتیب راه‌اندازی در فاز Compose.
+- **NOT VERIFIED:** MongoDB واقعی با ISR، `docker build`/اجرا (Daemon در این محیط نیست)، Build Vercel واقعی.
 
 ---
 

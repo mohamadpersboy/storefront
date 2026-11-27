@@ -16,6 +16,7 @@ import { FeaturesRow } from "@/components/storefront/features-row";
 import { AboutUsCard } from "@/components/storefront/about-us-card";
 import { Footer, type FooterSocialLink } from "@/components/storefront/footer";
 import { connectToDatabase } from "@/lib/db/connect";
+import { rethrowIfIsrStrictDbError } from "@/lib/db/isr-strict";
 import { Banner } from "@/models/Banner";
 import { Category } from "@/models/Category";
 import { Brand } from "@/models/Brand";
@@ -66,7 +67,8 @@ async function getActiveBanners(): Promise<HeroBannerSlide[]> {
       imageUrl: b.imageUrl,
       imageBlurDataUrl: b.imageBlurDataUrl,
     }));
-  } catch {
+  } catch (error) {
+    rethrowIfIsrStrictDbError(error);
     // اگر DB در دسترس نبود، صفحه اصلی نباید خراب شود — فقط
     // Hero Slider نمایش داده نمی‌شود (خودش `banners.length === 0`
     // را مدیریت می‌کند).
@@ -92,7 +94,8 @@ async function getHomepageCategories(): Promise<HomepageCategory[]> {
       imageUrl: c.imageUrl,
       imageBlurDataUrl: c.imageBlurDataUrl,
     }));
-  } catch {
+  } catch (error) {
+    rethrowIfIsrStrictDbError(error);
     return [];
   }
 }
@@ -114,7 +117,8 @@ async function getHomepageBrands(): Promise<HomepageBrand[]> {
       imageUrl: b.imageUrl,
       imageBlurDataUrl: b.imageBlurDataUrl,
     }));
-  } catch {
+  } catch (error) {
+    rethrowIfIsrStrictDbError(error);
     return [];
   }
 }
@@ -132,7 +136,8 @@ async function getFreeShippingThreshold(): Promise<number | null> {
     await connectToDatabase();
     const settings = await getShippingSettings();
     return settings.freeShippingEnabled ? settings.freeShippingThreshold : null;
-  } catch {
+  } catch (error) {
+    rethrowIfIsrStrictDbError(error);
     return null;
   }
 }
@@ -144,7 +149,8 @@ async function getActiveSocialLinks(): Promise<FooterSocialLink[]> {
     return settings.links
       .filter((link) => link.isActive && link.url.trim().length > 0)
       .map((link) => ({ platform: link.platform, url: link.url }));
-  } catch {
+  } catch (error) {
+    rethrowIfIsrStrictDbError(error);
     return [];
   }
 }
@@ -154,7 +160,8 @@ async function getAboutUsContent(): Promise<{ title: string; content: string }> 
     await connectToDatabase();
     const about = await getAboutUs();
     return { title: about.title, content: about.content };
-  } catch {
+  } catch (error) {
+    rethrowIfIsrStrictDbError(error);
     return { title: "", content: "" };
   }
 }
@@ -179,7 +186,8 @@ async function getSupportContactSafe(): Promise<SupportContactData> {
       rubikaLink: contact.rubikaLink,
       eitaaLink: contact.eitaaLink,
     };
-  } catch {
+  } catch (error) {
+    rethrowIfIsrStrictDbError(error);
     return empty;
   }
 }
@@ -197,7 +205,8 @@ async function getAmazingOffersSafe(): Promise<ProductCardData[]> {
   try {
     await connectToDatabase();
     return await getAmazingOfferProductCards();
-  } catch {
+  } catch (error) {
+    rethrowIfIsrStrictDbError(error);
     return [];
   }
 }
@@ -206,7 +215,8 @@ async function getBestSellersSafe(): Promise<ProductCardData[]> {
   try {
     await connectToDatabase();
     return await getBestSellerProductCards();
-  } catch {
+  } catch (error) {
+    rethrowIfIsrStrictDbError(error);
     return [];
   }
 }
@@ -215,7 +225,8 @@ async function getLatestProductsSafe(): Promise<ProductCardData[]> {
   try {
     await connectToDatabase();
     return await getLatestProductCards();
-  } catch {
+  } catch (error) {
+    rethrowIfIsrStrictDbError(error);
     return [];
   }
 }
@@ -231,7 +242,8 @@ async function getPriorityCategorySectionsSafe(): Promise<CategoryProductSection
   try {
     await connectToDatabase();
     return await getPriorityCategorySections();
-  } catch {
+  } catch (error) {
+    rethrowIfIsrStrictDbError(error);
     return [];
   }
 }

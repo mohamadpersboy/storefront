@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Info } from "lucide-react";
 import { connectToDatabase } from "@/lib/db/connect";
+import { rethrowIfIsrStrictDbError } from "@/lib/db/isr-strict";
 import { getAboutUs } from "@/models/AboutUs";
 import { PageHeader } from "@/components/storefront/page-header";
 import { EmptyState } from "@/components/storefront/empty-state";
@@ -30,7 +31,8 @@ async function getAboutUsSafe(): Promise<{ title: string; content: string; image
     await connectToDatabase();
     const doc = await getAboutUs();
     return { title: doc.title, content: doc.content, imageUrl: doc.imageUrl };
-  } catch {
+  } catch (error) {
+    rethrowIfIsrStrictDbError(error);
     // اگر DB در دسترس نبود، صفحه نباید خراب شود — همان Empty State
     // «هنوز محتوایی ثبت نشده» نمایش داده می‌شود (هم‌الگو با
     // `getActiveBanners()` در صفحه اصلی).

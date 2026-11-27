@@ -11,6 +11,7 @@ import {
   PhoneCall,
 } from "lucide-react";
 import { connectToDatabase } from "@/lib/db/connect";
+import { rethrowIfIsrStrictDbError } from "@/lib/db/isr-strict";
 import { getContactUs } from "@/models/ContactUs";
 import { getSocialLinks } from "@/models/SocialLinks";
 import { PageHeader } from "@/components/storefront/page-header";
@@ -75,7 +76,8 @@ async function getContactUsSafe(): Promise<ContactUsData> {
           .filter((l) => l.isActive && l.url.trim().length > 0)
           .map((l) => [l.platform, l.url.trim()]),
       );
-    } catch {
+    } catch (error) {
+    rethrowIfIsrStrictDbError(error);
       // لینک‌های اجتماعی اختیاری‌اند؛ خرابی‌شان صفحه را نمی‌شکند.
     }
 
@@ -94,7 +96,8 @@ async function getContactUsSafe(): Promise<ContactUsData> {
       eitaaLink: doc.eitaaLink.trim() || social.eitaa || "",
       instagramLink: social.instagram || "",
     };
-  } catch {
+  } catch (error) {
+    rethrowIfIsrStrictDbError(error);
     // اگر DB در دسترس نبود، صفحه نباید خراب شود — همان Empty State
     // «هنوز راه ارتباطی ثبت نشده» نمایش داده می‌شود (هم‌الگو با
     // `getActiveBanners()` در صفحه اصلی).

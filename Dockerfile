@@ -50,7 +50,11 @@ WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
-    HOSTNAME=0.0.0.0
+    HOSTNAME=0.0.0.0 \
+    ISR_STRICT=1
+# ISR_STRICT=1: runtime only (runner stage). A real MongoDB error during
+# ISR regeneration is re-thrown, so Next.js keeps the last good page.
+# The builder stage does not set it, so the build works without MongoDB.
 
 RUN groupadd --system --gid 1001 nodejs \
  && useradd --system --uid 1001 --gid nodejs --home-dir /app nextjs
