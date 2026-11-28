@@ -39,16 +39,47 @@ export function isIsrStrictActive(
   return env.ISR_STRICT === "1" && env.NEXT_PHASE !== BUILD_PHASE;
 }
 
+/** کدهای شبکه که یعنی DB یا DNS در دسترس نیست (مثل SRV ENOTFOUND). */
+const NETWORK_ERROR_CODES = new Set([
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "EPIPE",
+]);
+
+const MAX_CAUSE_DEPTH = 5;
+
+function isDbErrorNode(error: Error): boolean {
+  if (NON_DB_ERROR_NAMES.has(error.name)) return false;
+  // `Mongo*` = Driver؛ `MongooseServerSelectionError` و `MongooseError`
+  // هم با «Mongo» شروع می‌شوند.
+  if (error.name.startsWith("Mongo")) return true;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === "string" && NETWORK_ERROR_CODES.has(code);
+}
+
 /**
- * خطای اتصال/دسترسی DB: خطاهای Driver (`Mongo*`) و Mongoose
- * (`Mongoose*`، مثل Server Selection و Buffering Timeout)، به‌جز
- * خطاهای داده/Schema. تشخیص با نام است تا به Import مستقیم `mongodb`
- * نیاز نباشد.
+ * خطای اتصال/دسترسی DB. زنجیره `cause` و `AggregateError.errors` تا
+ * عمق ۵ بررسی می‌شود. اگر خود خطا از نوع داده/Schema باشد
+ * (ValidationError، CastError و مانند آن)، خطای DB نیست، حتی اگر
+ * `cause` آن چیز دیگری باشد.
  */
-export function isDatabaseError(error: unknown): boolean {
+export function isDatabaseError(error: unknown, depth = 0): boolean {
   if (!(error instanceof Error)) return false;
   if (NON_DB_ERROR_NAMES.has(error.name)) return false;
-  return error.name.startsWith("Mongo");
+  if (isDbErrorNode(error)) return true;
+  if (depth >= MAX_CAUSE_DEPTH) return false;
+  if (isDatabaseError((error as { cause?: unknown }).cause, depth + 1)) {
+    return true;
+  }
+  const nested = (error as { errors?: unknown }).errors;
+  return (
+    Array.isArray(nested) && nested.some((e) => isDatabaseError(e, depth + 1))
+  );
 }
 
 /**
