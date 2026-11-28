@@ -26,6 +26,15 @@ Variant/موجودی/سفارش/پرداخت/تخفیف. Full specification در
 
 ## 2. Current Status
 
+**آخرین کار: مسترپرامپت فازبندی‌شده انتقال به VPS ثبت شد (Nov 2026). وضعیت: فقط مستند؛ هیچ فاز اجرا نشده.**
+
+- **فایل:** `docs/MASTER-PROMPT-VPS-MIGRATION.md` — ۱۵ فاز با دروازه خروج: VPS، GitHub/CI، پکیج‌ها، تست واقعی، ممیزی، MongoDB، ParsPack (FTP) به‌جای Cloudinary، Cron، Compose/Nginx/SSL، Backup (ParsPack + Google Drive)، سرویس‌های خارجی، امنیت، Staging، Cutover، بعد از Cutover.
+- **تصمیم‌ها:** Branch کار `docker-migration`؛ ادغام در `main` فقط با دستور صریح؛ تصاویر روی ParsPack با Cache در Nginx؛ Backup دیتابیس رمزنگاری‌شده روی ParsPack و Google Drive به‌علاوه نسخه محلی.
+- **تست:** Lint ✅ Typecheck ✅ `npm test` ✅ (۹۸۲ موفق، ۳ Skip) Build ✅ (Env ساختگی).
+- **NOT VERIFIED:** همه فازهای مسترپرامپت؛ سؤال‌های اولیه (بخش ۴ فایل) هنوز پاسخ داده نشده‌اند.
+
+---
+
 **آخرین کار: Docker Phase 1.1 — `ISR_STRICT` پیاده‌سازی شد (Nov 2026). وضعیت: Runtime واقعی MongoDB و Docker NOT VERIFIED.**
 
 - **Workflow (`docker-image.yml`):** VERIFIED — اجرای Actions روی `docker-migration` برای `f65a527` (run 45936787652) و برای `7669af2` (run 46057749972، ۲ دقیقه ۵۶ ثانیه) موفق بود. اجرای Commit اصلاح تشخیص خطا بعد از Push بررسی و ثبت می‌شود.
